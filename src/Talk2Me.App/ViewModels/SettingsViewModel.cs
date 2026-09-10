@@ -82,7 +82,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private string _status = string.Empty;
 
     [ObservableProperty]
-    private string _updateStatus;
+    private string _updateStatus = string.Empty;
 
     [ObservableProperty]
     private bool _startWithWindows;
