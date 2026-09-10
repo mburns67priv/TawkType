@@ -340,6 +340,58 @@
 
     <!-- ===================== Nav rail ===================== -->
 
+    <!-- History rows expand in place, so the selected one is a raised card with an accent spine
+         rather than a tinted nav row: its text must stay as readable as everything around it. -->
+    <Style x:Key="Ui.HistoryItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Chrome" Background="Transparent" Margin="4,2"
+                            CornerRadius="{StaticResource Ui.CornerRadius}">
+                        <Grid>
+                            <Border x:Name="Spine" Width="3" HorizontalAlignment="Left"
+                                    CornerRadius="3,0,0,3" Background="{DynamicResource Ui.Accent}"
+                                    Visibility="Collapsed" />
+                            <ContentPresenter Margin="14,10,12,11" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Ui.CardHover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Ui.Window}" />
+                            <Setter TargetName="Spine" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Selectable text with no control chrome: a TextBlock cannot be selected, a TextBox looks like a
+         form field. This is the middle ground for read-only transcript text. -->
+    <Style x:Key="Ui.ReadOnlyText" TargetType="TextBox">
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Ui.Accent}" />
+        <Setter Property="Cursor" Value="IBeam" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <ScrollViewer x:Name="PART_ContentHost" VerticalScrollBarVisibility="Disabled"
+                                  HorizontalScrollBarVisibility="Disabled" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="Ui.NavItem" TargetType="ListBoxItem">
         <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
         <Setter Property="FontSize" Value="13.5" />

@@ -91,6 +91,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Controls are fully templated | WPF's stock ComboBox/CheckBox/Button chrome comes from system colours and looks wrong in dark. Templating them is the only way both themes are right. |
 | The pill rests on screen instead of hiding | It is the only feedback the user has, and it is useless if it is gone when they glance at it. Resting dimmed keeps it available without being loud. `Overlay.AlwaysVisible = false` restores hide-on-idle. |
 | The pill is raised with `SWP_NOACTIVATE`, never `Activate()` | Focus must stay in whatever the user clicked into, or the dictation lands in the wrong window — the exact failure the history window exists to recover from. `Topmost` alone is not enough because a later topmost window sits above it, hence the explicit re-raise when dictation starts. |
+| The history list expands rows in place | A list plus a detail pane makes two scroll regions compete for a 560px window: the list collapsed to a sliver and clipped rows mid-line, and the capped detail boxes scrolled short text to a fragment. Expanding in place leaves one scroll region and no truncation at any length. |
 | History is append-only JSONL, not a database | A dictation must never be lost or slowed by the log. The hot path is one `File.AppendAllText`, failures are swallowed (the text is already typed), and the file is only rewritten when trimming or clearing. A torn line is skipped at load. |
 | Cleanup is regex **then** optionally Claude | The regex pass always runs and is the fallback, so dictation degrades rather than breaks when the network, the key, or the timeout fails. Rewrite quality is the whole point of the LLM step, so it gets the raw transcript, not the regex output. |
 | `ILlmClient` seam, Claude first | Core stays free of any provider SDK; `Talk2Me.Llm` holds the Anthropic dependency. A local model (llama.cpp / ONNX) implements the same two-method interface without touching the pipeline. Claude first because rewrite quality is what makes the feature worth having. |
@@ -190,6 +191,7 @@ Both transcripts were otherwise identical and correctly punctuated.
 11. Redesigned Settings as a nav rail plus six pages with stats tiles, added the light/dark/system theme
     system (`Themes/`, `ThemeManager`, `AppearanceSettings`), themed the history window, and pinned the
     pill's colours so it stays dark. Verified every page in both themes by driving the running app.
+12. Rebuilt the history list to expand rows in place after the master-detail layout proved unreadable.
 
 ## Contacts and links
 

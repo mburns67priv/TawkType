@@ -140,7 +140,11 @@ on every add) or clearing. `Recent` caps at the configured maximum regardless of
 A line torn by a crash mid-write is skipped at load rather than failing the file.
 
 `HistoryWindow` subscribes through `IDictationHistory.Changed`, so it updates live while it sits on
-screen. Closing it hides it; only shutdown really closes it. Its placement and always-on-top state live
+screen. Its list expands rows in place rather than pairing a list with a detail pane: in a 420x560 panel
+two scroll regions fight over the height, and the loser gets clipped mid-line. One region, and a
+selected row grows into a card with an accent spine, its full text selectable, what was heard beneath it
+when cleanup changed anything, and Copy in the row header so a long dictation cannot push it out of
+view. Closing it hides it; only shutdown really closes it. Its placement and always-on-top state live
 in `HistorySettings` so a window meant to stay visible comes back where it was.
 
 Everything dictated is therefore on disk in plain text under the user's profile. That is a deliberate
