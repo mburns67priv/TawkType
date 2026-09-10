@@ -28,6 +28,19 @@ public static class Icons
     public static Geometry Folder { get; } =
         Parse("M3,6 H10 L12,8.5 H21 V19 H3 Z");
 
+    public static Geometry Gear { get; } =
+        Parse("M12,9 A3,3 0 1 1 11.99,9 Z M19.4,13 A7.5,7.5 0 0 0 19.4,11 L21.3,9.6 L19.3,6.1 L17.1,7 " +
+              "A7.5,7.5 0 0 0 15.3,6 L15,3.7 H10.9 L10.6,6 A7.5,7.5 0 0 0 8.8,7 L6.6,6.1 L4.6,9.6 " +
+              "L6.5,11 A7.5,7.5 0 0 0 6.5,13 L4.6,14.4 L6.6,17.9 L8.8,17 A7.5,7.5 0 0 0 10.6,18 " +
+              "L10.9,20.3 H15 L15.3,18 A7.5,7.5 0 0 0 17.1,17 L19.3,17.9 L21.3,14.4 Z");
+
+    public static Geometry Clipboard { get; } =
+        Parse("M9,4.5 H15 V7 H9 Z M8,5.5 H6.5 V20 H17.5 V5.5 H16 M9.5,11 H14.5 M9.5,14.5 H14.5");
+
+    public static Geometry Minimize { get; } = Parse("M6,12 H18");
+
+    public static Geometry Close { get; } = Parse("M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5");
+
     private static Geometry Parse(string data)
     {
         var geometry = Geometry.Parse(data);

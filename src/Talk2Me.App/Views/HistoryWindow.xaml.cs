@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Data;
+using Microsoft.Win32;
 using Talk2Me.Core.Settings;
 using Talk2Me.Desktop.ViewModels;
 
@@ -13,31 +14,40 @@ namespace Talk2Me.Desktop.Views;
 public partial class HistoryWindow : Window
 {
     private readonly HistoryViewModel _viewModel;
+    private readonly HistorySettings _placement;
 
     public HistoryWindow(HistoryViewModel viewModel, HistorySettings placement)
     {
         InitializeComponent();
         DataContext = _viewModel = viewModel;
+        _placement = placement;
 
         Width = placement.WindowWidth;
         Height = placement.WindowHeight;
 
-        if (placement.WindowLeft is { } left && placement.WindowTop is { } top && IsOnAScreen(left, top))
-        {
-            WindowStartupLocation = WindowStartupLocation.Manual;
-            Left = left;
-            Top = top;
-        }
-        else
-        {
-            WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        }
+        // The real positioning happens in OnSourceInitialized: it needs the window handle to work out
+        // which monitor the saved point is on, and whether that monitor is still connected.
+        WindowStartupLocation = placement.WindowLeft is null
+            ? WindowStartupLocation.CenterScreen
+            : WindowStartupLocation.Manual;
 
         SetBinding(TopmostProperty, new Binding(nameof(HistoryViewModel.AlwaysOnTop)));
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
     }
 
     /// <summary>Set on shutdown so the last close actually closes instead of hiding.</summary>
     public bool AllowClose { get; set; }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        if (_placement.WindowLeft is { } left && _placement.WindowTop is { } top
+            && !RememberedPlacement.TryRestore(this, left, top))
+        {
+            CentreOnPrimary();
+        }
+    }
 
     protected override void OnClosing(CancelEventArgs e)
     {
@@ -50,26 +60,39 @@ public partial class HistoryWindow : Window
             return;
         }
 
+        SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         base.OnClosing(e);
+    }
+
+    /// <summary>A monitor was unplugged, switched off, or rearranged. Rescue the window if stranded.</summary>
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e)
+        => Dispatcher.BeginInvoke(() =>
+        {
+            if (!RememberedPlacement.EnsureOnScreen(this))
+            {
+                CentreOnPrimary();
+            }
+        });
+
+    /// <summary>The primary monitor is the one place guaranteed to exist.</summary>
+    private void CentreOnPrimary()
+    {
+        var area = SystemParameters.WorkArea;
+        Left = area.Left + ((area.Width - Width) / 2);
+        Top = area.Top + ((area.Height - Height) / 2);
     }
 
     private void SavePlacement()
     {
-        // Left/Top are meaningless while maximised or minimised; RestoreBounds is the normal rectangle.
-        var bounds = WindowState == WindowState.Normal
-            ? new Rect(Left, Top, Width, Height)
-            : RestoreBounds;
+        // Size stays in WPF units; the position is captured in physical pixels so it can be checked
+        // against the real monitor rectangles next time, without any DPI conversion.
+        var size = WindowState == WindowState.Normal
+            ? new Size(Width, Height)
+            : new Size(RestoreBounds.Width, RestoreBounds.Height);
 
-        if (bounds.Width > 0 && bounds.Height > 0)
+        if (size.Width > 0 && size.Height > 0 && RememberedPlacement.Capture(this) is { } spot)
         {
-            _viewModel.SavePlacement(bounds.Left, bounds.Top, bounds.Width, bounds.Height);
+            _viewModel.SavePlacement(spot.Left, spot.Top, size.Width, size.Height);
         }
     }
-
-    /// <summary>Guards against restoring onto a monitor that has since been unplugged.</summary>
-    private static bool IsOnAScreen(double left, double top)
-        => left > SystemParameters.VirtualScreenLeft - 100
-           && top > SystemParameters.VirtualScreenTop - 100
-           && left < SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 100
-           && top < SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 100;
 }

@@ -27,5 +27,16 @@ public sealed class OverlaySettings
     /// <summary>Gap in pixels between the pill and the edges of the work area.</summary>
     public double Margin { get; set; } = 36;
 
+    /// <summary>
+    /// Where the user dragged the bar to. Null means "use <see cref="Position"/>", which is also what
+    /// happens when the saved point is no longer on any connected screen.
+    /// </summary>
+    public double? WindowLeft { get; set; }
+
+    public double? WindowTop { get; set; }
+
+    /// <summary>Collapsed to just the mark, for when the full bar is in the way.</summary>
+    public bool Compact { get; set; }
+
     public OverlaySettings Clone() => (OverlaySettings)MemberwiseClone();
 }

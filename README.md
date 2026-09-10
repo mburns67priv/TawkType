@@ -9,7 +9,7 @@ cleanup pass, which is off until you turn it on and explain itself below.
 
 ```
 hold key ──► mic capture (16 kHz) ──► release ──► Parakeet / Whisper ──► cleanup ──► type into focused app
-             ▲ pill rests on screen, then shows "Listening…" / "Transcribing…" / "Polishing…" / "Typing…"
+             ▲ bar rests on screen, then shows "Listening" + waveform + timer, "Transcribing…", "Typing…"
 ```
 
 | Piece | Implementation |
@@ -19,7 +19,7 @@ hold key ──► mic capture (16 kHz) ──► release ──► Parakeet / W
 | Speech-to-text | Two engines behind one interface: NVIDIA Parakeet TDT 0.6B v3 (sherpa-onnx, CPU int8) for English and 24 other European languages, Whisper.net `large-v3-turbo` (CUDA 12 → Vulkan → CPU) for the rest |
 | Cleanup | Regex filler removal, whitespace, casing — always. Optionally a Claude rewrite on top: spoken corrections, lists, personal dictionary, tone |
 | Typing | `SendInput` Unicode events; clipboard paste for long text |
-| UI | WPF: tray icon, always-on-screen click-through pill, a six-page settings window, history window. Light and dark themes, or follow Windows |
+| UI | WPF: tray icon, a draggable always-on-screen status bar with its own toolbar, a six-page settings window, history window. Light and dark themes, or follow Windows |
 
 ## Run it
 
@@ -77,20 +77,23 @@ total words and characters, and time saved against typing the same words at 40 w
 if you change it. The change is live: open windows restyle without reopening. The status pill is
 deliberately excluded — it floats over other applications, so it stays dark in every theme.
 
-## The status pill
+## The status bar
 
-The floating pill stays on screen. Between dictations it rests dimmed, showing your hotkey; the moment
-you start speaking it comes back to full strength and back to the front, in case something else has been
-put above it in the meantime.
+The bar stays on screen. Between dictations it rests dimmed, showing your hotkey; the moment you start
+speaking it comes back to full strength and back to the front, and shows a live level meter and the
+elapsed time.
 
-It never takes focus and never takes the mouse. The window is `WS_EX_NOACTIVATE` (Windows will not
-activate it), `WS_EX_TRANSPARENT` and `IsHitTestVisible="False"` (clicks pass straight through to what is
-behind), and it is raised with `SWP_NOACTIVATE` rather than `SetForegroundWindow`. So wherever you
-clicked keeps the caret, and the dictated text lands there.
+It carries a small toolbar: **Settings**, **History**, **Copy last dictation**, **collapse to the mark**,
+and **hide between dictations** (the bar still appears while you speak; Appearance turns it back on).
+Drag it anywhere by its body — where you put it is remembered across restarts.
 
-Settings has an on/off for resting on screen and six positions (each corner, top or bottom centre).
-`Overlay.RestingOpacity` and `Overlay.Margin` in `settings.json` tune how faint it rests and how far it
-sits from the edge.
+**It never takes focus.** The window is `WS_EX_NOACTIVATE`, so Windows delivers your clicks but never
+activates it, and it is raised with `SWP_NOACTIVATE` rather than `SetForegroundWindow`. Press a button or
+drag it and the caret stays exactly where you left it, so the dictated text still lands there.
+
+Settings has an on/off for resting on screen and six starting positions (each corner, top or bottom
+centre) used until you drag it somewhere. `Overlay.RestingOpacity` and `Overlay.Margin` in
+`settings.json` tune how faint it rests and how far it sits from the edge.
 
 ## History
 

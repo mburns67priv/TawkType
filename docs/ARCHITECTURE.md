@@ -87,6 +87,27 @@ The API key never enters `settings.json`, which is plain text. `IApiKeyStore` ke
 (`ANTHROPIC_API_KEY` is the fallback). That protects the file at rest against other accounts on the
 machine — not against anything running as this user.
 
+## Remembered window positions
+
+The status bar and the history window both remember where the user put them, which on a multi-monitor
+desktop is a trap. The obvious check — "is the saved point inside the virtual desktop?" — is wrong,
+because the virtual desktop is the *bounding box* of the monitors and can contain large regions with no
+monitor behind them. Restore a window into one of those and it is invisible and cannot be dragged back.
+
+So `WindowPlacement` (Core, pure, unit tested) works against the real monitor rectangles: find the work
+area the window overlaps most, clamp it fully inside, and return null when it overlaps none so the caller
+falls back to a default that always exists — the configured corner of the primary screen for the bar,
+centred on the primary for the history window. `MonitorLayout` (Talk2Me.Windows) supplies the work areas
+from `EnumDisplayMonitors`.
+
+Positions are stored and applied in **physical pixels**, captured with `GetWindowRect` and applied with
+`SetWindowPos`. WPF's `Left`/`Top` are device-independent units, and converting between the two needs the
+DPI of the monitor you are moving *to* — which you do not know until you are there. Staying in physical
+pixels removes the conversion, and with it the mixed-DPI special cases.
+
+Both windows also handle `SystemEvents.DisplaySettingsChanged`, so a window stranded by a monitor being
+unplugged mid-session comes back immediately rather than at the next launch.
+
 ## Theming
 
 `App.xaml` merges two dictionaries: slot 0 is the theme (`Themes/Light.xaml` or `Themes/Dark.xaml`),
@@ -114,15 +135,26 @@ silently disappears while the control still reports its value.
 The pill is the one window that is on screen while the user works in something else, so its whole design
 is about not interfering:
 
-- `WS_EX_NOACTIVATE` — Windows will not activate it, so clicking near it cannot move focus.
-- `WS_EX_TRANSPARENT` plus `IsHitTestVisible="False"` — clicks go through to the window behind.
+- `WS_EX_NOACTIVATE` — Windows delivers clicks but never *activates* the window. This is what lets the
+  bar have a toolbar and be dragged while the caret stays in the user's editor.
 - `ShowActivated="False"` — showing it does not pull focus off the user's window.
 - Raised with `SetWindowPos(HWND_TOPMOST, …, SWP_NOACTIVATE)`. Never `Activate()` or
   `SetForegroundWindow` — either would move focus, which is the one thing this window must not do.
 
+`WS_EX_TRANSPARENT` and `IsHitTestVisible="False"` were how the pill used to guarantee it never
+interfered; they are gone, because a click-through window cannot have buttons. `WS_EX_NOACTIVATE` alone
+gives both halves, and there is a test for it: a real synthetic click on the bar's Copy button, with
+`GetForegroundWindow()` compared before and after.
+
 `Topmost="True"` alone is not enough: another topmost window put up later sits above it. So the pill
 re-asserts its z-order every time it goes from resting to active, which is exactly when the user needs
 to see it.
+
+The bar carries its own toolbar — Settings, History, Copy last, collapse, and hide-between-dictations —
+and can be dragged anywhere; `Overlay.WindowLeft`/`WindowTop` remember where, falling back to
+`Overlay.Position` when the saved point is no longer on a connected screen. While listening it shows the
+elapsed time and a level meter built from a rolling buffer of `IAudioCapture` samples, one `WaveBar` per
+column so the bars animate without rebuilding the list.
 
 Between dictations `OverlayViewModel` settles rather than hides: `IsResting` goes true, the text becomes
 the hotkey hint, and the view fades the pill to `Overlay.RestingOpacity`. `Overlay.AlwaysVisible = false`

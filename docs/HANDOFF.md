@@ -90,6 +90,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Light default with a dark toggle, pill always dark | The owner picked light with a toggle. The pill is the exception on purpose: it floats over other applications, so it has to read against *their* content, not ours. Its brushes are `Overlay.*` in App.xaml and never swap. |
 | Controls are fully templated | WPF's stock ComboBox/CheckBox/Button chrome comes from system colours and looks wrong in dark. Templating them is the only way both themes are right. |
 | The pill rests on screen instead of hiding | It is the only feedback the user has, and it is useless if it is gone when they glance at it. Resting dimmed keeps it available without being loud. `Overlay.AlwaysVisible = false` restores hide-on-idle. |
+| Remembered positions are checked against real monitors, in physical pixels | The virtual desktop is a bounding box with holes in it on a multi-monitor setup, so a bounding-box check restores windows onto dead space where they cannot be seen or dragged. `WindowPlacement` uses the actual monitor rectangles. Physical pixels because DIP conversion needs the target monitor's DPI, which you do not know until you are on it. |
+| The bar takes clicks but not focus | It has a toolbar and can be dragged, so it can no longer be click-through. `WS_EX_NOACTIVATE` alone does both: Windows delivers the clicks and never activates the window, so the caret stays in the user's editor. `WS_EX_TRANSPARENT` and `IsHitTestVisible=False` are gone. |
 | The pill is raised with `SWP_NOACTIVATE`, never `Activate()` | Focus must stay in whatever the user clicked into, or the dictation lands in the wrong window — the exact failure the history window exists to recover from. `Topmost` alone is not enough because a later topmost window sits above it, hence the explicit re-raise when dictation starts. |
 | The history list expands rows in place | A list plus a detail pane makes two scroll regions compete for a 560px window: the list collapsed to a sliver and clipped rows mid-line, and the capped detail boxes scrolled short text to a fragment. Expanding in place leaves one scroll region and no truncation at any length. |
 | History is append-only JSONL, not a database | A dictation must never be lost or slowed by the log. The hot path is one `File.AppendAllText`, failures are swallowed (the text is already typed), and the file is only rewritten when trimming or clearing. A torn line is skipped at load. |
@@ -152,6 +154,17 @@ Both transcripts were otherwise identical and correctly punctuated.
     Automation — it looks like a broken binding and is not. Use `MinHeight`.
 17. **Light.xaml and Dark.xaml must define the same keys.** A key missing from one only fails once a
     user switches to that theme.
+18. **The status bar's close button does not quit anything.** It sets `Overlay.AlwaysVisible = false`,
+    so the bar stops resting on screen but still appears while dictating; Appearance turns it back on.
+    Collapse (`─`) toggles `Overlay.Compact`. Neither is destructive, both persist.
+19. **Do not re-add `WS_EX_TRANSPARENT` to `OverlayWindow`.** It would make the toolbar unclickable and
+    dragging impossible. `WS_EX_NOACTIVATE` is what keeps focus where it belongs.
+20. **Never check a remembered window position against `SystemParameters.VirtualScreen*`.** That is the
+    bounding box of every monitor, and on the owner's four-monitor layout it contains regions no monitor
+    covers. Use `WindowPlacement.Restore` with `MonitorLayout.WorkAreas()`.
+21. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
+    `History.WindowWidth/Height` are still WPF units. Values saved before this change were WPF units;
+    they differ only under DPI scaling, and a wrong one is clamped on the next launch rather than lost.
 
 ## Roadmap, in the order I would do it
 
@@ -192,6 +205,13 @@ Both transcripts were otherwise identical and correctly punctuated.
     system (`Themes/`, `ThemeManager`, `AppearanceSettings`), themed the history window, and pinned the
     pill's colours so it stays dark. Verified every page in both themes by driving the running app.
 12. Rebuilt the history list to expand rows in place after the master-detail layout proved unreadable.
+13. Turned the pill into a 433px bar with a toolbar (Settings, History, Copy last, collapse, hide), made
+    it draggable with the position persisted, and gave listening a live waveform and an elapsed timer.
+    Verified with synthetic mouse input that clicking and dragging it leaves the foreground window
+    untouched.
+14. Fixed remembered window positions on multi-monitor setups: `WindowPlacement` + `MonitorLayout`
+    replace the virtual-desktop bounding-box check, positions moved to physical pixels, and both
+    windows now react to `DisplaySettingsChanged`.
 
 ## Contacts and links
 

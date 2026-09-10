@@ -69,11 +69,13 @@ public partial class App : Application
         _tray.ForceCreate();
 
         var overlayVm = Services.GetRequiredService<OverlayViewModel>();
+        overlayVm.SettingsRequested += (_, _) => OnSettingsClick(this, new RoutedEventArgs());
+        overlayVm.HistoryRequested += (_, _) => ShowHistoryWindow();
         _overlay = new OverlayWindow(overlayVm, Services.GetRequiredService<ISettingsProvider>());
 
         _engine = Services.GetRequiredService<DictationEngine>();
         _engine.StateChanged += (_, state) => Dispatcher.BeginInvoke(() => overlayVm.ApplyState(state));
-        _engine.AudioLevelChanged += (_, level) => Dispatcher.BeginInvoke(() => overlayVm.Level = level);
+        _engine.AudioLevelChanged += (_, level) => Dispatcher.BeginInvoke(() => overlayVm.PushLevel(level));
         _engine.Failed += (_, ex) => Dispatcher.BeginInvoke(() => overlayVm.ShowError(FriendlyMessage(ex)));
         _engine.Completed += OnDictationCompleted;
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
@@ -107,7 +109,7 @@ public partial class App : Application
             overlayVm.ApplyState(DictationState.Listening);
             for (var i = 0; i < 40; i++)
             {
-                overlayVm.Level = (float)random.NextDouble();
+                overlayVm.PushLevel((float)random.NextDouble());
                 await Task.Delay(75);
             }
 

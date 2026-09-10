@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
+using Microsoft.Win32;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Settings;
 using Talk2Me.Desktop.ViewModels;
@@ -9,15 +11,17 @@ using Talk2Me.Desktop.ViewModels;
 namespace Talk2Me.Desktop.Views;
 
 /// <summary>
-/// The floating status pill. It never takes focus and never takes the mouse: WS_EX_NOACTIVATE keeps
-/// Windows from activating it, WS_EX_TRANSPARENT sends clicks straight through to whatever is behind,
-/// and it is raised with SWP_NOACTIVATE so coming to the front cannot move the caret out of the window
-/// the user clicked into.
+/// The floating status bar. It takes mouse input — toolbar buttons, and dragging to move it — but it
+/// must never take *focus*: the caret has to stay in whatever the user is dictating into.
+///
+/// WS_EX_NOACTIVATE is what makes both true at once. Windows still delivers clicks to the window, but
+/// never activates it, so pressing a button here does not deactivate the user's editor. WS_EX_TRANSPARENT
+/// is deliberately NOT set any more (it would send the clicks straight through), and the bar is raised
+/// with SWP_NOACTIVATE rather than Activate() for the same reason.
 /// </summary>
 public partial class OverlayWindow : Window
 {
     private const int GwlExStyle = -20;
-    private const int WsExTransparent = 0x00000020;
     private const int WsExToolWindow = 0x00000080;
     private const int WsExNoActivate = 0x08000000;
 
@@ -30,15 +34,22 @@ public partial class OverlayWindow : Window
     private readonly OverlayViewModel _viewModel;
     private readonly ISettingsProvider _settings;
 
+    private bool _dragging;
+
     public OverlayWindow(OverlayViewModel viewModel, ISettingsProvider settings)
     {
         _viewModel = viewModel;
         _settings = settings;
         InitializeComponent();
         DataContext = viewModel;
+
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        viewModel.PlacementReset += OnPlacementReset;
         settings.Changed += OnSettingsChanged;
-        SizeChanged += (_, _) => Reposition();
+        SizeChanged += OnSizeChanged;
+
+        MouseLeftButtonDown += OnDragStart;
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
         // The view model may already be resting on screen before the window exists to hear about it.
         if (viewModel.IsVisible)
@@ -52,15 +63,68 @@ public partial class OverlayWindow : Window
         base.OnSourceInitialized(e);
         var handle = new WindowInteropHelper(this).Handle;
         var style = GetWindowLongPtr(handle, GwlExStyle).ToInt64();
-        SetWindowLongPtr(handle, GwlExStyle, new nint(style | WsExTransparent | WsExToolWindow | WsExNoActivate));
+        SetWindowLongPtr(handle, GwlExStyle, new nint(style | WsExToolWindow | WsExNoActivate));
+
+        Reposition();
     }
 
     protected override void OnClosing(CancelEventArgs e)
     {
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.PlacementReset -= OnPlacementReset;
         _settings.Changed -= OnSettingsChanged;
+        SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         base.OnClosing(e);
     }
+
+    /// <summary>Anywhere on the bar that is not a button drags it.</summary>
+    private void OnDragStart(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        try
+        {
+            _dragging = true;
+            DragMove();
+        }
+        catch (InvalidOperationException)
+        {
+            // DragMove throws if the button was already released; nothing to recover from.
+        }
+        finally
+        {
+            _dragging = false;
+            if (RememberedPlacement.Capture(this) is { } spot)
+            {
+                _viewModel.SavePlacement(spot.Left, spot.Top);
+            }
+        }
+    }
+
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        // Collapsing to compact changes the width; keep the bar where the user put it rather than
+        // letting it drift, but do not fight a drag in progress.
+        if (!_dragging)
+        {
+            Reposition();
+        }
+    }
+
+    private void OnPlacementReset(object? sender, EventArgs e) => Dispatcher.BeginInvoke(Reposition);
+
+    /// <summary>A monitor was unplugged, switched off, or rearranged. Rescue the bar if it is stranded.</summary>
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e)
+        => Dispatcher.BeginInvoke(() =>
+        {
+            if (!RememberedPlacement.EnsureOnScreen(this))
+            {
+                MoveToDefaultPosition();
+            }
+        });
 
     private void OnSettingsChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(Reposition);
 
@@ -108,13 +172,28 @@ public partial class OverlayWindow : Window
         }
     }
 
+    /// <summary>
+    /// Where the user dragged it wins, as long as a monitor still covers that spot; otherwise the
+    /// configured corner on the primary screen, which always exists.
+    /// </summary>
     private void Reposition()
+    {
+        var overlay = _settings.Current.Overlay;
+
+        if (overlay.WindowLeft is { } savedLeft && overlay.WindowTop is { } savedTop
+            && RememberedPlacement.TryRestore(this, savedLeft, savedTop))
+        {
+            return;
+        }
+
+        MoveToDefaultPosition();
+    }
+
+    private void MoveToDefaultPosition()
     {
         var area = SystemParameters.WorkArea;
         var overlay = _settings.Current.Overlay;
         var margin = overlay.Margin;
-
-        // The pill's own Border carries a 24px margin for its drop shadow; that is inside ActualWidth.
         var center = area.Left + ((area.Width - ActualWidth) / 2);
         var bottom = area.Bottom - ActualHeight - margin;
         var top = area.Top + margin;

@@ -1,19 +1,44 @@
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Models;
+using Talk2Me.Core.Settings;
 
 namespace Talk2Me.Desktop.ViewModels;
 
-/// <summary>Drives the floating status pill. All members must be touched on the UI thread.</summary>
+/// <summary>One bar of the level meter. Its own object so the bars animate without rebuilding the list.</summary>
+public sealed partial class WaveBar : ObservableObject
+{
+    [ObservableProperty]
+    private double _height = WaveMinimum;
+
+    public const double WaveMinimum = 3;
+
+    public const double WaveMaximum = 26;
+}
+
+/// <summary>
+/// Drives the floating status bar. All members must be touched on the UI thread.
+/// </summary>
 public sealed partial class OverlayViewModel : ObservableObject
 {
-    private const double MeterWidth = 72;
-    private static readonly TimeSpan IdleHideDelay = TimeSpan.FromMilliseconds(450);
-    private static readonly TimeSpan ErrorHideDelay = TimeSpan.FromSeconds(3);
+    /// <summary>Enough bars to read as a waveform, few enough to stay legible at this width.</summary>
+    private const int BarCount = 21;
 
-    private readonly ISettingsProvider _settings;
+    private static readonly TimeSpan IdleSettleDelay = TimeSpan.FromMilliseconds(450);
+    private static readonly TimeSpan ErrorSettleDelay = TimeSpan.FromSeconds(3);
 
-    private CancellationTokenSource? _hideTimer;
+    private readonly SettingsStore _settings;
+    private readonly IDictationHistory _history;
+    private readonly DispatcherTimer _elapsedTimer;
+
+    private CancellationTokenSource? _settleTimer;
+    private CancellationTokenSource? _statusTimer;
+    private long _listeningSince;
 
     [ObservableProperty]
     private bool _isVisible;
@@ -22,21 +47,29 @@ public sealed partial class OverlayViewModel : ObservableObject
     private string _statusText = string.Empty;
 
     /// <summary>
-    /// True while the pill is sitting idle on screen rather than reporting a dictation. The view fades
-    /// it out at this point so a permanently visible pill is not a permanent distraction.
+    /// True while the bar is sitting idle on screen rather than reporting a dictation. The view fades
+    /// it out at this point so a permanently visible bar is not a permanent distraction.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Opacity))]
     private bool _isResting;
+
+    /// <summary>Collapsed to just the mark. Persisted, so it survives a restart.</summary>
+    [ObservableProperty]
+    private bool _isCompact;
 
     /// <summary>Matches a DictationState name; the view maps it to a colour.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsListening))]
     private string _stateKey = nameof(DictationState.Idle);
 
+    /// <summary>"2.5s" while listening; empty otherwise.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(LevelWidth))]
-    private float _level;
+    private string _elapsedText = string.Empty;
+
+    /// <summary>Transient toast for the toolbar actions, e.g. after Copy.</summary>
+    [ObservableProperty]
+    private string _toast = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowProgress))]
@@ -47,16 +80,39 @@ public sealed partial class OverlayViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowProgress))]
     private bool _isBusyWithModel;
 
-    public OverlayViewModel(ISettingsProvider settings)
+    public OverlayViewModel(SettingsStore settings, IDictationHistory history)
     {
         _settings = settings;
+        _history = history;
+        _isCompact = settings.Current.Overlay.Compact;
+
+        for (var i = 0; i < BarCount; i++)
+        {
+            Bars.Add(new WaveBar());
+        }
+
+        _elapsedTimer = new DispatcherTimer(DispatcherPriority.Normal)
+        {
+            Interval = TimeSpan.FromMilliseconds(100),
+        };
+        _elapsedTimer.Tick += (_, _) =>
+            ElapsedText = $"{Stopwatch.GetElapsedTime(_listeningSince).TotalSeconds:F1}s";
+
         _settings.Changed += (_, _) => ApplyVisibilityMode();
         ApplyVisibilityMode();
     }
 
-    public bool IsListening => StateKey == nameof(DictationState.Listening);
+    /// <summary>Raised when the toolbar asks the app to open a window; the App owns those.</summary>
+    public event EventHandler? SettingsRequested;
 
-    public double LevelWidth => Math.Max(4, Level * MeterWidth);
+    public event EventHandler? HistoryRequested;
+
+    /// <summary>Raised when the window should re-read its placement settings.</summary>
+    public event EventHandler? PlacementReset;
+
+    public ObservableCollection<WaveBar> Bars { get; } = new();
+
+    public bool IsListening => StateKey == nameof(DictationState.Listening);
 
     public bool ShowProgress => IsBusyWithModel;
 
@@ -64,18 +120,15 @@ public sealed partial class OverlayViewModel : ObservableObject
 
     public double Opacity => IsResting ? Math.Clamp(_settings.Current.Overlay.RestingOpacity, 0.05, 1.0) : 1.0;
 
-    /// <summary>True when a state change should also bring the pill back to the front.</summary>
-    public bool IsActive => !IsResting && IsVisible;
-
     public void ApplyState(DictationState state)
     {
         switch (state)
         {
             case DictationState.Listening:
-                Level = 0;
-                Show("Listening…", state);
+                StartListening();
                 break;
             case DictationState.Transcribing:
+                StopListening();
                 Show("Transcribing…", state);
                 break;
             case DictationState.Polishing:
@@ -85,22 +138,36 @@ public sealed partial class OverlayViewModel : ObservableObject
                 Show("Typing…", state);
                 break;
             case DictationState.Idle:
+                StopListening();
                 if (!IsBusyWithModel)
                 {
-                    SettleAfter(IdleHideDelay);
+                    SettleAfter(IdleSettleDelay);
                 }
 
                 break;
             case DictationState.Error:
-                // Message arrives through ShowError.
+                StopListening();
                 break;
         }
+    }
+
+    /// <summary>Feeds the level meter. 0..1.</summary>
+    public void PushLevel(float level)
+    {
+        // Shift left by one and put the newest sample at the right, so the wave scrolls as you speak.
+        for (var i = 0; i < Bars.Count - 1; i++)
+        {
+            Bars[i].Height = Bars[i + 1].Height;
+        }
+
+        var scaled = WaveBar.WaveMinimum + (Math.Clamp(level, 0, 1) * (WaveBar.WaveMaximum - WaveBar.WaveMinimum));
+        Bars[^1].Height = scaled;
     }
 
     public void ShowError(string message)
     {
         Show(message, DictationState.Error);
-        SettleAfter(ErrorHideDelay);
+        SettleAfter(ErrorSettleDelay);
     }
 
     public void ReportProgress(ModelProgress progress)
@@ -117,10 +184,90 @@ public sealed partial class OverlayViewModel : ObservableObject
     {
         IsBusyWithModel = false;
         Progress = null;
-        SettleAfter(IdleHideDelay);
+        SettleAfter(IdleSettleDelay);
     }
 
-    /// <summary>Re-reads the always-visible setting and rests or hides the pill accordingly.</summary>
+    /// <summary>Persists where the user dragged the bar to.</summary>
+    public void SavePlacement(double left, double top)
+    {
+        var next = _settings.Current.Clone();
+        next.Overlay.WindowLeft = left;
+        next.Overlay.WindowTop = top;
+        _settings.Save(next);
+    }
+
+    [RelayCommand]
+    private void OpenSettings() => SettingsRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private void OpenHistory() => HistoryRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private void CopyLast()
+    {
+        if (_history.Last is not { } record || string.IsNullOrWhiteSpace(record.FinalText))
+        {
+            Flash("Nothing dictated yet");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(record.FinalText);
+            Flash("Copied");
+        }
+        catch (Exception ex)
+        {
+            // Another process can hold the clipboard open; never worth an error dialog from the bar.
+            Flash(ex.Message.Length > 28 ? "Could not copy" : ex.Message);
+        }
+    }
+
+    /// <summary>Collapses to just the mark, or back. Persisted.</summary>
+    [RelayCommand]
+    private void ToggleCompact()
+    {
+        IsCompact = !IsCompact;
+
+        var next = _settings.Current.Clone();
+        next.Overlay.Compact = IsCompact;
+        _settings.Save(next);
+
+        PlacementReset?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// The close button. Stops the bar resting on screen; it still appears while you dictate, and
+    /// Appearance → "Keep the pill on screen" brings it back for good.
+    /// </summary>
+    [RelayCommand]
+    private void HideBetweenDictations()
+    {
+        var next = _settings.Current.Clone();
+        next.Overlay.AlwaysVisible = false;
+        _settings.Save(next);
+    }
+
+    private void StartListening()
+    {
+        foreach (var bar in Bars)
+        {
+            bar.Height = WaveBar.WaveMinimum;
+        }
+
+        _listeningSince = Stopwatch.GetTimestamp();
+        ElapsedText = "0.0s";
+        _elapsedTimer.Start();
+        Show("Listening", DictationState.Listening);
+    }
+
+    private void StopListening()
+    {
+        _elapsedTimer.Stop();
+        ElapsedText = string.Empty;
+    }
+
+    /// <summary>Re-reads the always-visible setting and rests or hides the bar accordingly.</summary>
     private void ApplyVisibilityMode()
     {
         if (IsResting || !IsVisible)
@@ -129,7 +276,7 @@ public sealed partial class OverlayViewModel : ObservableObject
         }
         else
         {
-            // Mid-dictation: leave the pill alone and let the next settle pick the new mode up.
+            // Mid-dictation: leave the bar alone and let the next settle pick the new mode up.
             OnPropertyChanged(nameof(Opacity));
         }
     }
@@ -147,7 +294,11 @@ public sealed partial class OverlayViewModel : ObservableObject
     private void Settle()
     {
         StateKey = nameof(DictationState.Idle);
-        Level = 0;
+
+        foreach (var bar in Bars)
+        {
+            bar.Height = WaveBar.WaveMinimum;
+        }
 
         if (_settings.Current.Overlay.AlwaysVisible)
         {
@@ -165,7 +316,7 @@ public sealed partial class OverlayViewModel : ObservableObject
     private async void SettleAfter(TimeSpan delay)
     {
         CancelSettle();
-        var cts = _hideTimer = new CancellationTokenSource();
+        var cts = _settleTimer = new CancellationTokenSource();
         try
         {
             await Task.Delay(delay, cts.Token);
@@ -178,11 +329,27 @@ public sealed partial class OverlayViewModel : ObservableObject
 
     private void CancelSettle()
     {
-        _hideTimer?.Cancel();
-        _hideTimer = null;
+        _settleTimer?.Cancel();
+        _settleTimer = null;
     }
 
-    /// <summary>"RightControl" reads badly on a pill; "Right Ctrl" does.</summary>
+    private async void Flash(string message)
+    {
+        _statusTimer?.Cancel();
+        var cts = _statusTimer = new CancellationTokenSource();
+        Toast = message;
+
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1.6), cts.Token);
+            Toast = string.Empty;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    /// <summary>"RightControl" reads badly on a bar; "Right Ctrl" does.</summary>
     private static string FriendlyHotkey(string hotkey) => hotkey switch
     {
         "RightControl" => "Right Ctrl",

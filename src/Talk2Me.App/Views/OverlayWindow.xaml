@@ -14,18 +14,53 @@
         Topmost="True"
         ShowInTaskbar="False"
         ShowActivated="False"
-        Focusable="False"
-        IsHitTestVisible="False"
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
         FontFamily="{StaticResource Brand.Font}">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <views:InverseBoolToVisibilityConverter x:Key="NotBoolToVis" />
+
+        <!-- Toolbar glyphs: 22px hit target, muted until hovered. Deliberately quiet — the bar is on
+             screen all day and these must not compete with the dictation state. -->
+        <Style x:Key="BarButton" TargetType="Button">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Margin" Value="1,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" Background="Transparent" CornerRadius="5">
+                            <Path x:Name="Glyph" Data="{TemplateBinding Tag}"
+                                  Width="13" Height="13" Stretch="Uniform"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Stroke="#8A90A8" StrokeThickness="1.6"
+                                  StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#26FFFFFF" />
+                                <Setter TargetName="Glyph" Property="Stroke" Value="#F5F6FA" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StateLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Overlay.Text}" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </Window.Resources>
 
-    <!-- Outer border carries a 1.5px gradient ring while listening; inner border is the pill body.
-         Opacity fades the whole pill down while it is resting on screen between dictations. -->
-    <Border Margin="24" CornerRadius="26" Padding="1.5" Opacity="{Binding Opacity}">
+    <!-- Outer border is the 1.5px ring; it takes the brand gradient while listening.
+         The 18px margin is the drop shadow's room, and is what makes the window bigger than the bar. -->
+    <Border Margin="18" CornerRadius="18" Padding="1.5" Opacity="{Binding Opacity}">
         <Border.Style>
             <Style TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource Overlay.Border}" />
@@ -37,62 +72,134 @@
             </Style>
         </Border.Style>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.5" Color="#0E0F16" />
+            <DropShadowEffect BlurRadius="24" ShadowDepth="5" Opacity="0.55" Color="#0E0F16" />
         </Border.Effect>
 
-        <Border CornerRadius="25" Padding="16,10,18,10" Background="{StaticResource Overlay.Surface}">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- Brand mark; the bars take the state colour. -->
-                <views:BrandMark Width="18" Height="18" Margin="0,0,10,0" VerticalAlignment="Center">
-                    <views:BrandMark.Style>
-                        <Style TargetType="views:BrandMark">
-                            <Setter Property="BarsBrush" Value="{StaticResource State.Transcribing}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding StateKey}" Value="Listening">
-                                    <Setter Property="BarsBrush" Value="{StaticResource State.Listening}" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding StateKey}" Value="Injecting">
-                                    <Setter Property="BarsBrush" Value="{StaticResource State.Injecting}" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding StateKey}" Value="Error">
-                                    <Setter Property="BarsBrush" Value="{StaticResource State.Error}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </views:BrandMark.Style>
-                </views:BrandMark>
+        <Border CornerRadius="17" Background="{StaticResource Overlay.Surface}">
+            <Grid>
 
-                <TextBlock Text="{Binding StatusText}"
-                           Foreground="{StaticResource Overlay.Text}"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center" />
+                <!-- ===================== Compact: just the mark ===================== -->
+                <Button Width="52" Height="42" Cursor="Hand" Focusable="False"
+                        Command="{Binding ToggleCompactCommand}"
+                        ToolTip="Expand Talk2Me"
+                        Visibility="{Binding IsCompact, Converter={StaticResource BoolToVis}}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent">
+                                <views:BrandMark Width="22" Height="22"
+                                                 HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <views:BrandMark.Style>
+                                        <Style TargetType="views:BrandMark">
+                                            <Setter Property="BubbleBrush" Value="#8A90A8" />
+                                            <Setter Property="BarsBrush" Value="{StaticResource State.Transcribing}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding StateKey}" Value="Listening">
+                                                    <Setter Property="BubbleBrush" Value="{StaticResource Overlay.Text}" />
+                                                    <Setter Property="BarsBrush" Value="{StaticResource State.Listening}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </views:BrandMark.Style>
+                                </views:BrandMark>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
 
-                <!-- Mic level meter, only while listening -->
-                <Border Width="72" Height="6"
-                        Margin="14,0,0,0"
-                        CornerRadius="3"
-                        Background="#22FFFFFF"
-                        VerticalAlignment="Center"
-                        Visibility="{Binding IsListening, Converter={StaticResource BoolToVis}}">
-                    <Rectangle HorizontalAlignment="Left"
-                               RadiusX="3" RadiusY="3"
-                               Fill="{StaticResource Brand.VoiceGradient}"
-                               Width="{Binding LevelWidth}" />
-                </Border>
+                <!-- ===================== Full bar ===================== -->
+                <Grid Width="394" Height="78"
+                      Visibility="{Binding IsCompact, Converter={StaticResource NotBoolToVis}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="26" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
-                <!-- Model download / load progress -->
-                <ProgressBar Width="120" Height="6"
-                             Margin="14,0,0,0"
-                             Minimum="0" Maximum="1"
-                             BorderThickness="0"
-                             Background="#22FFFFFF"
-                             Foreground="{StaticResource Brand.Accent}"
-                             Value="{Binding Progress, Mode=OneWay, TargetNullValue=0}"
-                             IsIndeterminate="{Binding IsIndeterminate}"
-                             VerticalAlignment="Center"
-                             Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVis}}" />
-            </StackPanel>
+                    <!-- Toolbar. Left: the things you might want mid-session. Right: window controls. -->
+                    <DockPanel Grid.Row="0" Margin="8,5,8,0">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Minimize}"
+                                    Command="{Binding ToggleCompactCommand}"
+                                    ToolTip="Collapse to the mark" />
+                            <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Close}"
+                                    Command="{Binding HideBetweenDictationsCommand}"
+                                    ToolTip="Hide between dictations. It still appears while you speak; turn it back on under Settings → Appearance." />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Gear}"
+                                    Command="{Binding OpenSettingsCommand}" ToolTip="Settings" />
+                            <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Clock}"
+                                    Command="{Binding OpenHistoryCommand}" ToolTip="History" />
+                            <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Clipboard}"
+                                    Command="{Binding CopyLastCommand}" ToolTip="Copy the last dictation" />
+
+                            <TextBlock Text="{Binding Toast}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                       FontSize="11" Foreground="{StaticResource State.Injecting}" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Idle / working: the mark and what to do, centred. -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Visibility="{Binding IsListening, Converter={StaticResource NotBoolToVis}}">
+                        <views:BrandMark Width="26" Height="26" Margin="0,0,12,0" VerticalAlignment="Center">
+                            <views:BrandMark.Style>
+                                <Style TargetType="views:BrandMark">
+                                    <Setter Property="BubbleBrush" Value="#8A90A8" />
+                                    <Setter Property="BarsBrush" Value="{StaticResource State.Transcribing}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding StateKey}" Value="Injecting">
+                                            <Setter Property="BarsBrush" Value="{StaticResource State.Injecting}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding StateKey}" Value="Error">
+                                            <Setter Property="BarsBrush" Value="{StaticResource State.Error}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </views:BrandMark.Style>
+                        </views:BrandMark>
+
+                        <TextBlock Text="{Binding StatusText}" Style="{StaticResource StateLabel}"
+                                   MaxWidth="250" TextTrimming="CharacterEllipsis" />
+
+                        <ProgressBar Width="110" Height="5" Margin="14,0,0,0"
+                                     Minimum="0" Maximum="1" BorderThickness="0"
+                                     Background="#22FFFFFF" Foreground="{StaticResource Brand.Accent}"
+                                     Value="{Binding Progress, Mode=OneWay, TargetNullValue=0}"
+                                     IsIndeterminate="{Binding IsIndeterminate}"
+                                     VerticalAlignment="Center"
+                                     Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+
+                    <!-- Listening: label left, live waveform centre, elapsed right. -->
+                    <Grid Grid.Row="1" Margin="18,0,18,10"
+                          Visibility="{Binding IsListening, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding StatusText}" Style="{StaticResource StateLabel}"
+                                   HorizontalAlignment="Left" />
+
+                        <ItemsControl ItemsSource="{Binding Bars}" HorizontalAlignment="Center"
+                                      VerticalAlignment="Center">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Rectangle Width="3" Margin="1,0" RadiusX="1.5" RadiusY="1.5"
+                                               VerticalAlignment="Center"
+                                               Height="{Binding Height}"
+                                               Fill="{StaticResource Brand.VoiceGradient}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{Binding ElapsedText}" HorizontalAlignment="Right"
+                                   VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource State.Listening}" />
+                    </Grid>
+                </Grid>
+            </Grid>
         </Border>
     </Border>
 </Window>
