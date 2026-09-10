@@ -22,7 +22,8 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
 - **LLM cleanup is in**, off by default: `LlmTextCleaner` runs the regex cleaner, then optionally a
   Claude rewrite under a 2 s timeout, falling back to the regex text on anything that goes wrong. Unit
   tested; the live path was verified only as far as a rejected key (see "Gotchas" 9).
-- Not yet done: installer, auto-start, single-instance guard, streaming, onboarding, a local LLM backend.
+- **Known issue: the taskbar button shows a generic icon on installed builds.** Cosmetic, and
+  understood but not solved — see "Gotchas" 20.
 
 ## Repo map
 
@@ -172,12 +173,23 @@ Both transcripts were otherwise identical and correctly punctuated.
     downloaded models before the app can migrate them. It happened once during development. The packId
     is `Talk2MeApp` and the data folder is `%LOCALAPPDATA%\Jupitor Studio\Talk2Me`; both halves of
     that separation matter.
-20. **Velopack's init takes over the taskbar button's icon.** `VelopackApp.Build().Run()` sets a
-    process-wide AppUserModelID, and from then on Windows resolves the button's icon through that
-    identity rather than `Window.Icon` — falling back to a generic one. The window keeps looking right
-    everywhere else (the hover thumbnail included), which makes it look like an icon-cache problem and
-    it is not. `TaskbarIdentity.SetTaskbarIcon` sets `RelaunchIconResource` on the window to name the
-    icon explicitly. Do not remove it, and re-check the button if the startup sequence changes.
+20. **Velopack's init takes over the taskbar button's icon. Fixed for plain builds, still broken for
+    installed ones.** `VelopackApp.Build().Run()` sets a process-wide AppUserModelID, and from then on
+    Windows resolves the button's icon through that identity rather than `Window.Icon`, falling back to
+    a generic one. Everything else still looks right — the exe's icon, the Start Menu shortcut, the
+    hover thumbnail — which makes it read as an icon-cache problem. It is not.
+
+    What is established, so nobody re-derives it:
+    - Cause confirmed by isolation: a build skipping only the Velopack call shows the correct icon;
+      the same build with it shows the generic one.
+    - `TaskbarIdentity.SetTaskbarIcon` sets `RelaunchIconResource` on the window. That **fixes plain
+      builds**. Keep it.
+    - It does **not** fix installed builds, even though the shell calls report success. Also setting
+      `PKEY_AppUserModel_ID` on the window was tried and did not help either.
+    - Not the icon cache: restarting Explorer changes nothing.
+    - The untested lead is that an installed app's AUMID matches a real Start Menu shortcut, and
+      Windows prefers that shortcut's icon. Making Velopack's AUMID and the shortcut agree — via
+      `VelopackApp.SetAppUserModelId` — is where to look next.
 21. **`TaskbarWindow` must keep a normal window style.** It looks like it wants
     `WindowStyle="None"` + `AllowsTransparency` since it is never meant to be seen, but that stops WPF
     applying `Window.Icon` and the taskbar button falls back to a generic Windows icon. Being 1x1 at
