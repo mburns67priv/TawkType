@@ -162,7 +162,11 @@ Both transcripts were otherwise identical and correctly punctuated.
 20. **Never check a remembered window position against `SystemParameters.VirtualScreen*`.** That is the
     bounding box of every monitor, and on the owner's four-monitor layout it contains regions no monitor
     covers. Use `WindowPlacement.Restore` with `MonitorLayout.WorkAreas()`.
-21. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
+21. **`IsCancel="True"` does nothing on a modeless window.** WPF's cancel handling sets `DialogResult`,
+    which only applies to a window shown with `ShowDialog`. Settings is shown with `Show`, so its Cancel
+    button needs a real `Click` handler and Escape needs wiring by hand — via bubbling `OnKeyDown`, not
+    `OnPreviewKeyDown`, so an open combo box dropdown still gets Escape first.
+22. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
     `History.WindowWidth/Height` are still WPF units. Values saved before this change were WPF units;
     they differ only under DPI scaling, and a wrong one is clamped on the next launch rather than lost.
 

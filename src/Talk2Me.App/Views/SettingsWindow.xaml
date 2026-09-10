@@ -107,7 +107,10 @@
                     Padding="28,12">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <Button Content="Cancel" IsCancel="True" Style="{StaticResource Ui.Button}" Margin="0,0,8,0" />
+                        <!-- IsCancel alone does nothing here: it only closes a window shown with ShowDialog, and this
+                             one is modeless. The Click handler is what actually closes it. -->
+                        <Button Content="Cancel" IsCancel="True" Click="OnCancelClick"
+                                Style="{StaticResource Ui.Button}" Margin="0,0,8,0" />
                         <Button Content="Save" IsDefault="True" Style="{StaticResource Ui.PrimaryButton}"
                                 Command="{Binding SaveCommand}" />
                     </StackPanel>
