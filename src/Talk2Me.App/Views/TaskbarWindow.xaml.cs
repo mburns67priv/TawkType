@@ -48,7 +48,33 @@ public partial class TaskbarWindow : Window
             return;
         }
 
-        IconDiagnostics = TaskbarIdentity.SetTaskbarIcon(new WindowInteropHelper(this).Handle, icon);
+        var handle = new WindowInteropHelper(this).Handle;
+        HwndSource.FromHwnd(handle)?.AddHook(OnWindowMessage);
+        IconDiagnostics = TaskbarIdentity.SetTaskbarIcon(handle, icon);
+    }
+
+    /// <summary>
+    /// Answers a click on the taskbar button without ever leaving the minimised state.
+    ///
+    /// Letting the window restore and then minimising it again works, but Windows plays both
+    /// animations, and it draws them at full size however small the window really is — so a click
+    /// produced a rectangle that flew up the screen and dropped back to the taskbar, which looks like
+    /// the app appearing and then being swallowed. Refusing the restore outright leaves nothing to
+    /// animate; the click still means "bring the bar back", so that is all it does.
+    /// </summary>
+    private nint OnWindowMessage(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
+    {
+        const int WmSysCommand = 0x0112;
+        const int ScRestore = 0xF120;
+
+        // The low four bits of a system command are reserved for the system's own use.
+        if (message == WmSysCommand && ((int)wParam & 0xFFF0) == ScRestore)
+        {
+            RestoreRequested?.Invoke(this, EventArgs.Empty);
+            handled = true;
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -91,6 +117,10 @@ public partial class TaskbarWindow : Window
     /// <summary>Set during shutdown so the window actually closes instead of asking to quit again.</summary>
     public bool AllowClose { get; set; }
 
+    /// <summary>
+    /// A safety net for the ways back in that do not send SC_RESTORE — alt-tab, for one. The window
+    /// message above handles the taskbar button itself and this never runs for it.
+    /// </summary>
     protected override void OnStateChanged(EventArgs e)
     {
         base.OnStateChanged(e);

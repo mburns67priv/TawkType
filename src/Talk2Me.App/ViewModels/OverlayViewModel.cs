@@ -272,11 +272,19 @@ public sealed partial class OverlayViewModel : ObservableObject
             var next = _settings.Current.Clone();
             next.Overlay.AlwaysVisible = true;
             _settings.Save(next); // this fires Changed, which settles the bar back onto the screen
-            return;
+        }
+        else
+        {
+            Settle();
         }
 
-        Settle();
+        // Asking for the bar when it is already on screen must still do something visible, or the menu
+        // item looks broken. This puts it back in front and back on a monitor that still exists.
+        AttentionRequested?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>The bar has been asked for explicitly; show it and raise it, wherever it was.</summary>
+    public event EventHandler? AttentionRequested;
 
     private void StartListening()
     {

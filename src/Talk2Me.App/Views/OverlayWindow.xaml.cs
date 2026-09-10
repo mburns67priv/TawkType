@@ -44,6 +44,7 @@ public partial class OverlayWindow : Window
         DataContext = viewModel;
 
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        viewModel.AttentionRequested += OnAttentionRequested;
         settings.Changed += OnSettingsChanged;
         SizeChanged += OnSizeChanged;
 
@@ -70,6 +71,7 @@ public partial class OverlayWindow : Window
     protected override void OnClosing(CancelEventArgs e)
     {
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.AttentionRequested -= OnAttentionRequested;
         _settings.Changed -= OnSettingsChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         base.OnClosing(e);
@@ -123,6 +125,13 @@ public partial class OverlayWindow : Window
         });
 
     private void OnSettingsChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(Reposition);
+
+    /// <summary>
+    /// The tray menu or the taskbar button asked for the bar. Show and raise it unconditionally: it may
+    /// already be visible but buried, or stranded on a monitor that has since gone away.
+    /// </summary>
+    private void OnAttentionRequested(object? sender, EventArgs e)
+        => Dispatcher.BeginInvoke(ShowWithoutStealingFocus);
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

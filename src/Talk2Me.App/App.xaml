@@ -61,7 +61,7 @@
                             LeftClickCommand="{x:Null}">
                 <tb:TaskbarIcon.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="Show status bar" Click="OnShowOverlayClick" />
+                        <MenuItem Header="Show" Click="OnShowOverlayClick" />
                         <Separator />
                         <MenuItem Header="History…" Click="OnHistoryClick" />
                         <MenuItem Header="Settings…" Click="OnSettingsClick" />
