@@ -162,6 +162,18 @@ public sealed partial class OverlayViewModel : ObservableObject
         Bars[^1].Height = scaled;
     }
 
+    /// <summary>
+    /// A non-error result worth reading, e.g. the text went to the clipboard because the focused
+    /// window could not take it. Sits on the bar for a few seconds like an error, but without the
+    /// error colour.
+    /// </summary>
+    public void ShowNotice(string message, string? detail = null)
+    {
+        Show(message, DictationState.Injecting);
+        Flash(string.IsNullOrWhiteSpace(detail) ? message : detail);
+        SettleAfter(ErrorSettleDelay);
+    }
+
     public void ShowError(string message)
     {
         Show(message, DictationState.Error);

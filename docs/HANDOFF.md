@@ -40,6 +40,7 @@ src/Talk2Me.App             WPF tray app (namespace Talk2Me.Desktop): App.xaml h
                             Logging/ has the file logger
 tools/Talk2Me.Bench         transcribes a WAV with one or both engines, prints latency side by side
 tools/Talk2Me.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
+tools/Talk2Me.Focus         prints what the focus probe makes of whatever window is in front
 tools/Talk2Me.Brand         renders talk2me.ico + logo PNGs from the vector mark (WPF, no external tools)
 tests/Talk2Me.Core.Tests    xUnit: DictationEngine, BasicTextCleaner, EngineSelection, LlmTextCleaner,
                             CleanupPrompt, ModelStorage, DictationHistoryStore, settings cloning
@@ -91,6 +92,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Controls are fully templated | WPF's stock ComboBox/CheckBox/Button chrome comes from system colours and looks wrong in dark. Templating them is the only way both themes are right. |
 | The pill rests on screen instead of hiding | It is the only feedback the user has, and it is useless if it is gone when they glance at it. Resting dimmed keeps it available without being loud. `Overlay.AlwaysVisible = false` restores hide-on-idle. |
 | Remembered positions are checked against real monitors, in physical pixels | The virtual desktop is a bounding box with holes in it on a multi-monitor setup, so a bounding-box check restores windows onto dead space where they cannot be seen or dragged. `WindowPlacement` uses the actual monitor rectangles. Physical pixels because DIP conversion needs the target monitor's DPI, which you do not know until you are on it. |
+| The focus probe is permissive, and runs at key-*down* | Only a confident negative diverts text to the clipboard; `Unknown` types as before, because accessibility data is patchy and refusing a field that would have worked is worse than the problem. Probing at key-down makes it free — the user is speaking — and captures focus as it was when they started. |
 | The bar takes clicks but not focus | It has a toolbar and can be dragged, so it can no longer be click-through. `WS_EX_NOACTIVATE` alone does both: Windows delivers the clicks and never activates the window, so the caret stays in the user's editor. `WS_EX_TRANSPARENT` and `IsHitTestVisible=False` are gone. |
 | The pill is raised with `SWP_NOACTIVATE`, never `Activate()` | Focus must stay in whatever the user clicked into, or the dictation lands in the wrong window — the exact failure the history window exists to recover from. `Topmost` alone is not enough because a later topmost window sits above it, hence the explicit re-raise when dictation starts. |
 | The history list expands rows in place | A list plus a detail pane makes two scroll regions compete for a 560px window: the list collapsed to a sliver and clipped rows mid-line, and the capped detail boxes scrolled short text to a fragment. Expanding in place leaves one scroll region and no truncation at any length. |
@@ -173,7 +175,13 @@ Both transcripts were otherwise identical and correctly punctuated.
     which only applies to a window shown with `ShowDialog`. Settings is shown with `Show`, so its Cancel
     button needs a real `Click` handler and Escape needs wiring by hand — via bubbling `OnKeyDown`, not
     `OnPreviewKeyDown`, so an open combo box dropdown still gets Escape first.
-23. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
+23. **`Talk2Me.Windows` sets `UseWPF` only for the UI Automation client assemblies.** It draws no UI.
+    Turning it on also changed the implicit usings, which is why `DpapiApiKeyStore` now imports
+    `System.IO` explicitly.
+24. **Chromium reports its page body as a read-only Document and a focused input as an Edit.** That is
+    the discrimination the probe relies on, and it was verified against real Chrome — check it again if
+    the control-type rules are ever touched, because getting it wrong breaks dictation into web forms.
+25. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
     `History.WindowWidth/Height` are still WPF units. Values saved before this change were WPF units;
     they differ only under DPI scaling, and a wrong one is clamped on the next launch rather than lost.
 
@@ -223,6 +231,9 @@ Both transcripts were otherwise identical and correctly punctuated.
 14. Fixed remembered window positions on multi-monitor setups: `WindowPlacement` + `MonitorLayout`
     replace the virtual-desktop bounding-box check, positions moved to physical pixels, and both
     windows now react to `DisplaySettingsChanged`.
+15. Turned the pill's minimise button into a real hide, with tray and taskbar routes back.
+16. Added the focus probe: dictation now checks whether the focused element can take text (and whether
+    the target is elevated) and falls back to the clipboard with "Copied instead" when it cannot.
 
 ## Contacts and links
 

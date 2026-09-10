@@ -89,6 +89,13 @@ public partial class App : Application
         _engine.AudioLevelChanged += (_, level) => Dispatcher.BeginInvoke(() => overlayVm.PushLevel(level));
         _engine.Failed += (_, ex) => Dispatcher.BeginInvoke(() => overlayVm.ShowError(FriendlyMessage(ex)));
         _engine.Completed += OnDictationCompleted;
+        _engine.Completed += (_, completed) =>
+        {
+            if (completed.Delivery == DictationDelivery.CopiedToClipboard)
+            {
+                Dispatcher.BeginInvoke(() => overlayVm.ShowNotice("Copied instead", completed.Reason));
+            }
+        };
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
 
         if (Services.GetRequiredService<SettingsStore>().Current.History.OpenOnStart
@@ -181,6 +188,9 @@ public partial class App : Application
         services.AddSingleton<ILlmClient, ClaudeLlmClient>();
         services.AddSingleton<ITextCleaner, LlmTextCleaner>();
 
+        services.AddSingleton<IFocusProbe, UiaFocusProbe>();
+        services.AddSingleton<IClipboard, WindowsClipboard>();
+
         services.AddSingleton<UnicodeTypingInjector>();
         services.AddSingleton<ClipboardPasteInjector>();
         services.AddSingleton<ITextInjector, AutoTextInjector>();
@@ -233,6 +243,7 @@ public partial class App : Application
                 Engine = Services.GetRequiredService<TranscriberRouter>().ActiveEngine.ToString(),
                 AudioSeconds = completed.AudioDuration.TotalSeconds,
                 TranscriptionMs = (int)completed.TranscriptionTime.TotalMilliseconds,
+                CopiedNotTyped = completed.Delivery == DictationDelivery.CopiedToClipboard,
             });
         }
         catch (Exception ex)

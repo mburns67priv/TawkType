@@ -101,3 +101,42 @@ public sealed class FakeSettings : ISettingsProvider
         remove { }
     }
 }
+
+public sealed class FakeFocusProbe : IFocusProbe
+{
+    public FocusTarget TargetToReturn { get; set; } = FocusTarget.Unknown;
+
+    /// <summary>Delay before answering, so the engine's grace period can be exercised.</summary>
+    public TimeSpan Delay { get; set; } = TimeSpan.Zero;
+
+    public int Probes { get; private set; }
+
+    public FocusTarget Probe(CancellationToken cancellationToken = default)
+    {
+        Probes++;
+
+        if (Delay > TimeSpan.Zero)
+        {
+            Thread.Sleep(Delay);
+        }
+
+        return TargetToReturn;
+    }
+}
+
+public sealed class FakeClipboard : IClipboard
+{
+    public List<string> Copied { get; } = new();
+
+    public Exception? ExceptionToThrow { get; set; }
+
+    public void SetText(string text)
+    {
+        if (ExceptionToThrow is not null)
+        {
+            throw ExceptionToThrow;
+        }
+
+        Copied.Add(text);
+    }
+}

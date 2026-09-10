@@ -77,6 +77,23 @@ total words and characters, and time saved against typing the same words at 40 w
 if you change it. The change is live: open windows restyle without reopening. The status pill is
 deliberately excluded — it floats over other applications, so it stays dark in every theme.
 
+## When the text cannot be typed
+
+Before typing, Talk2Me checks whether whatever has focus can actually accept text, and whether it is
+running as administrator — synthetic keystrokes to an elevated window are discarded by Windows silently,
+which is a common reason dictation seems to vanish.
+
+If it cannot be typed, the text goes to the **clipboard** instead and the bar says *Copied instead* with
+the reason. The check is deliberately cautious: it only diverts when it is confident, so an application
+that reports nothing useful about itself is typed into exactly as before.
+
+```bash
+dotnet run --project tools/Talk2Me.Focus -- 15
+```
+
+That prints the verdict once a second while you click between windows, if you want to see what it makes
+of a particular application.
+
 ## The status bar
 
 The bar stays on screen. Between dictations it rests dimmed, showing your hotkey; the moment you start

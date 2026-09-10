@@ -17,13 +17,21 @@ public sealed class DictationEngine : IDisposable
     private readonly ITranscriber _transcriber;
     private readonly ITextCleaner _cleaner;
     private readonly ITextInjector _injector;
+    private readonly IFocusProbe _focus;
+    private readonly IClipboard _clipboard;
     private readonly ISettingsProvider _settings;
     private readonly ILogger<DictationEngine> _logger;
     private readonly object _gate = new();
 
+    /// <summary>How long the probe may still be running once there is text ready to deliver.</summary>
+    private static readonly TimeSpan FocusProbeGrace = TimeSpan.FromMilliseconds(400);
+
     private DictationState _state = DictationState.Idle;
     private long _pressedAtTicks;
     private bool _started;
+
+    /// <summary>Started when the key goes down and read when it comes up, so the probe is free.</summary>
+    private Task<FocusTarget>? _focusProbe;
 
     public DictationEngine(
         IPushToTalkHotkey hotkey,
@@ -31,6 +39,8 @@ public sealed class DictationEngine : IDisposable
         ITranscriber transcriber,
         ITextCleaner cleaner,
         ITextInjector injector,
+        IFocusProbe focus,
+        IClipboard clipboard,
         ISettingsProvider settings,
         ILogger<DictationEngine> logger)
     {
@@ -39,6 +49,8 @@ public sealed class DictationEngine : IDisposable
         _transcriber = transcriber;
         _cleaner = cleaner;
         _injector = injector;
+        _focus = focus;
+        _clipboard = clipboard;
         _settings = settings;
         _logger = logger;
     }
@@ -116,6 +128,21 @@ public sealed class DictationEngine : IDisposable
             SetStateLocked(DictationState.Listening);
         }
 
+        // Off the hook thread immediately: hooks have a tight time budget, and the probe talks to
+        // another process. It has the whole utterance to answer in, so nothing waits on it here.
+        _focusProbe = Task.Run(() =>
+        {
+            try
+            {
+                return _focus.Probe();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Focus probe failed; assuming the target can be typed into");
+                return FocusTarget.Unknown;
+            }
+        });
+
         try
         {
             _audio.Start();
@@ -172,27 +199,77 @@ public sealed class DictationEngine : IDisposable
                 return;
             }
 
-            if (_settings.Current.AppendTrailingSpace)
+            var target = await ResolveFocusAsync().ConfigureAwait(false);
+            var delivery = DictationDelivery.Typed;
+            var reason = string.Empty;
+
+            if (target.CanType)
             {
-                clean += " ";
+                // Only when typing: a trailing space is there to run consecutive dictations together,
+                // which means nothing on the clipboard.
+                if (_settings.Current.AppendTrailingSpace)
+                {
+                    clean += " ";
+                }
+
+                SetState(DictationState.Injecting);
+                await _injector.InjectAsync(clean).ConfigureAwait(false);
+            }
+            else
+            {
+                delivery = DictationDelivery.CopiedToClipboard;
+                reason = target.Explain();
+                _clipboard.SetText(clean);
             }
 
-            SetState(DictationState.Injecting);
-            await _injector.InjectAsync(clean).ConfigureAwait(false);
-
             _logger.LogInformation(
-                "Dictated {Chars} chars from {Audio:F1}s audio in {Ms} ms",
+                "Dictated {Chars} chars from {Audio:F1}s audio in {Ms} ms; {Delivery} ({Target})",
                 clean.Length,
                 clip.Duration.TotalSeconds,
-                (int)transcript.ProcessingTime.TotalMilliseconds);
+                (int)transcript.ProcessingTime.TotalMilliseconds,
+                delivery,
+                target.Description ?? target.Verdict.ToString());
 
-            Completed?.Invoke(this, new DictationCompleted(transcript.Text, clean, clip.Duration, transcript.ProcessingTime));
+            Completed?.Invoke(this, new DictationCompleted(
+                transcript.Text,
+                clean,
+                clip.Duration,
+                transcript.ProcessingTime)
+            {
+                Delivery = delivery,
+                Reason = reason,
+            });
+
             SetState(DictationState.Idle);
         }
         catch (Exception ex)
         {
             Fail(ex);
         }
+    }
+
+    /// <summary>
+    /// The probe's answer, or Unknown if it is still running. It is given a slice of the transcription
+    /// time to finish; a slow accessibility tree must never hold up text the user is waiting for.
+    /// </summary>
+    private async Task<FocusTarget> ResolveFocusAsync()
+    {
+        if (_focusProbe is null)
+        {
+            return FocusTarget.Unknown;
+        }
+
+        var probe = _focusProbe;
+        _focusProbe = null;
+
+        var finished = await Task.WhenAny(probe, Task.Delay(FocusProbeGrace)).ConfigureAwait(false);
+        if (!ReferenceEquals(finished, probe))
+        {
+            _logger.LogDebug("Focus probe still running at injection time; assuming typeable");
+            return FocusTarget.Unknown;
+        }
+
+        return await probe.ConfigureAwait(false);
     }
 
     private void Fail(Exception ex)

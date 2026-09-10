@@ -87,6 +87,33 @@ The API key never enters `settings.json`, which is plain text. `IApiKeyStore` ke
 (`ANTHROPIC_API_KEY` is the fallback). That protects the file at rest against other accounts on the
 machine — not against anything running as this user.
 
+## Knowing whether the text can land
+
+Before a dictation is typed, `IFocusProbe` reports whether the focused element can actually take text.
+`UiaFocusProbe` answers it from UI Automation — the accessibility tree — which is why it works across
+Win32, WinForms, WPF, UWP, Chromium and Office rather than only classic edit controls. It also checks
+whether the foreground process is elevated, because synthetic input to a higher-privilege window is
+discarded by Windows with no error at all: the single best explanation for "my dictation went nowhere".
+
+Two properties make it safe:
+
+- **It runs at key-down, not key-up.** `DictationEngine.OnPressed` kicks it off on a pool thread (never
+  on the hook thread, which has a tight time budget) and the answer is read when the key is released.
+  The user is speaking for the whole of that, so the probe is free — and it captures focus as it was
+  when they started talking, which is what they were aiming at. A 400 ms grace period at delivery time
+  means a wedged accessibility tree can never hold up finished text.
+- **It is permissive.** Only `NotEditable` and `Elevated` stop the text being typed; `Unknown` types as
+  before. Accessibility data is patchy — some Java apps, games and custom-drawn editors expose nothing —
+  and refusing to type into a field that would have worked is a worse bug than the one being fixed. The
+  "definitely not text" control list is deliberately short for the same reason.
+
+When it does stop, the text goes to the clipboard through `IClipboard` and the bar says *Copied instead*
+with the reason. Nothing is lost, and the history records it with `CopiedNotTyped`.
+
+`tools/Talk2Me.Focus` prints the verdict once a second so the behaviour can be checked against real
+applications; that part cannot be unit tested, because it depends on what each application chooses to
+expose.
+
 ## The taskbar button
 
 Talk2Me keeps a taskbar button for as long as it runs, and `TaskbarWindow` exists only to hold it. The

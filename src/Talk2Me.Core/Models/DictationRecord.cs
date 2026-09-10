@@ -23,6 +23,12 @@ public sealed record DictationRecord
 
     public int TranscriptionMs { get; init; }
 
+    /// <summary>
+    /// True when the focused window could not accept typed text, so this went to the clipboard.
+    /// Worth keeping: it is the difference between "the app lost my dictation" and "it is right here".
+    /// </summary>
+    public bool CopiedNotTyped { get; init; }
+
     /// <summary>True when cleanup changed the text beyond trimming it.</summary>
     public bool WasCleaned => !string.Equals(RawText.Trim(), FinalText.Trim(), StringComparison.Ordinal);
 }

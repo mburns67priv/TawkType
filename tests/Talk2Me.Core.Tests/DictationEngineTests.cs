@@ -14,6 +14,8 @@ public sealed class DictationEngineTests
     private readonly FakeTranscriber _transcriber = new();
     private readonly FakeInjector _injector = new();
     private readonly FakeSettings _settings = new();
+    private readonly FakeFocusProbe _focus = new();
+    private readonly FakeClipboard _clipboard = new();
     private readonly List<DictationState> _states = new();
 
     [Fact]
@@ -113,6 +115,8 @@ public sealed class DictationEngineTests
             transcriber,
             new BasicTextCleaner(_settings),
             _injector,
+            _focus,
+            _clipboard,
             _settings,
             NullLogger<DictationEngine>.Instance);
         engine.StateChanged += (_, s) =>

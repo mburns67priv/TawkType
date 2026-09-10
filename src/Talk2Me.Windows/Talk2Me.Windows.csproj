@@ -4,6 +4,9 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Description>Win32 implementations: low-level keyboard hook, microphone capture, text injection.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- For the UI Automation client assemblies, which ship with the Windows Desktop framework
+         reference. This project draws no UI; it only needs UIAutomationClient/UIAutomationTypes. -->
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
