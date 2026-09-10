@@ -1,0 +1,214 @@
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
+using H.NotifyIcon;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Murmur.Core.Abstractions;
+using Murmur.Core.Models;
+using Murmur.Core.Pipeline;
+using Murmur.Core.Settings;
+using Murmur.Core.Text;
+using Murmur.Desktop.Logging;
+using Murmur.Desktop.Services;
+using Murmur.Desktop.ViewModels;
+using Murmur.Desktop.Views;
+using Murmur.Transcription;
+using Murmur.Windows.Audio;
+using Murmur.Windows.Injection;
+using Murmur.Windows.Input;
+
+namespace Murmur.Desktop;
+
+public partial class App : Application
+{
+    private readonly CancellationTokenSource _shutdown = new();
+    private IHost? _host;
+    private TaskbarIcon? _tray;
+    private OverlayWindow? _overlay;
+    private SettingsWindow? _settingsWindow;
+    private DictationEngine? _engine;
+    private ILogger<App>? _logger;
+
+    private IServiceProvider Services => _host!.Services;
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        _host = Host.CreateDefaultBuilder()
+            .ConfigureLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddDebug();
+                logging.AddProvider(new FileLoggerProvider(Path.Combine(SettingsStore.AppDataDirectory, "logs")));
+                logging.SetMinimumLevel(LogLevel.Debug);
+            })
+            .ConfigureServices(ConfigureServices)
+            .Build();
+
+        _logger = Services.GetRequiredService<ILogger<App>>();
+        _logger.LogInformation("Murmur {Version} starting", typeof(App).Assembly.GetName().Version);
+
+        DispatcherUnhandledException += (_, args) =>
+        {
+            _logger.LogError(args.Exception, "Unhandled UI exception");
+            args.Handled = true;
+        };
+
+        _tray = (TaskbarIcon)FindResource("TrayIcon");
+        _tray.ForceCreate();
+
+        var overlayVm = Services.GetRequiredService<OverlayViewModel>();
+        _overlay = new OverlayWindow(overlayVm);
+
+        _engine = Services.GetRequiredService<DictationEngine>();
+        _engine.StateChanged += (_, state) => Dispatcher.BeginInvoke(() => overlayVm.ApplyState(state));
+        _engine.AudioLevelChanged += (_, level) => Dispatcher.BeginInvoke(() => overlayVm.Level = level);
+        _engine.Failed += (_, ex) => Dispatcher.BeginInvoke(() => overlayVm.ShowError(FriendlyMessage(ex)));
+        _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
+
+        if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase))
+        {
+            OnSettingsClick(this, new RoutedEventArgs());
+        }
+
+        if (e.Args.Contains("--overlay-demo", StringComparer.OrdinalIgnoreCase))
+        {
+            _ = RunOverlayDemoAsync(overlayVm);
+            return;
+        }
+
+        _ = WarmUpAsync(overlayVm);
+    }
+
+    /// <summary>Cycles the overlay through every state so it can be styled without dictating. Start with --overlay-demo.</summary>
+    private async Task RunOverlayDemoAsync(OverlayViewModel overlayVm)
+    {
+        var random = new Random();
+        while (!_shutdown.IsCancellationRequested)
+        {
+            overlayVm.ApplyState(DictationState.Listening);
+            for (var i = 0; i < 40; i++)
+            {
+                overlayVm.Level = (float)random.NextDouble();
+                await Task.Delay(75);
+            }
+
+            overlayVm.ApplyState(DictationState.Transcribing);
+            await Task.Delay(1500);
+            overlayVm.ApplyState(DictationState.Injecting);
+            await Task.Delay(1200);
+            overlayVm.ShowError("Example error message");
+            await Task.Delay(2500);
+            overlayVm.ReportProgress(new ModelProgress("Downloading model", 640, 1000));
+            await Task.Delay(2000);
+            overlayVm.HideProgress();
+            await Task.Delay(1500);
+        }
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _shutdown.Cancel();
+        _engine?.Stop();
+        _overlay?.Close();
+        _tray?.Dispose();
+        _host?.Dispose();
+        base.OnExit(e);
+    }
+
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<SettingsStore>();
+        services.AddSingleton<ISettingsProvider>(sp => sp.GetRequiredService<SettingsStore>());
+
+        services.AddSingleton<IPushToTalkHotkey, PushToTalkHotkey>();
+        services.AddSingleton<IAudioCapture, WaveInAudioCapture>();
+
+        services.AddSingleton<ModelManager>();
+        services.AddSingleton<WhisperTranscriber>();
+        services.AddSingleton<ParakeetModelManager>();
+        services.AddSingleton<ParakeetTranscriber>();
+        services.AddSingleton<TranscriberRouter>();
+        services.AddSingleton<ITranscriber>(sp => sp.GetRequiredService<TranscriberRouter>());
+        services.AddSingleton<ModelStorage>();
+        services.AddSingleton<ModelMaintenance>();
+
+        services.AddSingleton<ITextCleaner, BasicTextCleaner>();
+
+        services.AddSingleton<UnicodeTypingInjector>();
+        services.AddSingleton<ClipboardPasteInjector>();
+        services.AddSingleton<ITextInjector, AutoTextInjector>();
+
+        services.AddSingleton<DictationEngine>();
+        services.AddSingleton<OverlayViewModel>();
+        services.AddTransient<SettingsViewModel>();
+    }
+
+    private async Task WarmUpAsync(OverlayViewModel overlayVm)
+    {
+        var transcriber = Services.GetRequiredService<ITranscriber>();
+        var progress = new Progress<ModelProgress>(overlayVm.ReportProgress);
+
+        try
+        {
+            await transcriber.WarmUpAsync(progress, _shutdown.Token);
+            overlayVm.HideProgress();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Model warm-up failed");
+            overlayVm.ShowError("Model failed to load: " + FriendlyMessage(ex));
+        }
+    }
+
+    private static string FriendlyMessage(Exception ex)
+    {
+        var message = ex.InnerException?.Message ?? ex.Message;
+        return message.Length > 90 ? message[..90] + "…" : message;
+    }
+
+    private void OnSettingsClick(object sender, RoutedEventArgs e)
+    {
+        if (_settingsWindow is { IsLoaded: true })
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
+        _settingsWindow = new SettingsWindow(Services.GetRequiredService<SettingsViewModel>());
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
+    }
+
+    private async void OnTestDictationClick(object sender, RoutedEventArgs e)
+    {
+        if (_engine is null)
+        {
+            return;
+        }
+
+        // Give the user a moment to click into the window they want the text to land in.
+        await Task.Delay(TimeSpan.FromSeconds(1.5));
+        _engine.BeginDictation();
+        await Task.Delay(TimeSpan.FromSeconds(3));
+        _engine.EndDictation();
+    }
+
+    private async void OnDeleteModelsClick(object sender, RoutedEventArgs e)
+        => await Services.GetRequiredService<ModelMaintenance>().DeleteAllWithConfirmationAsync();
+
+    private void OnOpenDataFolderClick(object sender, RoutedEventArgs e)
+    {
+        Directory.CreateDirectory(SettingsStore.AppDataDirectory);
+        Process.Start(new ProcessStartInfo("explorer.exe", SettingsStore.AppDataDirectory) { UseShellExecute = true });
+    }
+
+    private void OnQuitClick(object sender, RoutedEventArgs e) => Shutdown();
+}

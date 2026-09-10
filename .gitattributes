@@ -1,0 +1,16 @@
+# Normalise line endings: LF in the repo, native on checkout.
+* text=auto
+
+*.cs text
+*.xaml text
+*.csproj text
+*.sln text eol=crlf
+*.props text
+*.md text
+*.json text
+*.manifest text
+
+*.png binary
+*.ico binary
+*.wav binary
+*.bin binary
