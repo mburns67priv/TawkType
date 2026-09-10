@@ -91,4 +91,5 @@ tools/Talk2Me.Brand         renders the icon (.ico) and logo PNGs from the vecto
 branding/                   BRAND.md, SVG sources, exported PNGs
 tests/Talk2Me.Core.Tests    xUnit
 docs/ARCHITECTURE.md       design notes and roadmap
+docs/HANDOFF.md            start here if you are picking the project up
 ```
