@@ -6,5 +6,11 @@ namespace Talk2Me.Core.Abstractions;
 /// </summary>
 public interface ITextCleaner
 {
+    /// <summary>
+    /// True when <see cref="CleanAsync"/> is slow enough that the user should see it happening.
+    /// Purely a UI hint; the pipeline works the same either way.
+    /// </summary>
+    bool MayTakeAWhile => false;
+
     ValueTask<string> CleanAsync(string rawTranscript, CancellationToken cancellationToken = default);
 }

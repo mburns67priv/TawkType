@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
+using Talk2Me.Core.History;
 using Talk2Me.Core.Models;
 using Talk2Me.Core.Pipeline;
 using Talk2Me.Core.Settings;
@@ -14,10 +15,12 @@ using Talk2Me.Desktop.Logging;
 using Talk2Me.Desktop.Services;
 using Talk2Me.Desktop.ViewModels;
 using Talk2Me.Desktop.Views;
+using Talk2Me.Llm;
 using Talk2Me.Transcription;
 using Talk2Me.Windows.Audio;
 using Talk2Me.Windows.Injection;
 using Talk2Me.Windows.Input;
+using Talk2Me.Windows.Security;
 
 namespace Talk2Me.Desktop;
 
@@ -28,6 +31,7 @@ public partial class App : Application
     private TaskbarIcon? _tray;
     private OverlayWindow? _overlay;
     private SettingsWindow? _settingsWindow;
+    private HistoryWindow? _historyWindow;
     private DictationEngine? _engine;
     private ILogger<App>? _logger;
 
@@ -62,13 +66,20 @@ public partial class App : Application
         _tray.ForceCreate();
 
         var overlayVm = Services.GetRequiredService<OverlayViewModel>();
-        _overlay = new OverlayWindow(overlayVm);
+        _overlay = new OverlayWindow(overlayVm, Services.GetRequiredService<ISettingsProvider>());
 
         _engine = Services.GetRequiredService<DictationEngine>();
         _engine.StateChanged += (_, state) => Dispatcher.BeginInvoke(() => overlayVm.ApplyState(state));
         _engine.AudioLevelChanged += (_, level) => Dispatcher.BeginInvoke(() => overlayVm.Level = level);
         _engine.Failed += (_, ex) => Dispatcher.BeginInvoke(() => overlayVm.ShowError(FriendlyMessage(ex)));
+        _engine.Completed += OnDictationCompleted;
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
+
+        if (Services.GetRequiredService<SettingsStore>().Current.History.OpenOnStart
+            || e.Args.Contains("--history", StringComparer.OrdinalIgnoreCase))
+        {
+            ShowHistoryWindow();
+        }
 
         if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase))
         {
@@ -114,6 +125,13 @@ public partial class App : Application
     {
         _shutdown.Cancel();
         _engine?.Stop();
+
+        if (_historyWindow is not null)
+        {
+            _historyWindow.AllowClose = true;
+            _historyWindow.Close();
+        }
+
         _overlay?.Close();
         _tray?.Dispose();
         _host?.Dispose();
@@ -137,14 +155,20 @@ public partial class App : Application
         services.AddSingleton<ModelStorage>();
         services.AddSingleton<ModelMaintenance>();
 
-        services.AddSingleton<ITextCleaner, BasicTextCleaner>();
+        services.AddSingleton<IApiKeyStore, DpapiApiKeyStore>();
+        services.AddSingleton<ILlmClient, ClaudeLlmClient>();
+        services.AddSingleton<ITextCleaner, LlmTextCleaner>();
 
         services.AddSingleton<UnicodeTypingInjector>();
         services.AddSingleton<ClipboardPasteInjector>();
         services.AddSingleton<ITextInjector, AutoTextInjector>();
 
+        services.AddSingleton<DictationHistoryStore>();
+        services.AddSingleton<IDictationHistory>(sp => sp.GetRequiredService<DictationHistoryStore>());
+
         services.AddSingleton<DictationEngine>();
         services.AddSingleton<OverlayViewModel>();
+        services.AddSingleton<HistoryViewModel>();
         services.AddTransient<SettingsViewModel>();
     }
 
@@ -172,6 +196,39 @@ public partial class App : Application
     {
         var message = ex.InnerException?.Message ?? ex.Message;
         return message.Length > 90 ? message[..90] + "…" : message;
+    }
+
+    /// <summary>Logs the dictation so it can be recovered from the history window.</summary>
+    private void OnDictationCompleted(object? sender, DictationCompleted completed)
+    {
+        try
+        {
+            Services.GetRequiredService<IDictationHistory>().Add(new DictationRecord
+            {
+                RawText = completed.RawText,
+                FinalText = completed.CleanText,
+                Engine = Services.GetRequiredService<TranscriberRouter>().ActiveEngine.ToString(),
+                AudioSeconds = completed.AudioDuration.TotalSeconds,
+                TranscriptionMs = (int)completed.TranscriptionTime.TotalMilliseconds,
+            });
+        }
+        catch (Exception ex)
+        {
+            // The text is already typed; a history failure is never worth interrupting the user.
+            _logger?.LogWarning(ex, "Could not record the dictation in the history");
+        }
+    }
+
+    private void OnHistoryClick(object sender, RoutedEventArgs e) => ShowHistoryWindow();
+
+    private void ShowHistoryWindow()
+    {
+        _historyWindow ??= new HistoryWindow(
+            Services.GetRequiredService<HistoryViewModel>(),
+            Services.GetRequiredService<SettingsStore>().Current.History);
+
+        _historyWindow.Show();
+        _historyWindow.Activate();
     }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)

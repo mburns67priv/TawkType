@@ -50,5 +50,22 @@ public sealed class Talk2MeSettings
     /// <summary>Substring of the input device's product name. Null = system default microphone.</summary>
     public string? InputDeviceName { get; set; }
 
-    public Talk2MeSettings Clone() => (Talk2MeSettings)MemberwiseClone();
+    /// <summary>The optional LLM rewrite pass that runs after <see cref="RemoveFillerWords"/>.</summary>
+    public CleanupSettings Cleanup { get; set; } = new();
+
+    /// <summary>The dictation log and its always-on-screen window.</summary>
+    public HistorySettings History { get; set; } = new();
+
+    /// <summary>The floating status pill.</summary>
+    public OverlaySettings Overlay { get; set; } = new();
+
+    public Talk2MeSettings Clone()
+    {
+        var copy = (Talk2MeSettings)MemberwiseClone();
+        // MemberwiseClone is shallow; the draft must not share the nested sections.
+        copy.Cleanup = Cleanup.Clone();
+        copy.History = History.Clone();
+        copy.Overlay = Overlay.Clone();
+        return copy;
+    }
 }

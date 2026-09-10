@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Talk2Me.Core\Talk2Me.Core.csproj" />
+    <ProjectReference Include="..\..\src\Talk2Me.Transcription\Talk2Me.Transcription.csproj" />
   </ItemGroup>
 
   <ItemGroup>

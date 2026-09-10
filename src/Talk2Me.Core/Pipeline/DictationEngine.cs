@@ -157,6 +157,12 @@ public sealed class DictationEngine : IDisposable
             }
 
             var transcript = await _transcriber.TranscribeAsync(clip).ConfigureAwait(false);
+
+            if (_cleaner.MayTakeAWhile)
+            {
+                SetState(DictationState.Polishing);
+            }
+
             var clean = await _cleaner.CleanAsync(transcript.Text).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(clean))

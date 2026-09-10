@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Description>LLM rewrite backends for the cleanup pass. Claude today; a local model can slot in beside it.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Anthropic" Version="12.46.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Talk2Me.Core\Talk2Me.Core.csproj" />
+  </ItemGroup>
+
+</Project>

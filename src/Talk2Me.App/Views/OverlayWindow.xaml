@@ -23,8 +23,9 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
 
-    <!-- Outer border carries a 1.5px gradient ring while listening; inner border is the pill body. -->
-    <Border Margin="24" CornerRadius="26" Padding="1.5">
+    <!-- Outer border carries a 1.5px gradient ring while listening; inner border is the pill body.
+         Opacity fades the whole pill down while it is resting on screen between dictations. -->
+    <Border Margin="24" CornerRadius="26" Padding="1.5" Opacity="{Binding Opacity}">
         <Border.Style>
             <Style TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource Brand.SurfaceBorder}" />

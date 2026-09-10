@@ -27,6 +27,7 @@
     <ProjectReference Include="..\Talk2Me.Core\Talk2Me.Core.csproj" />
     <ProjectReference Include="..\Talk2Me.Windows\Talk2Me.Windows.csproj" />
     <ProjectReference Include="..\Talk2Me.Transcription\Talk2Me.Transcription.csproj" />
+    <ProjectReference Include="..\Talk2Me.Llm\Talk2Me.Llm.csproj" />
   </ItemGroup>
 
 </Project>

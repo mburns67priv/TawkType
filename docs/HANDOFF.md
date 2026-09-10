@@ -1,6 +1,7 @@
 # Talk2Me — handoff
 
-Written 2026-09-10 at the end of the first build session. Read this first; then `README.md` for usage,
+Written 2026-09-10 at the end of the first build session, updated later the same day when the LLM
+cleanup pass landed. Read this first; then `README.md` for usage,
 `docs/ARCHITECTURE.md` for design, `branding/BRAND.md` for the identity.
 
 ## What this is
@@ -12,12 +13,16 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
 
 ## State of the code
 
-- **Branch `main`, 2 commits, clean tree.** `9e84eea` skeleton + both engines; `6f61150` rename + brand.
-- **Builds clean** with `dotnet build`, **21 unit tests pass** with `dotnet test`.
+- **Branch `main`, clean tree.** `9e84eea` skeleton + both engines; `6f61150` rename + brand;
+  `12d8117` this doc; then the LLM cleanup pass.
+- **Builds clean** with `dotnet build`, **60 unit tests pass** with `dotnet test`.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download, model deletion are all verified in the running
   app.
-- Not yet done: installer, auto-start, single-instance guard, LLM cleanup, streaming, onboarding.
+- **LLM cleanup is in**, off by default: `LlmTextCleaner` runs the regex cleaner, then optionally a
+  Claude rewrite under a 2 s timeout, falling back to the regex text on anything that goes wrong. Unit
+  tested; the live path was verified only as far as a rejected key (see "Gotchas" 9).
+- Not yet done: installer, auto-start, single-instance guard, streaming, onboarding, a local LLM backend.
 
 ## Repo map
 
@@ -27,12 +32,15 @@ src/Talk2Me.Core            pipeline state machine, interfaces, settings, regex 
 src/Talk2Me.Windows         WH_KEYBOARD_LL hook, WaveIn mic capture, SendInput + clipboard injection
 src/Talk2Me.Transcription   ParakeetTranscriber (sherpa-onnx), WhisperTranscriber (Whisper.net),
                             TranscriberRouter, model downloaders, ModelStorage
+src/Talk2Me.Llm             ClaudeLlmClient — the only project that references the Anthropic SDK
 src/Talk2Me.App             WPF tray app (namespace Talk2Me.Desktop): App.xaml has the palette + mark
-                            geometry; Views/ has OverlayWindow, SettingsWindow, BrandMark; Services/ has
-                            ModelMaintenance and LegacyMigration; Logging/ has the file logger
+                            geometry; Views/ has OverlayWindow, SettingsWindow, HistoryWindow, BrandMark;
+                            Services/ has ModelMaintenance and LegacyMigration; Logging/ has the file logger
 tools/Talk2Me.Bench         transcribes a WAV with one or both engines, prints latency side by side
+tools/Talk2Me.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/Talk2Me.Brand         renders talk2me.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/Talk2Me.Core.Tests    xUnit: DictationEngine, BasicTextCleaner, EngineSelection
+tests/Talk2Me.Core.Tests    xUnit: DictationEngine, BasicTextCleaner, EngineSelection, LlmTextCleaner,
+                            CleanupPrompt, ModelStorage, DictationHistoryStore, settings cloning
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md
 ```
@@ -41,13 +49,14 @@ docs/                       ARCHITECTURE.md, HANDOFF.md
 
 ```bash
 dotnet run --project src/Talk2Me.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 21 tests, < 1 s
+dotnet test                                   # 60 tests, < 1 s
+dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Brand      # regenerate icon + exports after brand changes
 ```
 
-Dev launch flags: `--settings` opens Settings at start; `--overlay-demo` cycles the overlay through every
-state so it can be styled without dictating.
+Dev launch flags: `--settings` opens Settings at start; `--history` opens the history window;
+`--overlay-demo` cycles the overlay through every state so it can be styled without dictating.
 
 Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust, no Python.
 
@@ -57,6 +66,10 @@ Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust,
 
 - `settings.json` — all user settings; saved from the Settings window, hot-reloaded by every consumer.
 - `models\ggml-large-v3-turbo.bin` (1.6 GB) and `models\parakeet-tdt-0.6b-v3-int8\` (640 MB).
+- `apikey.dat` — the Anthropic key for the cleanup pass, DPAPI-encrypted under the current user. Kept
+  out of `settings.json`, which is plain text. `ANTHROPIC_API_KEY` is the fallback.
+- `history.jsonl` — every dictation, one JSON object per line, capped at 200. **Plain text**: this is
+  everything the user has ever dictated. `History.Enabled` turns it off.
 - `logs\talk2me.log` — rolling 5 MB. Debug level. Every dictation logs chars, audio seconds, and ms.
 
 On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothing is re-downloaded.
@@ -71,7 +84,13 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Whisper runtime order CUDA12 → Vulkan → CPU | No CUDA Toolkit installed, so Vulkan is what runs. Installing the toolkit flips to CUDA automatically. |
 | H.NotifyIcon.Wpf pinned to **2.3.2** | 2.4.x dropped net8.0 and silently resolves to the .NET Framework asset, which fails XAML compile. |
 | WaveIn at 16 kHz mono, not WASAPI | The driver resamples for free to exactly what both engines want. Swap for WASAPI only if latency or loopback becomes a need. |
-| Regex filler cleanup only | Placeholder behind `ITextCleaner`. The Wispr-style rewrite is the next big feature (see roadmap). |
+| The pill rests on screen instead of hiding | It is the only feedback the user has, and it is useless if it is gone when they glance at it. Resting dimmed keeps it available without being loud. `Overlay.AlwaysVisible = false` restores hide-on-idle. |
+| The pill is raised with `SWP_NOACTIVATE`, never `Activate()` | Focus must stay in whatever the user clicked into, or the dictation lands in the wrong window — the exact failure the history window exists to recover from. `Topmost` alone is not enough because a later topmost window sits above it, hence the explicit re-raise when dictation starts. |
+| History is append-only JSONL, not a database | A dictation must never be lost or slowed by the log. The hot path is one `File.AppendAllText`, failures are swallowed (the text is already typed), and the file is only rewritten when trimming or clearing. A torn line is skipped at load. |
+| Cleanup is regex **then** optionally Claude | The regex pass always runs and is the fallback, so dictation degrades rather than breaks when the network, the key, or the timeout fails. Rewrite quality is the whole point of the LLM step, so it gets the raw transcript, not the regex output. |
+| `ILlmClient` seam, Claude first | Core stays free of any provider SDK; `Talk2Me.Llm` holds the Anthropic dependency. A local model (llama.cpp / ONNX) implements the same two-method interface without touching the pipeline. Claude first because rewrite quality is what makes the feature worth having. |
+| Cleanup off by default, key in DPAPI | It is the only thing that leaves the machine, so it must be a deliberate choice. `settings.json` is plain text, so the key lives in `apikey.dat` encrypted under the Windows account instead. |
+| Effort `low`, adaptive thinking, no retries | The call has ~2 s. Low effort keeps it inside that; retries only delay the fallback. Thinking stays adaptive because disabling it on Opus can leak reasoning markup, which here would be typed into the user's window. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
 
 ## Measured numbers (owner's machine: i7-11700F, RTX 4060 Ti 8 GB)
@@ -87,8 +106,7 @@ Both transcripts were otherwise identical and correctly punctuated.
 
 ## Gotchas the next person will hit
 
-1. **Repo folder is still named `Murmur`.** Everything inside is Talk2Me. Rename the folder when no
-   session or terminal has it open: `mv ~/source/repos/Murmur ~/source/repos/Talk2Me`.
+1. ~~Repo folder is still named `Murmur`.~~ Done — it is `~/source/repos/Talk2Me` now.
 2. **Synthetic key presses do not trigger the hotkey.** The hook ignores `LLKHF_INJECTED` events on
    purpose (so our own SendInput cannot retrigger it). To test without a physical key use the tray item
    "Test dictation (records 3 s)" or `DictationEngine.BeginDictation()/EndDictation()`.
@@ -103,18 +121,37 @@ Both transcripts were otherwise identical and correctly punctuated.
 7. **Clipboard paste mode restores only text.** If the user had an image on the clipboard when a long
    dictation pasted, it is gone. Documented in `ClipboardPasteInjector`.
 8. **Parakeet is CC-BY-4.0.** Attribution to NVIDIA belongs in the eventual About screen. Whisper is MIT.
+9. **The cleanup pass has never made a successful API call.** No key was available in the session that
+   built it. It was verified as far as the API rejecting an invalid key in ~600 ms and the fallback
+   typing the regex text — so the request shape is accepted and the failure path works, but nobody has
+   seen a real rewrite or its latency yet. Run `tools/Talk2Me.Clean` with a real key first thing.
+10. **`ModelStorage.Delete` only ever removes something `List()` reported**, so a caller cannot compose
+    a path out of the models folder. Keep that property if you add another delete path.
+11. **`Talk2MeSettings.Clone` is no longer a plain `MemberwiseClone`.** `Cleanup`, `History` and `Overlay` are
+    nested objects, deep-copied by hand. Any future nested settings section needs the same treatment or
+    the Settings window will edit live settings in place.
+12. **The history window saves settings when it moves or closes**, via clone-modify-save on
+    `SettingsStore`. If the Settings window is open with unsaved edits at that moment, last writer wins.
+    Not worth solving until someone actually hits it, but it is why the two can disagree.
+13. **Closing the history window hides it**; only `AllowClose` (set on app exit) really closes it. If you
+    add another way to shut the app down, set that flag or the window will block it.
+14. **Never call `Activate()`, `Focus()` or `SetForegroundWindow` on `OverlayWindow`.** It would take
+    focus from the window the user is dictating into. Raise it with `SetWindowPos` + `SWP_NOACTIVATE`;
+    `RaiseWithoutActivating()` is there for exactly this.
 
 ## Roadmap, in the order I would do it
 
-1. **LLM cleanup** (`ITextCleaner`): Wispr's real magic is the rewrite. Spoken corrections ("no, make that
-   Tuesday"), list formatting, tone per app, personal dictionary. Claude API for quality, or a small local
-   model for offline. The interface, DI slot, and settings plumbing already exist.
-2. **Per-app tone**: read the foreground window's process name at release time, pick a preset.
+1. **Prove the rewrite on real dictation** and tune the prompt in `CleanupPrompt` against it. Everything
+   below is guesswork until someone has used it for a day.
+2. **Per-app tone**: read the foreground window's process name at release time, pick a preset. The
+   `CleanupStyle` setting and prompt seam are already there; this just chooses the value per app.
 3. **Installer + auto-start + single instance**: Velopack is the least friction for a .NET tray app;
    MSIX if Store distribution matters.
 4. **Streaming partials** while the key is held (Parakeet is a transducer; it suits this).
 5. **Overlay polish**: replace the level bar with an animated waveform; onboarding window on first run.
 6. **Command mode**: hold a second key, speak an instruction, replace the selected text.
+7. **Local LLM backend** behind `ILlmClient`, so the rewrite works offline and the "nothing leaves this
+   machine" promise holds with cleanup switched on.
 
 ## Session log (what was actually done, in order)
 
@@ -125,6 +162,18 @@ Both transcripts were otherwise identical and correctly punctuated.
 5. Added model deletion (Settings + tray) with engine unload first. Committed.
 6. Renamed everything to Talk2Me; designed the mark, palette, and wordmark; built the brand render tool;
    restyled the overlay and settings; added the legacy data migration. Committed.
+7. Added the LLM cleanup pass: `ILlmClient` + `IApiKeyStore` in Core, `LlmTextCleaner` with its timeout
+   and fallbacks, `CleanupPrompt`, the `Talk2Me.Llm` project with `ClaudeLlmClient`, DPAPI key storage,
+   a `Polishing` pipeline state, the Settings expander, `tools/Talk2Me.Clean`, and 20 more tests.
+8. Made model deletion selective: `ModelStorage.Delete(name)` per entry, `ModelMaintenance.List()` with
+   friendly labels and an "in use" flag, a tick list in Settings with **Delete selected** / **Delete
+   all**. The tray item still deletes everything.
+9. Added the dictation history: `DictationRecord` + `IDictationHistory` in Core,
+   `DictationHistoryStore` (JSONL), `HistorySettings`, the always-on-top `HistoryWindow` with
+   "Copy last dictation" and per-entry copy, a tray item, a Settings section, and 9 more tests.
+10. Made the pill permanent: `OverlaySettings` (always-visible, position, resting opacity, margin), a
+    resting state in `OverlayViewModel` instead of hiding, `RaiseWithoutActivating()` so becoming active
+    re-asserts z-order without touching focus, and Settings controls for it.
 
 ## Contacts and links
 
