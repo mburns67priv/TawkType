@@ -11,6 +11,7 @@ using Talk2Me.Desktop.Services;
 using Talk2Me.Transcription;
 using Talk2Me.Windows.Audio;
 using Talk2Me.Windows.Input;
+using Talk2Me.Windows.Startup;
 
 namespace Talk2Me.Desktop.ViewModels;
 
@@ -30,6 +31,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly ModelMaintenance _models;
     private readonly IApiKeyStore _apiKeys;
     private readonly IDictationHistory _history;
+    private readonly UpdateService _updates;
 
     /// <summary>Set by the password box as the user types. Null means "leave the stored key alone".</summary>
     private string? _pendingApiKey;
@@ -79,16 +81,24 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _status = string.Empty;
 
+    [ObservableProperty]
+    private string _updateStatus;
+
+    [ObservableProperty]
+    private bool _startWithWindows;
+
     public SettingsViewModel(
         SettingsStore store,
         ModelMaintenance models,
         IApiKeyStore apiKeys,
-        IDictationHistory history)
+        IDictationHistory history,
+        UpdateService updates)
     {
         _store = store;
         _models = models;
         _apiKeys = apiKeys;
         _history = history;
+        _updates = updates;
 
         _draft = store.Current.Clone();
         _minimumHoldText = _draft.MinimumHoldMs.ToString();
@@ -161,7 +171,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     public string HistoryPath => _history.Path;
 
-    public string Version => typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
+    public string Version => _updates.CurrentVersion;
+
+    public bool CanRestartForUpdate => _updates.State == UpdateState.ReadyToRestart;
 
     public void Dispose() => _history.Changed -= OnHistoryChanged;
 
@@ -277,6 +289,23 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         if (await _models.DeleteAllWithConfirmationAsync(owner))
         {
             RefreshModels();
+        }
+    }
+
+    [RelayCommand]
+    private async Task CheckForUpdatesAsync() => await _updates.CheckAsync();
+
+    [RelayCommand]
+    private void RestartForUpdate() => _updates.RestartAndUpdate();
+
+    partial void OnStartWithWindowsChanged(bool value)
+    {
+        // Point the Run key at the launcher stub Velopack maintains, not this build's exe, so the entry
+        // survives an update replacing the versioned folder underneath it.
+        var target = Environment.ProcessPath;
+        if (target is null || !WindowsStartup.Set(value, target))
+        {
+            Flash("Could not change the Windows startup setting.");
         }
     }
 

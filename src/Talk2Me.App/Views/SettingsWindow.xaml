@@ -239,6 +239,19 @@
                         <TextBlock Style="{StaticResource Ui.Hint}"
                                    Text="{Binding SettingsPath, StringFormat='Settings: {0}'}" />
 
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Updates" />
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,14"
+                                  IsChecked="{Binding StartWithWindows}"
+                                  Content="Start Talk2Me when I sign in to Windows" />
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,10" Text="{Binding UpdateStatus}" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Check now" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                                    Command="{Binding CheckForUpdatesCommand}" />
+                            <Button Content="Restart and update" Style="{StaticResource Ui.PrimaryButton}"
+                                    Command="{Binding RestartForUpdateCommand}"
+                                    Visibility="{Binding CanRestartForUpdate, Converter={StaticResource BoolToVisible}}" />
+                        </StackPanel>
+
                         <!-- Parakeet is CC BY 4.0, which asks for the credit to travel with the work.
                              The repository is not enough on its own: this is where users actually are. -->
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="About" />

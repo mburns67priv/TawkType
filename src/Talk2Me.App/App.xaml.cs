@@ -22,11 +22,16 @@ using Talk2Me.Windows.Audio;
 using Talk2Me.Windows.Injection;
 using Talk2Me.Windows.Input;
 using Talk2Me.Windows.Security;
+using Talk2Me.Windows.Startup;
+using Velopack;
 
 namespace Talk2Me.Desktop;
 
 public partial class App : Application
 {
+    /// <summary>Held for the life of the process; a second copy sees it and bows out.</summary>
+    private static Mutex? _singleInstance;
+
     private readonly CancellationTokenSource _shutdown = new();
     private IHost? _host;
     private TaskbarIcon? _tray;
@@ -41,6 +46,21 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // First, before any window exists. Velopack uses these hooks to finish installs, updates and
+        // uninstalls, and several of them exit the process rather than carrying on into the app.
+        VelopackApp.Build()
+            .SetAutoApplyOnStartup(true)
+            .Run();
+
+        // A global hotkey and a tray icon do not survive being run twice. An installer that also sets
+        // start-with-Windows makes a second copy easy to trigger, so this is not theoretical.
+        _singleInstance = new Mutex(initiallyOwned: true, @"Local\Talk2Me.SingleInstance", out var isFirst);
+        if (!isFirst)
+        {
+            Shutdown();
+            return;
+        }
+
         base.OnStartup(e);
         LegacyMigration.Run();
 
@@ -116,6 +136,7 @@ public partial class App : Application
         }
 
         _ = WarmUpAsync(overlayVm);
+        _ = Services.GetRequiredService<UpdateService>().RunInBackgroundAsync(_shutdown.Token);
     }
 
     /// <summary>Cycles the overlay through every state so it can be styled without dictating. Start with --overlay-demo.</summary>
@@ -164,6 +185,7 @@ public partial class App : Application
         _overlay?.Close();
         _tray?.Dispose();
         _host?.Dispose();
+        _singleInstance?.Dispose();
         base.OnExit(e);
     }
 
@@ -196,6 +218,7 @@ public partial class App : Application
         services.AddSingleton<ITextInjector, AutoTextInjector>();
 
         services.AddSingleton<ThemeManager>();
+        services.AddSingleton<UpdateService>();
         services.AddSingleton<DictationHistoryStore>();
         services.AddSingleton<IDictationHistory>(sp => sp.GetRequiredService<DictationHistoryStore>());
 

@@ -33,16 +33,33 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 - **Optional AI cleanup.** With a Claude API key, dictations are rewritten before typing: spoken
   corrections applied ("no, make that Tuesday"), lists formatted, your own vocabulary spelled right.
 
+## Install it
+
+Download **Talk2MeApp-win-Setup.exe** from the
+[latest release](https://github.com/JupitorStudioDev/Talk2Me/releases/latest) and run it. It installs
+per-user, needs no administrator rights, and updates itself from that same release feed.
+
+> **Windows will warn you the first time.** Talk2Me is not code-signed yet, so SmartScreen shows
+> *"Windows protected your PC"*. Choose **More info** → **Run anyway**. That warning is about the
+> absence of a paid certificate, not about anything found in the file.
+
+The installer is around 37 MB. Speech models are **not** included — Talk2Me downloads the one your
+chosen engine needs on first use, so you only fetch what you actually run.
+
+Or [run from source](#running-from-source).
+
 ## Requirements
 
 - Windows 10 or 11
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - A microphone
 
-A GPU is optional. Whisper uses CUDA 12 if the toolkit is installed, otherwise Vulkan, otherwise the
-CPU. Parakeet runs on the CPU and is fast enough there. **No CUDA Toolkit, no Python, no Rust.**
+A GPU is optional. Whisper uses Vulkan when a current GPU driver is present and falls back to the CPU;
+Parakeet runs on the CPU and is fast enough there. **No CUDA Toolkit, no Python, no Rust.**
 
-## Running it
+Running from source needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0); the
+installer needs only the .NET 8 Desktop Runtime, and offers to fetch it.
+
+## Running from source
 
 ```bash
 git clone https://github.com/JupitorStudioDev/Talk2Me.git
@@ -51,7 +68,8 @@ dotnet run --project src/Talk2Me.App
 ```
 
 Talk2Me lives in the system tray and on the taskbar. On first run it downloads the active engine's model
-— Parakeet is 640 MB, Whisper `large-v3-turbo` is 1.6 GB — into `%LOCALAPPDATA%\Talk2Me\models`. The
+— Parakeet is 640 MB, Whisper `large-v3-turbo` is 1.6 GB — into
+`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\models`. The
 status bar shows the download progress.
 
 Then hold Right Ctrl and talk.
@@ -88,8 +106,8 @@ The built-in cleaner strips "um" and fixes spacing. It cannot tell that *"the de
 wait, make that Tuesday"* should come out as **"The deadline is Tuesday."** That needs a model.
 
 Turn it on in Settings and paste an [Anthropic API key](https://console.anthropic.com/). The key is
-encrypted with DPAPI under your Windows account in `%LOCALAPPDATA%\Talk2Me\apikey.dat` — never in
-`settings.json`. `ANTHROPIC_API_KEY` works too.
+encrypted with DPAPI under your Windows account in `apikey.dat` — never in `settings.json`.
+`ANTHROPIC_API_KEY` works too.
 
 When it's on, **the transcript** — not the audio — is sent to the Anthropic API. If the call is slow
 (2 s by default), fails, or you have no key, the plain cleaned-up text is typed instead, so a dead
@@ -100,7 +118,9 @@ me a poem about the sea"* and you get that sentence, not a poem.
 
 ## Where your data lives
 
-Everything is under `%LOCALAPPDATA%\Talk2Me\`:
+Everything is under `%LOCALAPPDATA%\Jupitor Studio\Talk2Me\` — deliberately separate from the
+application itself, which the installer puts in `%LOCALAPPDATA%\Talk2MeApp\`, so uninstalling Talk2Me
+never takes your models and history with it:
 
 | File | What |
 |---|---|
@@ -133,6 +153,16 @@ dotnet run --project tools/Talk2Me.Brand                 # regenerate the icon a
 ```
 
 Launch flags: `--settings`, `--history`, `--overlay-demo`.
+
+To build an installer locally:
+
+```bash
+./build/pack.ps1 -Version 0.2.0
+```
+
+Releases are cut by tagging: `git tag v0.2.0 && git push origin v0.2.0` runs
+`.github/workflows/release.yml`, which tests, packs and publishes the GitHub Release that installed
+copies update from.
 
 `docs/ARCHITECTURE.md` explains the design; `docs/HANDOFF.md` is the working notes, including the
 gotchas that cost the most time.

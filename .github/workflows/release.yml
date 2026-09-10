@@ -1,0 +1,87 @@
+name: Release
+
+# Tag a commit to ship it:
+#   git tag v0.2.0 && git push origin v0.2.0
+#
+# The job publishes, packs a Velopack installer and attaches it to a GitHub Release. The running app
+# reads that release feed, so the update path and the download link are the same artefacts.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, without the leading v (e.g. 0.2.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Work out the version
+        id: version
+        shell: pwsh
+        run: |
+          $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            '${{ github.event.inputs.version }}'
+          } else {
+            '${{ github.ref_name }}'.TrimStart('v')
+          }
+          if ($v -notmatch '^\d+\.\d+\.\d+') { throw "'$v' is not a version" }
+          "value=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "building $v"
+
+      - name: Test
+        run: dotnet test --configuration Release --logger "console;verbosity=minimal"
+
+      # Velopack builds a delta against the previous release, but only if the previous packages are
+      # sitting in the output folder. Without this every update is a full ~90 MB download.
+      - name: Fetch the previous release for delta packaging
+        shell: pwsh
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force -Path build/releases | Out-Null
+          $previous = gh release list --limit 1 --json tagName --jq '.[0].tagName'
+          if ($previous) {
+            Write-Host "previous release: $previous"
+            gh release download $previous --dir build/releases --pattern '*.nupkg' --clobber
+          } else {
+            Write-Host "no previous release; this one will be a full package only"
+          }
+
+      - name: Publish and pack
+        shell: pwsh
+        run: ./build/pack.ps1 -Version ${{ steps.version.outputs.value }}
+
+      - name: Publish the GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'v${{ steps.version.outputs.value }}'
+          $notes = @"
+          Install Talk2Me by downloading **Talk2Me-win-Setup.exe** below and running it.
+
+          Talk2Me is not code-signed yet, so Windows SmartScreen will warn you the first time. Choose
+          **More info** then **Run anyway**. Installed copies update themselves from this feed.
+
+          Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0); the
+          installer offers to fetch it if it is missing. Speech models download on first use.
+          "@
+          gh release create $tag (Get-ChildItem build/releases | ForEach-Object FullName) `
+            --title $tag --notes $notes --verify-tag

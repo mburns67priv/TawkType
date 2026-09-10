@@ -6,3 +6,7 @@ obj/
 TestResults/
 *.log
 publish/
+
+# Packaging output. build/pack.ps1 is source; what it produces is not.
+build/publish/
+build/releases/

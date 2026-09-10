@@ -29,10 +29,11 @@ public sealed partial class WhisperTranscriber : ITranscriber
 
     static WhisperTranscriber()
     {
-        // Prefer the GPU. CUDA needs the CUDA 12 toolkit installed; Vulkan works with the plain NVIDIA/AMD driver.
+        // Prefer the GPU. Vulkan works with the stock NVIDIA/AMD/Intel driver, so it covers almost every
+        // machine; the CUDA 12 backend is not shipped because the DLL is 538 MB and only helps users who
+        // have installed the CUDA Toolkit. See Talk2Me.Transcription.csproj.
         RuntimeOptions.RuntimeLibraryOrder =
         [
-            RuntimeLibrary.Cuda12,
             RuntimeLibrary.Vulkan,
             RuntimeLibrary.Cpu,
         ];

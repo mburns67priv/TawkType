@@ -29,8 +29,15 @@ public sealed class SettingsStore : ISettingsProvider
         Current = Load();
     }
 
-    public static string AppDataDirectory { get; } =
-        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Talk2Me");
+    /// <summary>
+    /// %LOCALAPPDATA%\Jupitor Studio\Talk2Me — deliberately *not* %LOCALAPPDATA%\Talk2Me, which is where
+    /// the Velopack installer puts the application itself. Sharing that folder would mean uninstalling
+    /// Talk2Me deleted the user's settings, history and gigabytes of downloaded models along with it.
+    /// </summary>
+    public static string AppDataDirectory { get; } = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Jupitor Studio",
+        "Talk2Me");
 
     public static string DefaultPath { get; } = System.IO.Path.Combine(AppDataDirectory, "settings.json");
 
