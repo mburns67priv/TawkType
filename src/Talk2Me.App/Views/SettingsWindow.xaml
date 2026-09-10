@@ -238,6 +238,29 @@
                                 HorizontalAlignment="Left" Command="{Binding OpenDataFolderCommand}" />
                         <TextBlock Style="{StaticResource Ui.Hint}"
                                    Text="{Binding SettingsPath, StringFormat='Settings: {0}'}" />
+
+                        <!-- Parakeet is CC BY 4.0, which asks for the credit to travel with the work.
+                             The repository is not enough on its own: this is where users actually are. -->
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="About" />
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,10"
+                                   Text="{Binding Version, StringFormat='Talk2Me {0} — Jupitor Studio. Speech recognition runs on this machine.'}" />
+
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,2" TextWrapping="Wrap">
+                            <Run Text="Speech recognition by NVIDIA Parakeet TDT 0.6B v3, © NVIDIA Corporation, used unmodified under" />
+                            <Hyperlink Command="{Binding OpenLinkCommand}"
+                                       CommandParameter="https://creativecommons.org/licenses/by/4.0/"
+                                       Foreground="{DynamicResource Ui.Accent}">CC BY 4.0</Hyperlink><Run Text="," />
+                            <Run Text="and by OpenAI Whisper (MIT). Run with sherpa-onnx (Apache-2.0) and Whisper.net (MIT)." />
+                        </TextBlock>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="Parakeet model" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                                    Command="{Binding OpenLinkCommand}"
+                                    CommandParameter="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3" />
+                            <Button Content="All credits" Style="{StaticResource Ui.Button}"
+                                    Command="{Binding OpenLinkCommand}"
+                                    CommandParameter="https://github.com/JupitorStudioDev/Talk2Me/blob/main/THIRD-PARTY-NOTICES.md" />
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- ============ Transcription ============ -->

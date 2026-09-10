@@ -1,209 +1,160 @@
+<div align="center">
+
+<img src="branding/exports/icon-256.png" width="96" alt="Talk2Me">
+
 # Talk2Me
 
-Push-to-talk dictation for Windows, in the spirit of Wispr Flow: hold a key, speak, release, and clean
-text is typed into whatever you were working in. Speech never leaves your machine: capture and
-transcription are entirely local. No subscription, no telemetry. The one optional exception is the AI
-cleanup pass, which is off until you turn it on and explain itself below.
+**Push-to-talk dictation for Windows.** Hold a key, speak, release — cleaned-up text is typed
+into whatever you were working in.
 
-## How it works
+<img src="docs/images/bar-listening.png" width="433" alt="The Talk2Me status bar while listening">
 
-```
-hold key ──► mic capture (16 kHz) ──► release ──► Parakeet / Whisper ──► cleanup ──► type into focused app
-             ▲ bar rests on screen, then shows "Listening" + waveform + timer, "Transcribing…", "Typing…"
-```
+</div>
 
-| Piece | Implementation |
-|---|---|
-| Hotkey | `WH_KEYBOARD_LL` hook, so we get key-up as well as key-down system-wide |
-| Audio | NAudio WaveIn at 16 kHz mono, exactly what Whisper wants |
-| Speech-to-text | Two engines behind one interface: NVIDIA Parakeet TDT 0.6B v3 (sherpa-onnx, CPU int8) for English and 24 other European languages, Whisper.net `large-v3-turbo` (CUDA 12 → Vulkan → CPU) for the rest |
-| Cleanup | Regex filler removal, whitespace, casing — always. Optionally a Claude rewrite on top: spoken corrections, lists, personal dictionary, tone |
-| Typing | `SendInput` Unicode events; clipboard paste for long text |
-| UI | WPF: tray icon, a draggable always-on-screen status bar with its own toolbar, a six-page settings window, history window. Light and dark themes, or follow Windows |
+Speech recognition runs **on your machine**. There is no account, no subscription and no telemetry.
+The only thing that can ever leave your computer is the optional Claude rewrite, which is off until you
+turn it on and give it a key.
 
-## Run it
+---
 
-Requirements: Windows 10/11, .NET 8 SDK, an NVIDIA/AMD GPU with a current driver (Vulkan). The CUDA
-Toolkit 12.4+ is optional and makes transcription faster on NVIDIA cards.
+## What it does
+
+Hold **Right Ctrl** (or whichever key you pick), talk, let go. A second or two later the text appears
+where your cursor is — in your editor, your browser, a chat box, anywhere.
+
+- **Two local engines.** NVIDIA Parakeet TDT 0.6B v3 for English and 24 other European languages, OpenAI
+  Whisper `large-v3-turbo` for the rest. Talk2Me picks per language, or you can force one.
+- **It knows where it can type.** Before typing it checks whether the focused element actually accepts
+  text, and whether the target window is running as administrator — synthetic keystrokes to an elevated
+  window are discarded by Windows without any error. If it can't type, the text goes to your clipboard
+  and the bar says *Copied instead*.
+- **Nothing is lost.** Every dictation is logged locally, so a dictation that went into the wrong window
+  is one click away.
+- **Optional AI cleanup.** With a Claude API key, dictations are rewritten before typing: spoken
+  corrections applied ("no, make that Tuesday"), lists formatted, your own vocabulary spelled right.
+
+## Requirements
+
+- Windows 10 or 11
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- A microphone
+
+A GPU is optional. Whisper uses CUDA 12 if the toolkit is installed, otherwise Vulkan, otherwise the
+CPU. Parakeet runs on the CPU and is fast enough there. **No CUDA Toolkit, no Python, no Rust.**
+
+## Running it
 
 ```bash
+git clone https://github.com/JupitorStudioDev/Talk2Me.git
+cd Talk2Me
 dotnet run --project src/Talk2Me.App
 ```
 
-First launch downloads the model for the active engine into `%LOCALAPPDATA%\Talk2Me\models` (Parakeet
-~670 MB, Whisper ~1.6 GB) and shows progress in the overlay. Then:
+Talk2Me lives in the system tray and on the taskbar. On first run it downloads the active engine's model
+— Parakeet is 640 MB, Whisper `large-v3-turbo` is 1.6 GB — into `%LOCALAPPDATA%\Talk2Me\models`. The
+status bar shows the download progress.
 
-1. Click into any text field.
-2. Hold **Right Ctrl**, speak, release.
-3. Text appears about half a second later.
-
-Right-click the tray icon for **Settings** (hotkey, microphone, model, language, injection mode) or
-**Test dictation**, which records 3 seconds without needing the hotkey.
-
-Logs: `%LOCALAPPDATA%\Talk2Me\logs\talk2me.log`.
-
-Launch flags for development: `--settings` opens the settings window immediately; `--overlay-demo`
-cycles the overlay pill through every state (listening with a fake mic level, transcribing, typing,
-error, model download) so it can be styled without dictating.
-
-## Measured on the reference machine (i7-11700F, RTX 4060 Ti)
-
-Same 13 s clip, best of 5 runs, `tools/Talk2Me.Bench`:
-
-| Engine | Where it runs | Model load | Transcribe 13 s | Transcript |
-|---|---|---|---|---|
-| Parakeet TDT 0.6B v3 int8 | CPU, 8 threads | 3.9 s | 931 ms (14× real-time) | identical, one proper noun lower-cased |
-| Whisper large-v3-turbo | GPU via Vulkan | 2.4 s | 413 ms (31× real-time) | identical |
-
-Notes:
-
-- Whisper's first-ever warm-up compiles Vulkan shaders (~20 s once per driver); later launches warm up in
-  under half a second.
-- Parakeet on CPU is slower than Whisper on this GPU, but it needs no GPU at all, does not hallucinate on
-  silence, and benchmarks more accurately on real (non-synthetic) English speech. Both feel instant for
-  typical 3–8 s dictations. Switch with the **Engine** setting.
-- Installing the CUDA Toolkit 12.4+ moves Whisper to CUDA automatically. Parakeet on GPU would need the
-  CUDA build of sherpa-onnx, which is not on NuGet.
-
-## Settings
-
-Settings is a nav rail plus pages rather than one long form: **General** (overview cards and your stats),
-**Transcription**, **Activation**, **Appearance**, **AI cleanup**, **History**.
-
-General shows totals from the dictation log — dictations, speech duration, average words per minute,
-total words and characters, and time saved against typing the same words at 40 wpm.
-
-**Appearance** picks Light, Dark, or System, which follows the Windows app theme and keeps following it
-if you change it. The change is live: open windows restyle without reopening. The status pill is
-deliberately excluded — it floats over other applications, so it stays dark in every theme.
-
-## When the text cannot be typed
-
-Before typing, Talk2Me checks whether whatever has focus can actually accept text, and whether it is
-running as administrator — synthetic keystrokes to an elevated window are discarded by Windows silently,
-which is a common reason dictation seems to vanish.
-
-If it cannot be typed, the text goes to the **clipboard** instead and the bar says *Copied instead* with
-the reason. The check is deliberately cautious: it only diverts when it is confident, so an application
-that reports nothing useful about itself is typed into exactly as before.
-
-```bash
-dotnet run --project tools/Talk2Me.Focus -- 15
-```
-
-That prints the verdict once a second while you click between windows, if you want to see what it makes
-of a particular application.
+Then hold Right Ctrl and talk.
 
 ## The status bar
 
-The bar stays on screen. Between dictations it rests dimmed, showing your hotkey; the moment you start
-speaking it comes back to full strength and back to the front, and shows a live level meter and the
-elapsed time.
+<img src="docs/images/bar-resting.png" width="433" alt="The status bar at rest">
 
-It carries a small toolbar: **Settings**, **History**, **Copy last dictation**, **minimise**, and
-**hide between dictations**. Drag it anywhere by its body — where you put it is remembered across
-restarts.
-
-Talk2Me keeps a taskbar button for as long as it is running, whether the bar is on screen or not — click
-it to bring the bar back. Closing it from that button's menu quits Talk2Me.
-
-The two ways of putting the bar away differ:
-
-- **Minimise (`─`)** hides the bar completely, including while you dictate. It is not remembered, so a
-  restart brings it back. In the meantime, click the Talk2Me tray icon, or right-click it and choose
-  **Show status bar**.
-- **Hide between dictations (`✕`)** stops it resting on screen but still shows it while you speak. That
-  one is a saved setting — Appearance → "Keep the pill on screen" turns it back on, and doing so also
-  undoes a minimise.
+It sits on screen, dimmed, showing your hotkey; the moment you speak it comes back to full strength with
+a live level meter and a timer. Its toolbar has Settings, History, Copy last dictation, minimise, and
+hide-between-dictations. Drag it anywhere — it remembers where, per monitor.
 
 **It never takes focus.** The window is `WS_EX_NOACTIVATE`, so Windows delivers your clicks but never
-activates it, and it is raised with `SWP_NOACTIVATE` rather than `SetForegroundWindow`. Press a button or
-drag it and the caret stays exactly where you left it, so the dictated text still lands there.
+activates it. Press a button or drag it and your caret stays exactly where it was.
 
-Settings has an on/off for resting on screen and six starting positions (each corner, top or bottom
-centre) used until you drag it somewhere. `Overlay.RestingOpacity` and `Overlay.Margin` in
-`settings.json` tune how faint it rests and how far it sits from the edge.
+## Settings
 
-## History
+<img src="docs/images/settings-general.png" width="620" alt="The Talk2Me settings window">
 
-Every dictation is logged — what the recogniser heard, what was actually typed, which engine, how long
-it took. Open it from the tray (**History…**) or start the app with `--history`.
+Six pages, light or dark or following Windows:
 
-It exists for the case where you dictate into a window that was not focused, or clicked away mid-
-sentence, and the text went nowhere. **Copy last dictation** is the top button; click any older entry to
-see it in full and copy that one instead. Tick **Always on top** and the window stays where you left it,
-across restarts.
+| Page | What's there |
+|---|---|
+| **General** | Overview, your dictation stats, where the files live |
+| **Transcription** | Engine, language, microphone, and managing downloaded models |
+| **Activation** | Hotkey, tap threshold, how text gets inserted |
+| **Appearance** | Theme, and where the status bar sits |
+| **AI cleanup** | The optional Claude rewrite |
+| **History** | Everything you've dictated, and the log's settings |
 
-The log lives in `%LOCALAPPDATA%\Talk2Me\history.jsonl`, one JSON object per line, capped at 200 entries
-by default. That means everything you dictate is on disk in plain text — the History section in Settings
-turns it off, changes the cap, or clears it.
+## AI cleanup (optional, off by default)
 
-## Managing downloaded models
+The built-in cleaner strips "um" and fixes spacing. It cannot tell that *"the deadline is Monday, no
+wait, make that Tuesday"* should come out as **"The deadline is Tuesday."** That needs a model.
 
-Settings lists every downloaded model with its size, marks the one your current settings would load, and
-lets you tick the ones to remove — **Delete selected**, or **Delete all**. Both engines are unloaded
-first so nothing is still mapped. The tray menu keeps a delete-everything shortcut.
+Turn it on in Settings and paste an [Anthropic API key](https://console.anthropic.com/). The key is
+encrypted with DPAPI under your Windows account in `%LOCALAPPDATA%\Talk2Me\apikey.dat` — never in
+`settings.json`. `ANTHROPIC_API_KEY` works too.
 
-## AI cleanup
+When it's on, **the transcript** — not the audio — is sent to the Anthropic API. If the call is slow
+(2 s by default), fails, or you have no key, the plain cleaned-up text is typed instead, so a dead
+network degrades dictation rather than breaking it.
 
-Off by default. The regex cleaner strips "um" and fixes spacing; it cannot tell that "the deadline is
-Monday, no wait, make that Tuesday" should come out as "The deadline is Tuesday." That needs a model.
+The prompt is explicit that the transcript is speech to be typed, never an instruction. Dictate *"write
+me a poem about the sea"* and you get that sentence, not a poem.
 
-Turn it on under **AI cleanup** in Settings and paste an Anthropic API key. The key is encrypted with
-DPAPI under your Windows account in `%LOCALAPPDATA%\Talk2Mepikey.dat`, never in `settings.json`;
-`ANTHROPIC_API_KEY` works too. What it does:
+## Where your data lives
 
-- applies spoken self-corrections and drops the correcting
-- obeys spoken formatting — "new line", "new paragraph", "bullet point", "question mark"
-- turns a spoken list into a real one
-- fixes misheard names and jargon from your personal dictionary
-- follows a style (Verbatim / Natural / Formal / Casual) and any extra rules you write
+Everything is under `%LOCALAPPDATA%\Talk2Me\`:
 
-What it never does: answer or act on what you dictated. The transcript is fenced and the prompt is
-explicit that it is speech to be typed, not an instruction; a reply that is far longer than the
-transcript is discarded on the assumption the model answered it anyway.
+| File | What |
+|---|---|
+| `settings.json` | All settings. Plain text |
+| `apikey.dat` | Your Anthropic key, DPAPI-encrypted for your Windows account |
+| `history.jsonl` | Every dictation. **Plain text** — turn it off in Settings → History if that's not for you |
+| `models\` | Downloaded speech models |
+| `logs\talk2me.log` | Rolling 5 MB debug log |
 
-When it is on, the transcript text — not the audio — is sent to the Anthropic API. If the call is slow
-(2 s by default), fails, or you have no key, the regex-cleaned text is typed instead, so a dead network
-degrades dictation rather than breaking it.
+## Performance
 
-Try a rewrite without dictating:
+Measured on an i7-11700F with an RTX 4060 Ti, same 13-second clip, best of 5:
 
-```bash
-dotnet run --project tools/Talk2Me.Clean -- "um so the deadline is monday no wait make that tuesday"
-```
+| Engine | Runs on | Load | Transcribe |
+|---|---|---|---|
+| Parakeet TDT 0.6B v3 (int8) | CPU, 8 threads | 3.9 s | 931 ms |
+| Whisper large-v3-turbo | GPU (Vulkan) | 2.4 s | 413 ms |
 
-Arguments: `<transcript> [style] [model] [timeoutMs]`. Prints the raw text, the regex result, the
-rewrite, and how long the call took.
+Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.2 s of speech typed in
+215 ms.
 
-## Benchmark a WAV
+## Developer tools
 
 ```bash
-dotnet run --project tools/Talk2Me.Bench -- path\to\speech.wav Both 5
+dotnet test                                              # 98 unit tests, < 1 s
+dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
+dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
+dotnet run --project tools/Talk2Me.Focus -- 15           # what the focus probe sees
+dotnet run --project tools/Talk2Me.Brand                 # regenerate the icon and logos
 ```
 
-Arguments: `<wav> [engine=Both|Parakeet|Whisper] [runs] [language] [whisperModel]`. Prints warm-up time,
-per-run latency, the transcript from each engine, and a side-by-side summary.
+Launch flags: `--settings`, `--history`, `--overlay-demo`.
 
-## Tests
+`docs/ARCHITECTURE.md` explains the design; `docs/HANDOFF.md` is the working notes, including the
+gotchas that cost the most time.
 
-```bash
-dotnet test
-```
+## Credits
 
-## Layout
+Talk2Me leans on other people's work:
 
-```
-src/Talk2Me.Core            pipeline, abstractions, settings   (no Windows dependencies, fully unit-tested)
-src/Talk2Me.Windows         keyboard hook, WaveIn capture, SendInput / clipboard injection
-src/Talk2Me.Transcription   Parakeet + Whisper transcribers, router, model download
-src/Talk2Me.Llm             Claude-backed rewrite behind ILlmClient (a local model can slot in beside it)
-src/Talk2Me.App             WPF tray app, overlay, settings (namespace Talk2Me.Desktop)
-tools/Talk2Me.Bench         console harness for latency / backend checks
-tools/Talk2Me.Clean         console harness for the LLM cleanup pass
-tools/Talk2Me.Brand         renders the icon (.ico) and logo PNGs from the vector mark
-branding/                   BRAND.md, SVG sources, exported PNGs
-tests/Talk2Me.Core.Tests    xUnit
-docs/ARCHITECTURE.md       design notes and roadmap
-docs/HANDOFF.md            start here if you are picking the project up
-```
+- **[NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)** — © NVIDIA
+  Corporation, used unmodified under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), via the
+  [ONNX int8 export](https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8) by
+  csukuangfj
+- **[OpenAI Whisper](https://huggingface.co/openai/whisper-large-v3-turbo)** — MIT
+- **[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** (Apache-2.0) and
+  **[Whisper.net](https://github.com/sandrohanea/whisper.net)** (MIT) run them
+- **[Wispr Flow](https://wisprflow.ai)** is the product this is modelled on
+
+Full list, with licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Licence
+
+**None yet — all rights reserved.** You're welcome to read the source. You do not currently have
+permission to use, copy, modify or distribute it. If you'd like to, open an issue and ask.
+
+Built by [Jupitor Studio](https://github.com/JupitorStudioDev).

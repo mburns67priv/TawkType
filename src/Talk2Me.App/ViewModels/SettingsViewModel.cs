@@ -280,6 +280,11 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Opens a credit or licence link in the default browser.</summary>
+    [RelayCommand]
+    private static void OpenLink(string url)
+        => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+
     [RelayCommand]
     private static void OpenDataFolder()
     {
