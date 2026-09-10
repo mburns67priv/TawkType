@@ -7,66 +7,109 @@ namespace Talk2Me.Windows.Shell;
 ///
 /// Normally the button takes the window's own icon. But once anything sets a process-wide
 /// AppUserModelID — Velopack does, so that installs, shortcuts and updates hang together — Windows
-/// resolves the button's icon through that identity instead, and shows a generic one when it cannot
-/// find a matching shortcut. Setting RelaunchIconResource on the window says explicitly which icon to
-/// use, and works whether or not the app is installed.
+/// resolves the button's icon through that identity instead, and shows a generic one.
+///
+/// The cure has two halves, and the order matters. RelaunchIconResource is only honoured for a window
+/// carrying an *explicit* AppUserModelID of its own; merely inheriting the process one is not enough.
+/// And writing that ID is what makes the taskbar re-read the window's identity — so the icon must
+/// already be in the property store when the ID lands, or the refresh happens without it. Setting the
+/// ID first, then the icon, silently does nothing.
 /// </summary>
 public static class TaskbarIdentity
 {
     private const int VtLpwstr = 31;
 
-    // PKEY_AppUserModel_RelaunchIconResource, from the AppUserModel property set.
-    private static readonly PropertyKey RelaunchIconResource =
-        new(new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), 3);
+    private static readonly Guid AppUserModel = new("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
+
+    /// <summary>PKEY_AppUserModel_RelaunchIconResource.</summary>
+    private static readonly PropertyKey RelaunchIconResource = new(AppUserModel, 3);
+
+    /// <summary>PKEY_AppUserModel_ID.</summary>
+    private static readonly PropertyKey AppUserModelId = new(AppUserModel, 5);
 
     private static readonly Guid PropertyStoreId = new("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
 
     /// <summary>
-    /// Points the window's taskbar button at an icon, as "path,index" — e.g. the app's own executable.
-    /// Silently does nothing if the shell refuses; a wrong icon is not worth failing a launch over.
+    /// Points the window's taskbar button at an icon, given as a path and an index into it — normally
+    /// the application's own executable. Returns a short description of what happened, for the log;
+    /// a wrong icon is never worth failing a launch over, so nothing here throws.
     /// </summary>
-    public static void SetTaskbarIcon(nint window, string iconPath, int iconIndex = 0)
+    public static string SetTaskbarIcon(nint window, string iconPath, int iconIndex = 0)
     {
         if (window == 0 || string.IsNullOrWhiteSpace(iconPath))
         {
-            return;
+            return "skipped: no window or icon path";
         }
 
         var storeId = PropertyStoreId;
         IPropertyStore? store = null;
-        var value = nint.Zero;
 
         try
         {
-            if (SHGetPropertyStoreForWindow(window, ref storeId, out store) != 0 || store is null)
+            var hr = SHGetPropertyStoreForWindow(window, ref storeId, out store);
+            if (hr != 0 || store is null)
             {
-                return;
+                return $"no property store: 0x{hr:X8}";
             }
 
-            value = Marshal.StringToCoTaskMemUni($"{iconPath},{iconIndex}");
-            var variant = new PropVariant { Type = VtLpwstr, Pointer = value };
-            var key = RelaunchIconResource;
+            Set(store, RelaunchIconResource, $"{iconPath},{iconIndex}");
 
-            store.SetValue(ref key, ref variant);
+            // Match the process. On an installed copy that is also the AUMID on Velopack's Start Menu
+            // shortcut, so the button still groups with it.
+            var id = ProcessAppUserModelId();
+            if (id is not null)
+            {
+                Set(store, AppUserModelId, id);
+            }
+
             store.Commit();
+            return $"icon {iconPath},{iconIndex}; id {id ?? "(none)"}";
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Shell interop is best-effort here.
+            return "failed: " + ex.Message;
         }
         finally
         {
-            if (value != nint.Zero)
-            {
-                Marshal.FreeCoTaskMem(value);
-            }
-
             if (store is not null)
             {
                 Marshal.ReleaseComObject(store);
             }
         }
     }
+
+    private static void Set(IPropertyStore store, PropertyKey key, string value)
+    {
+        var memory = Marshal.StringToCoTaskMemUni(value);
+        try
+        {
+            var variant = new PropVariant { Type = VtLpwstr, Pointer = memory };
+            store.SetValue(ref key, ref variant);
+        }
+        finally
+        {
+            Marshal.FreeCoTaskMem(memory);
+        }
+    }
+
+    /// <summary>The AppUserModelID set on this process, or null when there is not one.</summary>
+    private static string? ProcessAppUserModelId()
+    {
+        try
+        {
+            return GetCurrentProcessExplicitAppUserModelID(out var id) == 0 && !string.IsNullOrWhiteSpace(id)
+                ? id
+                : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    [DllImport("shell32.dll")]
+    private static extern int GetCurrentProcessExplicitAppUserModelID(
+        [MarshalAs(UnmanagedType.LPWStr)] out string id);
 
     [DllImport("shell32.dll")]
     private static extern int SHGetPropertyStoreForWindow(

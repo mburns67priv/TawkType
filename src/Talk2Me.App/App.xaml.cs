@@ -92,6 +92,7 @@ public partial class App : Application
         _taskbarWindow.RestoreRequested += (_, _) => RestoreOverlay();
         _taskbarWindow.QuitRequested += (_, _) => Shutdown();
         _taskbarWindow.Show();
+        _logger?.LogInformation("Taskbar icon: {Result}", _taskbarWindow.IconDiagnostics);
 
         _tray = (TaskbarIcon)FindResource("TrayIcon");
 

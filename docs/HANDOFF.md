@@ -187,9 +187,18 @@ Both transcripts were otherwise identical and correctly punctuated.
     - It does **not** fix installed builds, even though the shell calls report success. Also setting
       `PKEY_AppUserModel_ID` on the window was tried and did not help either.
     - Not the icon cache: restarting Explorer changes nothing.
-    - The untested lead is that an installed app's AUMID matches a real Start Menu shortcut, and
-      Windows prefers that shortcut's icon. Making Velopack's AUMID and the shortcut agree — via
-      `VelopackApp.SetAppUserModelId` — is where to look next.
+    - Writing `RelaunchIconResource` **before** `PKEY_AppUserModel_ID` — the documented order, since
+      assigning the window ID is what makes the taskbar re-read the identity — was tried and does not
+      fix it either. That ordering is what the code does now, because it is correct regardless.
+    - The window's ID is set to whatever `GetCurrentProcessExplicitAppUserModelID` reports, so it
+      matches Velopack's shortcut. Installed, that is `velopack.Talk2MeApp`, confirmed against
+      `current\sq.version` (`<shortcutAumid>`). A plain build reports no process AUMID at all, which
+      is the one measured difference between the working and broken cases.
+    - So: with a process AUMID present, Windows appears to ignore `RelaunchIconResource` on the window
+      and take the icon from the matching Start Menu shortcut. That shortcut's `IconLocation` is
+      correct and its target's icon extracts correctly, so why the button renders generic is still
+      unexplained. Next thing to try would be rewriting the shortcut's icon to an explicit `.ico` file
+      rather than an index into the exe.
 21. **`TaskbarWindow` must keep a normal window style.** It looks like it wants
     `WindowStyle="None"` + `AllowsTransparency` since it is never meant to be seen, but that stops WPF
     applying `Window.Icon` and the taskbar button falls back to a generic Windows icon. Being 1x1 at

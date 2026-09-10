@@ -19,6 +19,9 @@ namespace Talk2Me.Desktop.Views;
 /// </summary>
 public partial class TaskbarWindow : Window
 {
+    /// <summary>What the icon call did, for the log. This has been fragile enough to be worth tracing.</summary>
+    public string IconDiagnostics { get; private set; } = "not attempted";
+
     public TaskbarWindow()
     {
         InitializeComponent();
@@ -29,12 +32,12 @@ public partial class TaskbarWindow : Window
         base.OnSourceInitialized(e);
 
         // Velopack sets a process-wide AppUserModelID, and from then on Windows resolves this button's
-        // icon through that identity rather than Window.Icon — showing a generic one when it cannot
-        // match a shortcut. Naming the icon explicitly is what keeps the brand mark on the button.
-        if (Environment.ProcessPath is { } exe)
-        {
-            TaskbarIdentity.SetTaskbarIcon(new WindowInteropHelper(this).Handle, exe);
-        }
+        // icon through that identity rather than Window.Icon — showing a generic one. See
+        // TaskbarIdentity for why the icon and the window's own ID must be written in that order.
+        var exe = Environment.ProcessPath;
+        IconDiagnostics = exe is null
+            ? "no process path"
+            : TaskbarIdentity.SetTaskbarIcon(new WindowInteropHelper(this).Handle, exe);
     }
 
     /// <summary>The taskbar button was clicked (or the window alt-tabbed to).</summary>
