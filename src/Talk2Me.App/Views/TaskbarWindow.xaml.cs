@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using Talk2Me.Windows.Shell;
@@ -31,13 +32,54 @@ public partial class TaskbarWindow : Window
     {
         base.OnSourceInitialized(e);
 
-        // Velopack sets a process-wide AppUserModelID, and from then on Windows resolves this button's
-        // icon through that identity rather than Window.Icon — showing a generic one. See
-        // TaskbarIdentity for why the icon and the window's own ID must be written in that order.
-        var exe = Environment.ProcessPath;
-        IconDiagnostics = exe is null
-            ? "no process path"
-            : TaskbarIdentity.SetTaskbarIcon(new WindowInteropHelper(this).Handle, exe);
+        // Velopack gives the process an AppUserModelID, and from then on Windows resolves this
+        // button's icon through identity rather than Window.Icon. See TaskbarIdentity for what brings
+        // the real icon back — including why the icon it reads cannot live with the installed app.
+        if (Environment.GetEnvironmentVariable("TALK2ME_TEST_SKIPPROP") is not null)
+        {
+            IconDiagnostics = "skipped by probe";
+            return;
+        }
+
+        var icon = StageIcon();
+        if (icon is null)
+        {
+            IconDiagnostics = "could not stage the icon";
+            return;
+        }
+
+        IconDiagnostics = TaskbarIdentity.SetTaskbarIcon(new WindowInteropHelper(this).Handle, icon);
+    }
+
+    /// <summary>
+    /// Drops a copy of the application icon in the temp folder and returns its path, or null if that
+    /// fails. The shell will not read an icon out of %LOCALAPPDATA%, where an installed Talk2Me and all
+    /// its data live, so the copy is not redundant — it is the only one the taskbar can see. It is
+    /// rewritten at every start, which is also what makes it survive a temp folder being cleared.
+    /// </summary>
+    private static string? StageIcon()
+    {
+        try
+        {
+            var directory = Path.Combine(Path.GetTempPath(), "Talk2Me");
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, "taskbar.ico");
+
+            var resource = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/talk2me.ico"));
+            if (resource is null)
+            {
+                return null;
+            }
+
+            using var source = resource.Stream;
+            using var target = File.Create(path);
+            source.CopyTo(target);
+            return path;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     /// <summary>The taskbar button was clicked (or the window alt-tabbed to).</summary>

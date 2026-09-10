@@ -22,6 +22,7 @@ using Talk2Me.Windows.Audio;
 using Talk2Me.Windows.Injection;
 using Talk2Me.Windows.Input;
 using Talk2Me.Windows.Security;
+using Talk2Me.Windows.Shell;
 using Talk2Me.Windows.Startup;
 using Velopack;
 
@@ -51,6 +52,15 @@ public partial class App : Application
         VelopackApp.Build()
             .SetAutoApplyOnStartup(true)
             .Run();
+
+        // Reproduces an installed copy's process identity from a plain build, which is the only
+        // difference that matters for how the taskbar resolves this app's icon. Without it the two
+        // cases can only be compared by packing and installing.
+        var testIdentity = Environment.GetEnvironmentVariable("TALK2ME_TEST_AUMID");
+        if (!string.IsNullOrWhiteSpace(testIdentity))
+        {
+            TaskbarIdentity.SetProcessAppUserModelId(testIdentity);
+        }
 
         // A global hotkey and a tray icon do not survive being run twice. An installer that also sets
         // start-with-Windows makes a second copy easy to trigger, so this is not theoretical.

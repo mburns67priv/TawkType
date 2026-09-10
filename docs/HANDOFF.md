@@ -22,8 +22,8 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
 - **LLM cleanup is in**, off by default: `LlmTextCleaner` runs the regex cleaner, then optionally a
   Claude rewrite under a 2 s timeout, falling back to the regex text on anything that goes wrong. Unit
   tested; the live path was verified only as far as a rejected key (see "Gotchas" 9).
-- **Known issue: the taskbar button shows a generic icon on installed builds.** Cosmetic, and
-  understood but not solved — see "Gotchas" 20.
+- **The installed build's taskbar icon is fixed** as of 0.2.8, after a long hunt. The answer is in
+  "Gotchas" 20, and it is not what anyone would guess.
 
 ## Repo map
 
@@ -173,32 +173,38 @@ Both transcripts were otherwise identical and correctly punctuated.
     downloaded models before the app can migrate them. It happened once during development. The packId
     is `Talk2MeApp` and the data folder is `%LOCALAPPDATA%\Jupitor Studio\Talk2Me`; both halves of
     that separation matter.
-20. **Velopack's init takes over the taskbar button's icon. Fixed for plain builds, still broken for
-    installed ones.** `VelopackApp.Build().Run()` sets a process-wide AppUserModelID, and from then on
-    Windows resolves the button's icon through that identity rather than `Window.Icon`, falling back to
-    a generic one. Everything else still looks right — the exe's icon, the Start Menu shortcut, the
-    hover thumbnail — which makes it read as an icon-cache problem. It is not.
+20. **Velopack's init takes over the taskbar button's icon.** `VelopackApp.Build().Run()` sets a
+    process-wide AppUserModelID, and from then on Windows resolves the button's icon through that
+    identity rather than `Window.Icon`, falling back to a generic one. Everything else still looks
+    right — the exe's icon, the Start Menu shortcut, the hover thumbnail — which makes it read as an
+    icon-cache problem. It is not.
 
-    What is established, so nobody re-derives it:
-    - Cause confirmed by isolation: a build skipping only the Velopack call shows the correct icon;
-      the same build with it shows the generic one.
-    - `TaskbarIdentity.SetTaskbarIcon` sets `RelaunchIconResource` on the window. That **fixes plain
-      builds**. Keep it.
-    - It does **not** fix installed builds, even though the shell calls report success. Also setting
-      `PKEY_AppUserModel_ID` on the window was tried and did not help either.
-    - Not the icon cache: restarting Explorer changes nothing.
-    - Writing `RelaunchIconResource` **before** `PKEY_AppUserModel_ID` — the documented order, since
-      assigning the window ID is what makes the taskbar re-read the identity — was tried and does not
-      fix it either. That ordering is what the code does now, because it is correct regardless.
-    - The window's ID is set to whatever `GetCurrentProcessExplicitAppUserModelID` reports, so it
-      matches Velopack's shortcut. Installed, that is `velopack.Talk2MeApp`, confirmed against
-      `current\sq.version` (`<shortcutAumid>`). A plain build reports no process AUMID at all, which
-      is the one measured difference between the working and broken cases.
-    - So: with a process AUMID present, Windows appears to ignore `RelaunchIconResource` on the window
-      and take the icon from the matching Start Menu shortcut. That shortcut's `IconLocation` is
-      correct and its target's icon extracts correctly, so why the button renders generic is still
-      unexplained. Next thing to try would be rewriting the shortcut's icon to an explicit `.ico` file
-      rather than an index into the exe.
+    Fixed, but only by getting **both** of these right at once, which is why it took so long:
+    - The window needs `PKEY_AppUserModel_RelaunchIconResource` **and** a
+      `PKEY_AppUserModel_ID` of its own. Neither alone does anything.
+    - That ID must be one **no installed shortcut claims** (`JupitorStudio.Talk2Me`). Set it to
+      Velopack's own `velopack.Talk2MeApp` — which is what matching the process ID gives you, and what
+      looks obviously correct — and the shell serves the icon registered for that app instead, i.e.
+      the generic one. It ignores the property entirely.
+    - The icon must live somewhere the shell will read. It refuses files under `%LOCALAPPDATA%` and
+      `%APPDATA%` — including the install directory and Talk2Me's own data folder — while reading the
+      identical bytes from `%TEMP%`, from the repo, or from anywhere outside those trees. No Defender
+      ASR or Controlled Folder Access is enabled on the machine where this was measured, and the ACLs
+      are permissive, so the reason is unknown; the behaviour is repeatable. `TaskbarWindow.StageIcon`
+      therefore writes a copy of the icon to `%TEMP%\Talk2Me\taskbar.ico` at every start and points
+      the property there.
+
+    Also measured, so nobody re-derives it:
+    - Cause confirmed by isolation: a build skipping only the Velopack call shows the correct icon.
+    - `binary,-resourceId` (e.g. `Talk2Me.exe,-32512`) and `icon.ico,0` are both accepted forms. The
+      `exe,0` index form that works in a shortcut resolves to nothing here.
+    - `WM_SETICON` with `ExtractIconEx`, restarting Explorer, and a fresh uninstall/reinstall all
+      change nothing. Neither does an unregistered *process* AUMID with no window property.
+    - **How to iterate on this without packing an installer.** The whole difference between a plain
+      build and an installed one is the process AUMID, so `TALK2ME_TEST_AUMID` makes `App` claim one at
+      startup and reproduces the bug from `dotnet build`. `TALK2ME_TEST_ICONRES`,
+      `TALK2ME_TEST_WINDOWID` and `TALK2ME_TEST_SKIPPROP` then vary the icon, the identity, or skip the
+      property, so a trial is a rebuild and a screenshot rather than a pack, uninstall and install.
 21. **`TaskbarWindow` must keep a normal window style.** It looks like it wants
     `WindowStyle="None"` + `AllowsTransparency` since it is never meant to be seen, but that stops WPF
     applying `Window.Icon` and the taskbar button falls back to a generic Windows icon. Being 1x1 at

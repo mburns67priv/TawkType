@@ -9,15 +9,24 @@ namespace Talk2Me.Windows.Shell;
 /// AppUserModelID — Velopack does, so that installs, shortcuts and updates hang together — Windows
 /// resolves the button's icon through that identity instead, and shows a generic one.
 ///
-/// The cure has two halves, and the order matters. RelaunchIconResource is only honoured for a window
-/// carrying an *explicit* AppUserModelID of its own; merely inheriting the process one is not enough.
-/// And writing that ID is what makes the taskbar re-read the window's identity — so the icon must
-/// already be in the property store when the ID lands, or the refresh happens without it. Setting the
-/// ID first, then the icon, silently does nothing.
+/// Two things make it come back, both measured rather than guessed:
+///
+/// The window needs an AppUserModelID that no installed shortcut claims. Velopack's own
+/// (velopack.Talk2MeApp) is registered against its Start Menu shortcut, and for a registered ID the
+/// shell serves that app's cached icon and ignores everything set here — which is exactly the generic
+/// icon we were trying to replace. Under an ID nobody has registered, the property below wins.
+///
+/// And the icon has to be somewhere the shell will actually read it. It refuses files under
+/// %LOCALAPPDATA% and %APPDATA% — which is where a per-user install and its own data both live — while
+/// reading the identical bytes happily from the temp folder or anywhere outside those trees. So the
+/// caller stages a copy and passes its path; see TaskbarWindow.
 /// </summary>
 public static class TaskbarIdentity
 {
     private const int VtLpwstr = 31;
+
+    /// <summary>Deliberately not Velopack's; see the note above.</summary>
+    private const string WindowAppUserModelId = "JupitorStudio.Talk2Me";
 
     private static readonly Guid AppUserModel = new("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
 
@@ -30,19 +39,27 @@ public static class TaskbarIdentity
     private static readonly Guid PropertyStoreId = new("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
 
     /// <summary>
-    /// Points the window's taskbar button at an icon, given as a path and an index into it — normally
-    /// the application's own executable. Returns a short description of what happened, for the log;
-    /// a wrong icon is never worth failing a launch over, so nothing here throws.
+    /// Points the window's taskbar button at an icon file. Returns a short description of what
+    /// happened, for the log; a wrong icon is never worth failing a launch over, so nothing here throws.
     /// </summary>
-    public static string SetTaskbarIcon(nint window, string iconPath, int iconIndex = 0)
+    public static string SetTaskbarIcon(nint window, string iconFile)
     {
-        if (window == 0 || string.IsNullOrWhiteSpace(iconPath))
+        if (window == 0 || string.IsNullOrWhiteSpace(iconFile))
         {
-            return "skipped: no window or icon path";
+            return "skipped: no window or icon";
         }
 
         var storeId = PropertyStoreId;
         IPropertyStore? store = null;
+
+        // Overridable so the two halves of this — which icon, which identity — can be varied against a
+        // running taskbar without a rebuild. It took a lot of trials to find the pair that works.
+        var icon = Environment.GetEnvironmentVariable("TALK2ME_TEST_ICONRES") is { Length: > 0 } probe
+            ? probe
+            : $"{iconFile},0";
+        var identity = Environment.GetEnvironmentVariable("TALK2ME_TEST_WINDOWID") is { Length: > 0 } probeId
+            ? probeId
+            : WindowAppUserModelId;
 
         try
         {
@@ -52,18 +69,10 @@ public static class TaskbarIdentity
                 return $"no property store: 0x{hr:X8}";
             }
 
-            Set(store, RelaunchIconResource, $"{iconPath},{iconIndex}");
-
-            // Match the process. On an installed copy that is also the AUMID on Velopack's Start Menu
-            // shortcut, so the button still groups with it.
-            var id = ProcessAppUserModelId();
-            if (id is not null)
-            {
-                Set(store, AppUserModelId, id);
-            }
-
+            Set(store, RelaunchIconResource, icon);
+            Set(store, AppUserModelId, identity);
             store.Commit();
-            return $"icon {iconPath},{iconIndex}; id {id ?? "(none)"}";
+            return $"icon {icon}; id {identity}";
         }
         catch (Exception ex)
         {
@@ -92,24 +101,16 @@ public static class TaskbarIdentity
         }
     }
 
-    /// <summary>The AppUserModelID set on this process, or null when there is not one.</summary>
-    private static string? ProcessAppUserModelId()
-    {
-        try
-        {
-            return GetCurrentProcessExplicitAppUserModelID(out var id) == 0 && !string.IsNullOrWhiteSpace(id)
-                ? id
-                : null;
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-    }
+    /// <summary>
+    /// Gives the process an AppUserModelID. Only useful for reproducing an installed copy's identity
+    /// from a plain build — installs get theirs from Velopack — so it is deliberately not called by the
+    /// app itself.
+    /// </summary>
+    public static void SetProcessAppUserModelId(string id) => SetCurrentProcessExplicitAppUserModelID(id);
 
     [DllImport("shell32.dll")]
-    private static extern int GetCurrentProcessExplicitAppUserModelID(
-        [MarshalAs(UnmanagedType.LPWStr)] out string id);
+    private static extern int SetCurrentProcessExplicitAppUserModelID(
+        [MarshalAs(UnmanagedType.LPWStr)] string id);
 
     [DllImport("shell32.dll")]
     private static extern int SHGetPropertyStoreForWindow(
