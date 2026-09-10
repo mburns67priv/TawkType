@@ -33,6 +33,7 @@ public partial class App : Application
     private OverlayWindow? _overlay;
     private SettingsWindow? _settingsWindow;
     private HistoryWindow? _historyWindow;
+    private TaskbarWindow? _taskbarWindow;
     private DictationEngine? _engine;
     private ILogger<App>? _logger;
 
@@ -65,6 +66,12 @@ public partial class App : Application
             _logger.LogError(args.Exception, "Unhandled UI exception");
             args.Handled = true;
         };
+
+        // A taskbar button for as long as Talk2Me runs, independent of whether the bar is on screen.
+        _taskbarWindow = new TaskbarWindow();
+        _taskbarWindow.RestoreRequested += (_, _) => RestoreOverlay();
+        _taskbarWindow.QuitRequested += (_, _) => Shutdown();
+        _taskbarWindow.Show();
 
         _tray = (TaskbarIcon)FindResource("TrayIcon");
 
@@ -139,6 +146,12 @@ public partial class App : Application
         {
             _historyWindow.AllowClose = true;
             _historyWindow.Close();
+        }
+
+        if (_taskbarWindow is not null)
+        {
+            _taskbarWindow.AllowClose = true;
+            _taskbarWindow.Close();
         }
 
         _overlay?.Close();

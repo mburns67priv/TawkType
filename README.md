@@ -87,7 +87,10 @@ It carries a small toolbar: **Settings**, **History**, **Copy last dictation**, 
 **hide between dictations**. Drag it anywhere by its body — where you put it is remembered across
 restarts.
 
-The two ways of putting it away differ:
+Talk2Me keeps a taskbar button for as long as it is running, whether the bar is on screen or not — click
+it to bring the bar back. Closing it from that button's menu quits Talk2Me.
+
+The two ways of putting the bar away differ:
 
 - **Minimise (`─`)** hides the bar completely, including while you dictate. It is not remembered, so a
   restart brings it back. In the meantime, click the Talk2Me tray icon, or right-click it and choose

@@ -160,16 +160,20 @@ Both transcripts were otherwise identical and correctly punctuated.
     including during dictation, and deliberately *not* persisted, so a restart brings it back. While
     minimised the only ways back are the tray icon (left click, or "Show status bar" on the menu) and
     turning Appearance → "Keep the pill on screen" from off to on.
-19. **Do not re-add `WS_EX_TRANSPARENT` to `OverlayWindow`.** It would make the toolbar unclickable and
+19. **`TaskbarWindow` must keep a normal window style.** It looks like it wants
+    `WindowStyle="None"` + `AllowsTransparency` since it is never meant to be seen, but that stops WPF
+    applying `Window.Icon` and the taskbar button falls back to a generic Windows icon. Being 1x1 at
+    -32000 and always minimised is what keeps it invisible.
+20. **Do not re-add `WS_EX_TRANSPARENT` to `OverlayWindow`.** It would make the toolbar unclickable and
     dragging impossible. `WS_EX_NOACTIVATE` is what keeps focus where it belongs.
-20. **Never check a remembered window position against `SystemParameters.VirtualScreen*`.** That is the
+21. **Never check a remembered window position against `SystemParameters.VirtualScreen*`.** That is the
     bounding box of every monitor, and on the owner's four-monitor layout it contains regions no monitor
     covers. Use `WindowPlacement.Restore` with `MonitorLayout.WorkAreas()`.
-21. **`IsCancel="True"` does nothing on a modeless window.** WPF's cancel handling sets `DialogResult`,
+22. **`IsCancel="True"` does nothing on a modeless window.** WPF's cancel handling sets `DialogResult`,
     which only applies to a window shown with `ShowDialog`. Settings is shown with `Show`, so its Cancel
     button needs a real `Click` handler and Escape needs wiring by hand — via bubbling `OnKeyDown`, not
     `OnPreviewKeyDown`, so an open combo box dropdown still gets Escape first.
-22. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
+23. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
     `History.WindowWidth/Height` are still WPF units. Values saved before this change were WPF units;
     they differ only under DPI scaling, and a wrong one is clamped on the next launch rather than lost.
 

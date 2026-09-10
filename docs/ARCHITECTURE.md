@@ -87,6 +87,22 @@ The API key never enters `settings.json`, which is plain text. `IApiKeyStore` ke
 (`ANTHROPIC_API_KEY` is the fallback). That protects the file at rest against other accounts on the
 machine — not against anything running as this user.
 
+## The taskbar button
+
+Talk2Me keeps a taskbar button for as long as it runs, and `TaskbarWindow` exists only to hold it. The
+status bar cannot: it is a `WS_EX_TOOLWINDOW` and it hides whenever it is minimised or set not to rest on
+screen, which would take the button away at exactly the moment the user needs something to click.
+
+So `TaskbarWindow` is one pixel, parked at -32000,-32000 and permanently minimised — never seen, only its
+button is. Restoring it (a taskbar click, or Alt+Tab) is the signal: bring the status bar back, then drop
+straight back to minimised so the button stays. Closing it from the button's system menu quits the app,
+which is what closing a taskbar button means; it routes through `Application.Shutdown` rather than just
+destroying the window, or Talk2Me would keep running with no button.
+
+It deliberately has a normal window style. `WindowStyle="None"` with `AllowsTransparency` — the obvious
+choice for a window meant to be invisible — stops WPF applying `Window.Icon`, and the taskbar falls back
+to a generic icon. Off-screen and minimised is enough to keep it out of sight.
+
 ## Remembered window positions
 
 The status bar and the history window both remember where the user put them, which on a multi-monitor
