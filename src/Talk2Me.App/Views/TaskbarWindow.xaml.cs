@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Interop;
+using Talk2Me.Windows.Shell;
 
 namespace Talk2Me.Desktop.Views;
 
@@ -20,6 +22,19 @@ public partial class TaskbarWindow : Window
     public TaskbarWindow()
     {
         InitializeComponent();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        // Velopack sets a process-wide AppUserModelID, and from then on Windows resolves this button's
+        // icon through that identity rather than Window.Icon — showing a generic one when it cannot
+        // match a shortcut. Naming the icon explicitly is what keeps the brand mark on the button.
+        if (Environment.ProcessPath is { } exe)
+        {
+            TaskbarIdentity.SetTaskbarIcon(new WindowInteropHelper(this).Handle, exe);
+        }
     }
 
     /// <summary>The taskbar button was clicked (or the window alt-tabbed to).</summary>

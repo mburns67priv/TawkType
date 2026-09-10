@@ -172,26 +172,32 @@ Both transcripts were otherwise identical and correctly punctuated.
     downloaded models before the app can migrate them. It happened once during development. The packId
     is `Talk2MeApp` and the data folder is `%LOCALAPPDATA%\Jupitor Studio\Talk2Me`; both halves of
     that separation matter.
-20. **`TaskbarWindow` must keep a normal window style.** It looks like it wants
+20. **Velopack's init takes over the taskbar button's icon.** `VelopackApp.Build().Run()` sets a
+    process-wide AppUserModelID, and from then on Windows resolves the button's icon through that
+    identity rather than `Window.Icon` — falling back to a generic one. The window keeps looking right
+    everywhere else (the hover thumbnail included), which makes it look like an icon-cache problem and
+    it is not. `TaskbarIdentity.SetTaskbarIcon` sets `RelaunchIconResource` on the window to name the
+    icon explicitly. Do not remove it, and re-check the button if the startup sequence changes.
+21. **`TaskbarWindow` must keep a normal window style.** It looks like it wants
     `WindowStyle="None"` + `AllowsTransparency` since it is never meant to be seen, but that stops WPF
     applying `Window.Icon` and the taskbar button falls back to a generic Windows icon. Being 1x1 at
     -32000 and always minimised is what keeps it invisible.
-21. **Do not re-add `WS_EX_TRANSPARENT` to `OverlayWindow`.** It would make the toolbar unclickable and
+22. **Do not re-add `WS_EX_TRANSPARENT` to `OverlayWindow`.** It would make the toolbar unclickable and
     dragging impossible. `WS_EX_NOACTIVATE` is what keeps focus where it belongs.
-22. **Never check a remembered window position against `SystemParameters.VirtualScreen*`.** That is the
+23. **Never check a remembered window position against `SystemParameters.VirtualScreen*`.** That is the
     bounding box of every monitor, and on the owner's four-monitor layout it contains regions no monitor
     covers. Use `WindowPlacement.Restore` with `MonitorLayout.WorkAreas()`.
-23. **`IsCancel="True"` does nothing on a modeless window.** WPF's cancel handling sets `DialogResult`,
+24. **`IsCancel="True"` does nothing on a modeless window.** WPF's cancel handling sets `DialogResult`,
     which only applies to a window shown with `ShowDialog`. Settings is shown with `Show`, so its Cancel
     button needs a real `Click` handler and Escape needs wiring by hand — via bubbling `OnKeyDown`, not
     `OnPreviewKeyDown`, so an open combo box dropdown still gets Escape first.
-24. **`Talk2Me.Windows` sets `UseWPF` only for the UI Automation client assemblies.** It draws no UI.
+25. **`Talk2Me.Windows` sets `UseWPF` only for the UI Automation client assemblies.** It draws no UI.
     Turning it on also changed the implicit usings, which is why `DpapiApiKeyStore` now imports
     `System.IO` explicitly.
-25. **Chromium reports its page body as a read-only Document and a focused input as an Edit.** That is
+26. **Chromium reports its page body as a read-only Document and a focused input as an Edit.** That is
     the discrimination the probe relies on, and it was verified against real Chrome — check it again if
     the control-type rules are ever touched, because getting it wrong breaks dictation into web forms.
-26. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
+27. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
     `History.WindowWidth/Height` are still WPF units. Values saved before this change were WPF units;
     they differ only under DPI scaling, and a wrong one is clamped on the next launch rather than lost.
 
