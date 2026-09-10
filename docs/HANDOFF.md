@@ -235,9 +235,8 @@ Both transcripts were otherwise identical and correctly punctuated.
 16. Added the focus probe: dictation now checks whether the focused element can take text (and whether
     the target is elevated) and falls back to the clipboard with "Copied instead" when it cannot.
 
-## Contacts and links
+## Links
 
-- Owner: servers@jupitorstudio.com
 - Parakeet model: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3 (sherpa-onnx int8 export:
   https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8)
 - Whisper.net: https://github.com/sandrohanea/whisper.net
