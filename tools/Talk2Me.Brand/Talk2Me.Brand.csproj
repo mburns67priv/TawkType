@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Description>Renders the Talk2Me mark to the app icon (.ico) and logo PNGs. Run after changing the brand geometry or palette.</Description>
+  </PropertyGroup>
+
+</Project>

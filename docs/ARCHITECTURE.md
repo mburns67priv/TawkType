@@ -36,7 +36,7 @@ IPushToTalkHotkey ──Pressed──► DictationEngine ──► IAudioCapture
                                                ──► ITextInjector.InjectAsync
 ```
 
-`DictationEngine` (in `Murmur.Core`) owns the state machine:
+`DictationEngine` (in `Talk2Me.Core`) owns the state machine:
 
 ```
 Idle ──press──► Listening ──release──► Transcribing ──► Injecting ──► Idle
@@ -67,7 +67,7 @@ Every stage is an interface so each can be swapped independently:
 
 ## Settings
 
-`%LOCALAPPDATA%\Murmur\settings.json`, loaded once at startup by `SettingsStore` and re-read by consumers
+`%LOCALAPPDATA%\Talk2Me\settings.json`, loaded once at startup by `SettingsStore` and re-read by consumers
 through `ISettingsProvider.Current`, so a save takes effect without a restart: the hotkey re-resolves on
 `Changed`, the transcriber reloads when model or language differ from what is loaded, audio device is
 resolved at each `Start()`.
@@ -82,6 +82,7 @@ resolved at each `Start()`.
 3. **Personal dictionary**: Whisper `initial_prompt` seeded with the user's words; learn from corrections.
 4. **Command mode**: select text, hold a second key, speak an instruction, replace selection.
 5. **Streaming**: transcribe in 1-second windows while the key is held so text appears as you speak.
-6. **Branding**: real icon, overlay animation (waveform, not a bar), onboarding window, installer (MSIX
-   or Velopack), auto-update.
+6. **Branding, continued**: identity, icon, palette and overlay restyle are done (see
+   `branding/BRAND.md`). Still to do: overlay waveform animation, onboarding window, installer (MSIX or
+   Velopack), auto-update.
 7. **Auto-start** with Windows, single-instance guard, crash recovery.

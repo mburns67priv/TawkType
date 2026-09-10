@@ -1,0 +1,97 @@
+<Window x:Class="Talk2Me.Desktop.Views.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Talk2Me.Desktop.ViewModels"
+        xmlns:views="clr-namespace:Talk2Me.Desktop.Views"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:OverlayViewModel}"
+        Title="Talk2Me"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Focusable="False"
+        IsHitTestVisible="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        FontFamily="{StaticResource Brand.Font}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <!-- Outer border carries a 1.5px gradient ring while listening; inner border is the pill body. -->
+    <Border Margin="24" CornerRadius="26" Padding="1.5">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource Brand.SurfaceBorder}" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding StateKey}" Value="Listening">
+                        <Setter Property="Background" Value="{StaticResource Brand.VoiceGradient}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.5" Color="#0E0F16" />
+        </Border.Effect>
+
+        <Border CornerRadius="25" Padding="16,10,18,10" Background="{StaticResource Brand.Surface}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Brand mark; the bars take the state colour. -->
+                <views:BrandMark Width="18" Height="18" Margin="0,0,10,0" VerticalAlignment="Center">
+                    <views:BrandMark.Style>
+                        <Style TargetType="views:BrandMark">
+                            <Setter Property="BarsBrush" Value="{StaticResource State.Transcribing}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding StateKey}" Value="Listening">
+                                    <Setter Property="BarsBrush" Value="{StaticResource State.Listening}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding StateKey}" Value="Injecting">
+                                    <Setter Property="BarsBrush" Value="{StaticResource State.Injecting}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding StateKey}" Value="Error">
+                                    <Setter Property="BarsBrush" Value="{StaticResource State.Error}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </views:BrandMark.Style>
+                </views:BrandMark>
+
+                <TextBlock Text="{Binding StatusText}"
+                           Foreground="{StaticResource Brand.Text}"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+
+                <!-- Mic level meter, only while listening -->
+                <Border Width="72" Height="6"
+                        Margin="14,0,0,0"
+                        CornerRadius="3"
+                        Background="#22FFFFFF"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding IsListening, Converter={StaticResource BoolToVis}}">
+                    <Rectangle HorizontalAlignment="Left"
+                               RadiusX="3" RadiusY="3"
+                               Fill="{StaticResource Brand.VoiceGradient}"
+                               Width="{Binding LevelWidth}" />
+                </Border>
+
+                <!-- Model download / load progress -->
+                <ProgressBar Width="120" Height="6"
+                             Margin="14,0,0,0"
+                             Minimum="0" Maximum="1"
+                             BorderThickness="0"
+                             Background="#22FFFFFF"
+                             Foreground="{StaticResource Brand.Accent}"
+                             Value="{Binding Progress, Mode=OneWay, TargetNullValue=0}"
+                             IsIndeterminate="{Binding IsIndeterminate}"
+                             VerticalAlignment="Center"
+                             Visibility="{Binding ShowProgress, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+        </Border>
+    </Border>
+</Window>

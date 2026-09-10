@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96">
+  <!-- Talk2Me mark: speech bubble with three sound bars. 24-unit grid; see BRAND.md. -->
+  <path fill="#FFFFFF" d="M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z"/>
+  <g fill="#6D5DFF">
+    <rect x="8" y="8" width="2" height="4" rx="1"/>
+    <rect x="11" y="6" width="2" height="8" rx="1"/>
+    <rect x="14" y="7" width="2" height="6" rx="1"/>
+  </g>
+</svg>

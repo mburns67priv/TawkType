@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 480" width="800" height="240">
+  <!-- Talk2Me logo lockup for dark backgrounds. Wordmark uses Segoe UI Variable Display Bold. -->
+  <defs>
+    <linearGradient id="voice" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6D5DFF"/>
+      <stop offset="1" stop-color="#FF6A8A"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(60 60)">
+    <rect width="360" height="360" rx="81" fill="url(#voice)"/>
+    <g transform="translate(50.4 45) scale(10.8)">
+      <path fill="#FFFFFF" d="M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z"/>
+      <g fill="#6D5DFF">
+        <rect x="8" y="8" width="2" height="4" rx="1"/>
+        <rect x="11" y="6" width="2" height="8" rx="1"/>
+        <rect x="14" y="7" width="2" height="6" rx="1"/>
+      </g>
+    </g>
+  </g>
+  <text x="490" y="352" font-family="Segoe UI Variable Display, Segoe UI, sans-serif" font-weight="700" font-size="300" fill="#FFFFFF">Talk<tspan fill="url(#voice)">2</tspan>Me</text>
+</svg>

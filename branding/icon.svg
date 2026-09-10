@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Talk2Me app icon: mark on a Voice-gradient tile. Mirrors tools/Talk2Me.Brand RenderIcon. -->
+  <defs>
+    <linearGradient id="voice" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6D5DFF"/>
+      <stop offset="1" stop-color="#FF6A8A"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="57.6" fill="url(#voice)"/>
+  <rect width="256" height="141" rx="57.6" fill="url(#sheen)"/>
+  <!-- mark scaled 7.68x (72% of the tile), centred, nudged up 3.84 -->
+  <g transform="translate(35.84 32) scale(7.68)">
+    <path fill="#000000" fill-opacity="0.22" transform="translate(0 0.5)"
+          d="M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z"/>
+    <path fill="#FFFFFF" d="M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z"/>
+    <g fill="#6D5DFF">
+      <rect x="8" y="8" width="2" height="4" rx="1"/>
+      <rect x="11" y="6" width="2" height="8" rx="1"/>
+      <rect x="14" y="7" width="2" height="6" rx="1"/>
+    </g>
+  </g>
+</svg>
