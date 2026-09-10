@@ -35,8 +35,5 @@ public sealed class OverlaySettings
 
     public double? WindowTop { get; set; }
 
-    /// <summary>Collapsed to just the mark, for when the full bar is in the way.</summary>
-    public bool Compact { get; set; }
-
     public OverlaySettings Clone() => (OverlaySettings)MemberwiseClone();
 }

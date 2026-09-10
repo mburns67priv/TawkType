@@ -156,6 +156,12 @@ and can be dragged anywhere; `Overlay.WindowLeft`/`WindowTop` remember where, fa
 elapsed time and a level meter built from a rolling buffer of `IAudioCapture` samples, one `WaveBar` per
 column so the bars animate without rebuilding the list.
 
+Putting the bar away has two meanings, and they are separate state. `Overlay.AlwaysVisible` (persisted)
+controls whether it rests on screen between dictations; `OverlayViewModel.IsHidden` (session-only) is the
+minimise button and suppresses it entirely, dictation included. Both `Show` and `Settle` respect
+`IsHidden`, so nothing in the pipeline can put a minimised bar back on screen. `Restore()` — what the
+tray icon calls — clears both, because from the tray they look like the same problem.
+
 Between dictations `OverlayViewModel` settles rather than hides: `IsResting` goes true, the text becomes
 the hotkey hint, and the view fades the pill to `Overlay.RestingOpacity`. `Overlay.AlwaysVisible = false`
 restores the old hide-when-idle behaviour.

@@ -83,9 +83,18 @@ The bar stays on screen. Between dictations it rests dimmed, showing your hotkey
 speaking it comes back to full strength and back to the front, and shows a live level meter and the
 elapsed time.
 
-It carries a small toolbar: **Settings**, **History**, **Copy last dictation**, **collapse to the mark**,
-and **hide between dictations** (the bar still appears while you speak; Appearance turns it back on).
-Drag it anywhere by its body — where you put it is remembered across restarts.
+It carries a small toolbar: **Settings**, **History**, **Copy last dictation**, **minimise**, and
+**hide between dictations**. Drag it anywhere by its body — where you put it is remembered across
+restarts.
+
+The two ways of putting it away differ:
+
+- **Minimise (`─`)** hides the bar completely, including while you dictate. It is not remembered, so a
+  restart brings it back. In the meantime, click the Talk2Me tray icon, or right-click it and choose
+  **Show status bar**.
+- **Hide between dictations (`✕`)** stops it resting on screen but still shows it while you speak. That
+  one is a saved setting — Appearance → "Keep the pill on screen" turns it back on, and doing so also
+  undoes a minimise.
 
 **It never takes focus.** The window is `WS_EX_NOACTIVATE`, so Windows delivers your clicks but never
 activates it, and it is raised with `SWP_NOACTIVATE` rather than `SetForegroundWindow`. Press a button or

@@ -39,9 +39,14 @@ public sealed partial class OverlayViewModel : ObservableObject
     private CancellationTokenSource? _settleTimer;
     private CancellationTokenSource? _statusTimer;
     private long _listeningSince;
+    private bool _wasAlwaysVisible;
 
     [ObservableProperty]
     private bool _isVisible;
+
+    /// <summary>Minimised out of the way. Session-only; the tray icon brings it back.</summary>
+    [ObservableProperty]
+    private bool _isHidden;
 
     [ObservableProperty]
     private string _statusText = string.Empty;
@@ -53,10 +58,6 @@ public sealed partial class OverlayViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Opacity))]
     private bool _isResting;
-
-    /// <summary>Collapsed to just the mark. Persisted, so it survives a restart.</summary>
-    [ObservableProperty]
-    private bool _isCompact;
 
     /// <summary>Matches a DictationState name; the view maps it to a colour.</summary>
     [ObservableProperty]
@@ -84,7 +85,6 @@ public sealed partial class OverlayViewModel : ObservableObject
     {
         _settings = settings;
         _history = history;
-        _isCompact = settings.Current.Overlay.Compact;
 
         for (var i = 0; i < BarCount; i++)
         {
@@ -98,6 +98,7 @@ public sealed partial class OverlayViewModel : ObservableObject
         _elapsedTimer.Tick += (_, _) =>
             ElapsedText = $"{Stopwatch.GetElapsedTime(_listeningSince).TotalSeconds:F1}s";
 
+        _wasAlwaysVisible = settings.Current.Overlay.AlwaysVisible;
         _settings.Changed += (_, _) => ApplyVisibilityMode();
         ApplyVisibilityMode();
     }
@@ -106,9 +107,6 @@ public sealed partial class OverlayViewModel : ObservableObject
     public event EventHandler? SettingsRequested;
 
     public event EventHandler? HistoryRequested;
-
-    /// <summary>Raised when the window should re-read its placement settings.</summary>
-    public event EventHandler? PlacementReset;
 
     public ObservableCollection<WaveBar> Bars { get; } = new();
 
@@ -223,17 +221,17 @@ public sealed partial class OverlayViewModel : ObservableObject
         }
     }
 
-    /// <summary>Collapses to just the mark, or back. Persisted.</summary>
+    /// <summary>
+    /// The minimise button: puts the bar away entirely, including while dictating. Deliberately not
+    /// persisted — minimising is a "not right now", and a restart brings the bar back. The way back in
+    /// the meantime is the tray icon, so <see cref="Restore"/> is what that calls.
+    /// </summary>
     [RelayCommand]
-    private void ToggleCompact()
+    private void Hide()
     {
-        IsCompact = !IsCompact;
-
-        var next = _settings.Current.Clone();
-        next.Overlay.Compact = IsCompact;
-        _settings.Save(next);
-
-        PlacementReset?.Invoke(this, EventArgs.Empty);
+        IsHidden = true;
+        IsResting = false;
+        IsVisible = false;
     }
 
     /// <summary>
@@ -246,6 +244,26 @@ public sealed partial class OverlayViewModel : ObservableObject
         var next = _settings.Current.Clone();
         next.Overlay.AlwaysVisible = false;
         _settings.Save(next);
+    }
+
+    /// <summary>
+    /// Brings the bar back from the tray, whichever way it went away. It undoes both the minimise
+    /// button and the close button, because from the tray they look like the same problem: the bar is
+    /// not there and the user wants it back.
+    /// </summary>
+    public void Restore()
+    {
+        IsHidden = false;
+
+        if (!_settings.Current.Overlay.AlwaysVisible)
+        {
+            var next = _settings.Current.Clone();
+            next.Overlay.AlwaysVisible = true;
+            _settings.Save(next); // this fires Changed, which settles the bar back onto the screen
+            return;
+        }
+
+        Settle();
     }
 
     private void StartListening()
@@ -270,6 +288,17 @@ public sealed partial class OverlayViewModel : ObservableObject
     /// <summary>Re-reads the always-visible setting and rests or hides the bar accordingly.</summary>
     private void ApplyVisibilityMode()
     {
+        var alwaysVisible = _settings.Current.Overlay.AlwaysVisible;
+
+        // Ticking "keep the bar on screen" back on is an explicit ask for the bar, so it also undoes a
+        // minimise. Only on the transition: an unrelated settings save should not un-minimise it.
+        if (alwaysVisible && !_wasAlwaysVisible)
+        {
+            IsHidden = false;
+        }
+
+        _wasAlwaysVisible = alwaysVisible;
+
         if (IsResting || !IsVisible)
         {
             Settle();
@@ -287,7 +316,7 @@ public sealed partial class OverlayViewModel : ObservableObject
         IsResting = false;
         StatusText = text;
         StateKey = state.ToString();
-        IsVisible = true;
+        IsVisible = !IsHidden;
     }
 
     /// <summary>Idle presentation: dimmed and showing the hotkey, or gone if the user turned that off.</summary>
@@ -300,7 +329,7 @@ public sealed partial class OverlayViewModel : ObservableObject
             bar.Height = WaveBar.WaveMinimum;
         }
 
-        if (_settings.Current.Overlay.AlwaysVisible)
+        if (_settings.Current.Overlay.AlwaysVisible && !IsHidden)
         {
             StatusText = $"Hold {FriendlyHotkey(_settings.Current.Hotkey)}";
             IsResting = true;

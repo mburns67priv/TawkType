@@ -44,7 +44,6 @@ public partial class OverlayWindow : Window
         DataContext = viewModel;
 
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
-        viewModel.PlacementReset += OnPlacementReset;
         settings.Changed += OnSettingsChanged;
         SizeChanged += OnSizeChanged;
 
@@ -71,7 +70,6 @@ public partial class OverlayWindow : Window
     protected override void OnClosing(CancelEventArgs e)
     {
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-        _viewModel.PlacementReset -= OnPlacementReset;
         _settings.Changed -= OnSettingsChanged;
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         base.OnClosing(e);
@@ -113,8 +111,6 @@ public partial class OverlayWindow : Window
             Reposition();
         }
     }
-
-    private void OnPlacementReset(object? sender, EventArgs e) => Dispatcher.BeginInvoke(Reposition);
 
     /// <summary>A monitor was unplugged, switched off, or rearranged. Rescue the bar if it is stranded.</summary>
     private void OnDisplaySettingsChanged(object? sender, EventArgs e)

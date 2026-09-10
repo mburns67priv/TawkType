@@ -78,37 +78,8 @@
         <Border CornerRadius="17" Background="{StaticResource Overlay.Surface}">
             <Grid>
 
-                <!-- ===================== Compact: just the mark ===================== -->
-                <Button Width="52" Height="42" Cursor="Hand" Focusable="False"
-                        Command="{Binding ToggleCompactCommand}"
-                        ToolTip="Expand Talk2Me"
-                        Visibility="{Binding IsCompact, Converter={StaticResource BoolToVis}}">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="Transparent">
-                                <views:BrandMark Width="22" Height="22"
-                                                 HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <views:BrandMark.Style>
-                                        <Style TargetType="views:BrandMark">
-                                            <Setter Property="BubbleBrush" Value="#8A90A8" />
-                                            <Setter Property="BarsBrush" Value="{StaticResource State.Transcribing}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding StateKey}" Value="Listening">
-                                                    <Setter Property="BubbleBrush" Value="{StaticResource Overlay.Text}" />
-                                                    <Setter Property="BarsBrush" Value="{StaticResource State.Listening}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </views:BrandMark.Style>
-                                </views:BrandMark>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-
                 <!-- ===================== Full bar ===================== -->
-                <Grid Width="394" Height="78"
-                      Visibility="{Binding IsCompact, Converter={StaticResource NotBoolToVis}}">
+                <Grid Width="394" Height="78">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="26" />
                         <RowDefinition Height="*" />
@@ -118,8 +89,8 @@
                     <DockPanel Grid.Row="0" Margin="8,5,8,0">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                             <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Minimize}"
-                                    Command="{Binding ToggleCompactCommand}"
-                                    ToolTip="Collapse to the mark" />
+                                    Command="{Binding HideCommand}"
+                                    ToolTip="Hide the bar. Click the Talk2Me tray icon to bring it back." />
                             <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Close}"
                                     Command="{Binding HideBetweenDictationsCommand}"
                                     ToolTip="Hide between dictations. It still appears while you speak; turn it back on under Settings → Appearance." />

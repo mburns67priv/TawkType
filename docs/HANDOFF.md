@@ -154,9 +154,12 @@ Both transcripts were otherwise identical and correctly punctuated.
     Automation — it looks like a broken binding and is not. Use `MinHeight`.
 17. **Light.xaml and Dark.xaml must define the same keys.** A key missing from one only fails once a
     user switches to that theme.
-18. **The status bar's close button does not quit anything.** It sets `Overlay.AlwaysVisible = false`,
-    so the bar stops resting on screen but still appears while dictating; Appearance turns it back on.
-    Collapse (`─`) toggles `Overlay.Compact`. Neither is destructive, both persist.
+18. **The status bar has two different "go away" buttons, and neither quits anything.** Close (`✕`)
+    sets `Overlay.AlwaysVisible = false` — it stops resting on screen but still appears while
+    dictating, and is persisted. Minimise (`─`) sets `OverlayViewModel.IsHidden` — gone entirely,
+    including during dictation, and deliberately *not* persisted, so a restart brings it back. While
+    minimised the only ways back are the tray icon (left click, or "Show status bar" on the menu) and
+    turning Appearance → "Keep the pill on screen" from off to on.
 19. **Do not re-add `WS_EX_TRANSPARENT` to `OverlayWindow`.** It would make the toolbar unclickable and
     dragging impossible. `WS_EX_NOACTIVATE` is what keeps focus where it belongs.
 20. **Never check a remembered window position against `SystemParameters.VirtualScreen*`.** That is the

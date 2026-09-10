@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using H.NotifyIcon;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -66,6 +67,9 @@ public partial class App : Application
         };
 
         _tray = (TaskbarIcon)FindResource("TrayIcon");
+
+        // Left-clicking the tray icon brings the bar back after the minimise button has put it away.
+        _tray.LeftClickCommand = new RelayCommand(RestoreOverlay);
         _tray.ForceCreate();
 
         var overlayVm = Services.GetRequiredService<OverlayViewModel>();
@@ -224,6 +228,11 @@ public partial class App : Application
             _logger?.LogWarning(ex, "Could not record the dictation in the history");
         }
     }
+
+    private void OnShowOverlayClick(object sender, RoutedEventArgs e) => RestoreOverlay();
+
+    /// <summary>Undoes both the bar's minimise button and its close button.</summary>
+    private void RestoreOverlay() => Services.GetRequiredService<OverlayViewModel>().Restore();
 
     private void OnHistoryClick(object sender, RoutedEventArgs e) => ShowHistoryWindow();
 
