@@ -59,6 +59,9 @@ public sealed class Talk2MeSettings
     /// <summary>The floating status pill.</summary>
     public OverlaySettings Overlay { get; set; } = new();
 
+    /// <summary>Window theme.</summary>
+    public AppearanceSettings Appearance { get; set; } = new();
+
     public Talk2MeSettings Clone()
     {
         var copy = (Talk2MeSettings)MemberwiseClone();
@@ -66,6 +69,7 @@ public sealed class Talk2MeSettings
         copy.Cleanup = Cleanup.Clone();
         copy.History = History.Clone();
         copy.Overlay = Overlay.Clone();
+        copy.Appearance = Appearance.Clone();
         return copy;
     }
 }

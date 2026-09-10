@@ -1,0 +1,25 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Every key here must also exist in Light.xaml. The two are swapped wholesale at runtime. -->
+
+    <SolidColorBrush x:Key="Ui.Window" Color="#171925" />
+    <SolidColorBrush x:Key="Ui.Sidebar" Color="#12141E" />
+    <SolidColorBrush x:Key="Ui.Card" Color="#1E2030" />
+    <SolidColorBrush x:Key="Ui.CardHover" Color="#262939" />
+    <SolidColorBrush x:Key="Ui.Input" Color="#0E0F16" />
+    <SolidColorBrush x:Key="Ui.Border" Color="#2A2D3E" />
+
+    <SolidColorBrush x:Key="Ui.Text" Color="#F5F6FA" />
+    <SolidColorBrush x:Key="Ui.TextMuted" Color="#9CA1B8" />
+    <SolidColorBrush x:Key="Ui.TextOnAccent" Color="#FFFFFF" />
+
+    <SolidColorBrush x:Key="Ui.NavSelected" Color="#2C2A4A" />
+    <SolidColorBrush x:Key="Ui.NavHover" Color="#20222F" />
+
+    <!-- Lifted off the brand violet: #6D5DFF is the mark's colour and reads brighter on ink. -->
+    <SolidColorBrush x:Key="Ui.Accent" Color="#8B7DFF" />
+    <SolidColorBrush x:Key="Ui.AccentSoft" Color="#262348" />
+    <SolidColorBrush x:Key="Ui.Danger" Color="#FF7D96" />
+
+</ResourceDictionary>

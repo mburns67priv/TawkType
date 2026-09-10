@@ -32,6 +32,17 @@ public sealed class SettingsCloneTests
     }
 
     [Fact]
+    public void Clone_does_not_share_the_appearance_section()
+    {
+        var original = new Talk2MeSettings();
+
+        var copy = original.Clone();
+        copy.Appearance.Theme = AppTheme.Dark;
+
+        Assert.Equal(AppTheme.System, original.Appearance.Theme);
+    }
+
+    [Fact]
     public void Clone_does_not_share_the_overlay_section()
     {
         var original = new Talk2MeSettings();

@@ -15,7 +15,7 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
 
 - **Branch `main`, clean tree.** `9e84eea` skeleton + both engines; `6f61150` rename + brand;
   `12d8117` this doc; then the LLM cleanup pass.
-- **Builds clean** with `dotnet build`, **60 unit tests pass** with `dotnet test`.
+- **Builds clean** with `dotnet build`, **76 unit tests pass** with `dotnet test`.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download, model deletion are all verified in the running
   app.
@@ -35,7 +35,9 @@ src/Talk2Me.Transcription   ParakeetTranscriber (sherpa-onnx), WhisperTranscribe
 src/Talk2Me.Llm             ClaudeLlmClient — the only project that references the Anthropic SDK
 src/Talk2Me.App             WPF tray app (namespace Talk2Me.Desktop): App.xaml has the palette + mark
                             geometry; Views/ has OverlayWindow, SettingsWindow, HistoryWindow, BrandMark;
-                            Services/ has ModelMaintenance and LegacyMigration; Logging/ has the file logger
+                            Themes/ has Light.xaml, Dark.xaml and the templated Controls.xaml;
+                            Services/ has ModelMaintenance, ThemeManager and LegacyMigration;
+                            Logging/ has the file logger
 tools/Talk2Me.Bench         transcribes a WAV with one or both engines, prints latency side by side
 tools/Talk2Me.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/Talk2Me.Brand         renders talk2me.ico + logo PNGs from the vector mark (WPF, no external tools)
@@ -49,7 +51,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md
 
 ```bash
 dotnet run --project src/Talk2Me.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 60 tests, < 1 s
+dotnet test                                   # 76 tests, < 1 s
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Brand      # regenerate icon + exports after brand changes
@@ -84,6 +86,9 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Whisper runtime order CUDA12 → Vulkan → CPU | No CUDA Toolkit installed, so Vulkan is what runs. Installing the toolkit flips to CUDA automatically. |
 | H.NotifyIcon.Wpf pinned to **2.3.2** | 2.4.x dropped net8.0 and silently resolves to the .NET Framework asset, which fails XAML compile. |
 | WaveIn at 16 kHz mono, not WASAPI | The driver resamples for free to exactly what both engines want. Swap for WASAPI only if latency or loopback becomes a need. |
+| Settings is a nav rail + pages, not one form | It had grown past 1400px with the expanders open and was genuinely hard to read. Six pages (General / Transcription / Activation / Appearance / AI cleanup / History) modelled on WhisperTyping, which the owner asked for by screenshot. |
+| Light default with a dark toggle, pill always dark | The owner picked light with a toggle. The pill is the exception on purpose: it floats over other applications, so it has to read against *their* content, not ours. Its brushes are `Overlay.*` in App.xaml and never swap. |
+| Controls are fully templated | WPF's stock ComboBox/CheckBox/Button chrome comes from system colours and looks wrong in dark. Templating them is the only way both themes are right. |
 | The pill rests on screen instead of hiding | It is the only feedback the user has, and it is useless if it is gone when they glance at it. Resting dimmed keeps it available without being loud. `Overlay.AlwaysVisible = false` restores hide-on-idle. |
 | The pill is raised with `SWP_NOACTIVATE`, never `Activate()` | Focus must stay in whatever the user clicked into, or the dictation lands in the wrong window — the exact failure the history window exists to recover from. `Topmost` alone is not enough because a later topmost window sits above it, hence the explicit re-raise when dictation starts. |
 | History is append-only JSONL, not a database | A dictation must never be lost or slowed by the log. The hot path is one `File.AppendAllText`, failures are swallowed (the text is already typed), and the file is only rewritten when trimming or clearing. A torn line is skipped at load. |
@@ -127,7 +132,7 @@ Both transcripts were otherwise identical and correctly punctuated.
    seen a real rewrite or its latency yet. Run `tools/Talk2Me.Clean` with a real key first thing.
 10. **`ModelStorage.Delete` only ever removes something `List()` reported**, so a caller cannot compose
     a path out of the models folder. Keep that property if you add another delete path.
-11. **`Talk2MeSettings.Clone` is no longer a plain `MemberwiseClone`.** `Cleanup`, `History` and `Overlay` are
+11. **`Talk2MeSettings.Clone` is no longer a plain `MemberwiseClone`.** `Cleanup`, `History`, `Overlay` and `Appearance` are
     nested objects, deep-copied by hand. Any future nested settings section needs the same treatment or
     the Settings window will edit live settings in place.
 12. **The history window saves settings when it moves or closes**, via clone-modify-save on
@@ -138,6 +143,14 @@ Both transcripts were otherwise identical and correctly punctuated.
 14. **Never call `Activate()`, `Focus()` or `SetForegroundWindow` on `OverlayWindow`.** It would take
     focus from the window the user is dictating into. Raise it with `SetWindowPos` + `SWP_NOACTIVATE`;
     `RaiseWithoutActivating()` is there for exactly this.
+15. **A resource key is a brush or a style, never both.** `Ui.Card` (brush) and the old `Ui.Card` (Border
+    style) collided and every window died on open with *'System.Windows.Style' is not a valid value for
+    property 'Background'*. The style is `Ui.CardSurface` now.
+16. **Never put a fixed `Height` on the templated TextBox/PasswordBox styles.** It starves
+    `PART_ContentHost` and the text stops rendering while the control still reports its value through UI
+    Automation — it looks like a broken binding and is not. Use `MinHeight`.
+17. **Light.xaml and Dark.xaml must define the same keys.** A key missing from one only fails once a
+    user switches to that theme.
 
 ## Roadmap, in the order I would do it
 
@@ -174,6 +187,9 @@ Both transcripts were otherwise identical and correctly punctuated.
 10. Made the pill permanent: `OverlaySettings` (always-visible, position, resting opacity, margin), a
     resting state in `OverlayViewModel` instead of hiding, `RaiseWithoutActivating()` so becoming active
     re-asserts z-order without touching focus, and Settings controls for it.
+11. Redesigned Settings as a nav rail plus six pages with stats tiles, added the light/dark/system theme
+    system (`Themes/`, `ThemeManager`, `AppearanceSettings`), themed the history window, and pinned the
+    pill's colours so it stays dark. Verified every page in both themes by driving the running app.
 
 ## Contacts and links
 

@@ -7,261 +7,498 @@
         xmlns:views="clr-namespace:Talk2Me.Desktop.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}"
-        Title="Talk2Me Settings"
+        Title="Talk2Me"
         Icon="pack://application:,,,/Assets/talk2me.ico"
-        Width="460"
-        SizeToContent="Height"
-        ResizeMode="NoResize"
+        Width="840" Height="620"
+        MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource Brand.SurfaceRaised}"
-        Foreground="{StaticResource Brand.Text}"
+        Background="{DynamicResource Ui.Window}"
+        Foreground="{DynamicResource Ui.Text}"
         FontFamily="{StaticResource Brand.Font}"
         FontSize="13">
     <Window.Resources>
-        <!-- Keyed (not implicit) so it never leaks into the TextBlocks that ComboBox generates for its items. -->
-        <Style x:Key="Label" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource Brand.Text}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="0,0,12,10" />
+        <views:EqualsToVisibilityConverter x:Key="PageVisible" />
+
+        <!-- One row of a settings page: label, control, optional hint. -->
+        <!-- Fixed, not MaxWidth: a field with no hint under it would otherwise shrink to its content
+             and the combo's arrow would sit on top of the selected text. -->
+        <Style x:Key="Field" TargetType="StackPanel">
+            <Setter Property="Margin" Value="0,0,0,18" />
+            <Setter Property="Width" Value="420" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
-        <Style x:Key="Hint" TargetType="TextBlock" BasedOn="{StaticResource Label}">
-            <Setter Property="Foreground" Value="{StaticResource Brand.TextMuted}" />
+
+        <Style x:Key="StatCaption" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11.5" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="0,-6,0,12" />
+            <Setter Property="Foreground" Value="{DynamicResource Ui.TextMuted}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
         </Style>
-        <SolidColorBrush x:Key="InputText" Color="#1B1C28" />
-        <Style TargetType="ComboBox">
-            <Setter Property="Margin" Value="0,0,0,10" />
-            <Setter Property="MinHeight" Value="28" />
-            <Setter Property="Foreground" Value="{StaticResource InputText}" />
+
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource Brand.DisplayFont}" />
+            <Setter Property="FontSize" Value="24" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,4,0,0" />
         </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Margin" Value="0,0,0,10" />
-            <Setter Property="MinHeight" Value="28" />
-            <Setter Property="Padding" Value="6,4" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{StaticResource InputText}" />
+
+        <Style x:Key="StatTile" TargetType="Border" BasedOn="{StaticResource Ui.CardSurface}">
+            <Setter Property="Margin" Value="0,0,10,10" />
         </Style>
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="{StaticResource Brand.Text}" />
-            <Setter Property="Margin" Value="0,2,0,10" />
-        </Style>
-        <Style TargetType="Button">
-            <Setter Property="Padding" Value="18,7" />
-            <Setter Property="MinWidth" Value="90" />
-            <Setter Property="Margin" Value="8,0,0,0" />
+
+        <Style x:Key="HomeCard" TargetType="Button" BasedOn="{StaticResource Ui.CardButton}">
+            <Setter Property="Margin" Value="0,0,10,10" />
         </Style>
     </Window.Resources>
 
-    <Grid Margin="24,20,24,20">
+    <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="196" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition /> <!-- 0 heading -->
-            <RowDefinition /> <!-- 1 hotkey -->
-            <RowDefinition /> <!-- 2 hotkey hint -->
-            <RowDefinition /> <!-- 3 suppress -->
-            <RowDefinition /> <!-- 4 microphone -->
-            <RowDefinition /> <!-- 5 language -->
-            <RowDefinition /> <!-- 6 engine -->
-            <RowDefinition /> <!-- 7 engine hint -->
-            <RowDefinition /> <!-- 8 whisper model -->
-            <RowDefinition /> <!-- 9 model hint -->
-            <RowDefinition /> <!-- 10 min hold -->
-            <RowDefinition /> <!-- 11 injection -->
-            <RowDefinition /> <!-- 12 fillers -->
-            <RowDefinition /> <!-- 13 trailing space -->
-            <RowDefinition /> <!-- 14 overlay always visible -->
-            <RowDefinition /> <!-- 15 overlay position -->
-            <RowDefinition /> <!-- 16 cleanup -->
-            <RowDefinition /> <!-- 17 history -->
-            <RowDefinition /> <!-- 18 storage -->
-            <RowDefinition /> <!-- 19 path -->
-            <RowDefinition /> <!-- 20 buttons -->
-        </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,18">
-            <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource Brand.VoiceGradient}" Margin="0,0,12,0">
-                <views:BrandMark Width="26" Height="26" Margin="0,1,0,0" />
-            </Border>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock FontFamily="{StaticResource Brand.DisplayFont}" FontSize="22" FontWeight="Bold"
-                           Foreground="{StaticResource Brand.Text}" Margin="0" LineHeight="24">
-                    <Run Text="Talk" /><Run Text="2" Foreground="{StaticResource Brand.Coral}" /><Run Text="Me" />
-                </TextBlock>
-                <TextBlock Text="Hold. Speak. Done." Foreground="{StaticResource Brand.TextMuted}" FontSize="11.5" Margin="1,0,0,0" />
-            </StackPanel>
-        </StackPanel>
+        <!-- ===================== Nav rail ===================== -->
+        <Border Grid.Column="0" Background="{DynamicResource Ui.Sidebar}"
+                BorderBrush="{DynamicResource Ui.Border}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="18,18,14,16">
+                    <Border Width="28" Height="28" CornerRadius="7"
+                            Background="{StaticResource Brand.VoiceGradient}" Margin="0,0,10,0">
+                        <views:BrandMark Width="20" Height="20" Margin="0,1,0,0" BarsBrush="White" />
+                    </Border>
+                    <TextBlock VerticalAlignment="Center"
+                               FontFamily="{StaticResource Brand.DisplayFont}" FontSize="17" FontWeight="Bold"
+                               Foreground="{DynamicResource Ui.Text}">
+                        <Run Text="Talk" /><Run Text="2" Foreground="{StaticResource Brand.Coral}" /><Run Text="Me" />
+                    </TextBlock>
+                </StackPanel>
 
-        <TextBlock Grid.Row="1" Style="{StaticResource Label}" Text="Push-to-talk key" />
-        <ComboBox Grid.Row="1" Grid.Column="1" IsEditable="True"
-                  ItemsSource="{Binding Hotkeys}"
-                  Text="{Binding Draft.Hotkey, UpdateSourceTrigger=PropertyChanged}" />
-        <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Hint}"
-                   Text="Hold to talk, release to type. Pick a name from the list, or a hex code like 0xA3." />
+                <TextBlock DockPanel.Dock="Bottom" Margin="18,10,14,14" FontSize="11"
+                           Foreground="{DynamicResource Ui.TextMuted}"
+                           Text="{Binding Version, StringFormat='Talk2Me v{0}'}" />
 
-        <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding Draft.SuppressHotkey}">
-            <TextBlock Text="Hide the key from other apps (not applied to modifier keys)" TextWrapping="Wrap" />
-        </CheckBox>
-
-        <TextBlock Grid.Row="4" Style="{StaticResource Label}" Text="Microphone" />
-        <ComboBox Grid.Row="4" Grid.Column="1"
-                  ItemsSource="{Binding InputDevices}"
-                  SelectedItem="{Binding SelectedInputDevice}" />
-
-        <TextBlock Grid.Row="5" Style="{StaticResource Label}" Text="Language" />
-        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Draft.Language, UpdateSourceTrigger=PropertyChanged}" />
-
-        <TextBlock Grid.Row="6" Style="{StaticResource Label}" Text="Engine" />
-        <ComboBox Grid.Row="6" Grid.Column="1"
-                  ItemsSource="{Binding Engines}"
-                  SelectedItem="{Binding Draft.Engine}" />
-        <TextBlock Grid.Row="7" Grid.Column="1" Style="{StaticResource Hint}"
-                   Text="Auto uses Parakeet (fast, most accurate for English and 24 other European languages, 670 MB) and falls back to Whisper for everything else." />
-
-        <TextBlock Grid.Row="8" Style="{StaticResource Label}" Text="Whisper model" />
-        <ComboBox Grid.Row="8" Grid.Column="1"
-                  ItemsSource="{Binding Models}"
-                  SelectedItem="{Binding Draft.Model}" />
-        <TextBlock Grid.Row="9" Grid.Column="1" Style="{StaticResource Hint}"
-                   Text="Only used when the Whisper engine is active. LargeV3Turbo is the best fit for an RTX 4060 Ti (1.6 GB download)." />
-
-        <TextBlock Grid.Row="10" Style="{StaticResource Label}" Text="Ignore taps under (ms)" />
-        <TextBox Grid.Row="10" Grid.Column="1" Width="90" HorizontalAlignment="Left"
-                 Text="{Binding MinimumHoldText, UpdateSourceTrigger=PropertyChanged}" />
-
-        <TextBlock Grid.Row="11" Style="{StaticResource Label}" Text="Insert text by" />
-        <ComboBox Grid.Row="11" Grid.Column="1"
-                  ItemsSource="{Binding InjectionModes}"
-                  SelectedItem="{Binding Draft.InjectionMode}" />
-
-        <CheckBox Grid.Row="12" Grid.Column="1" Content="Remove filler words (um, uh, erm…)"
-                  IsChecked="{Binding Draft.RemoveFillerWords}" />
-        <CheckBox Grid.Row="13" Grid.Column="1" Content="Add a trailing space after each dictation"
-                  IsChecked="{Binding Draft.AppendTrailingSpace}" />
-
-
-
-        <CheckBox Grid.Row="14" Grid.Column="1" IsChecked="{Binding Draft.Overlay.AlwaysVisible}">
-            <TextBlock Text="Keep the status pill on screen between dictations" TextWrapping="Wrap" />
-        </CheckBox>
-
-        <TextBlock Grid.Row="15" Style="{StaticResource Label}" Text="Pill position" />
-        <StackPanel Grid.Row="15" Grid.Column="1">
-            <ComboBox ItemsSource="{Binding OverlayPositions}" SelectedItem="{Binding Draft.Overlay.Position}" />
-            <TextBlock Style="{StaticResource Hint}"
-                       Text="The pill rests dimmed showing your hotkey, and returns to the front the moment you start speaking. It is click-through and never takes focus, so whatever you clicked into keeps the caret." />
-        </StackPanel>
-
-        <!-- Collapsed by default: this is the one feature that sends anything off the machine. -->
-        <Expander Grid.Row="16" Grid.ColumnSpan="2" Margin="0,6,0,10"
-                  Foreground="{StaticResource Brand.Text}"
-                  Header="AI cleanup (sends text to Claude)">
-            <StackPanel Margin="0,10,0,0">
-                <CheckBox IsChecked="{Binding Draft.Cleanup.UseLlm}">
-                    <TextBlock Text="Rewrite each dictation with Claude before typing it" TextWrapping="Wrap" />
-                </CheckBox>
-                <TextBlock Style="{StaticResource Hint}" Margin="0,-6,0,12"
-                           Text="Off by default. When on, the transcript — and nothing else — is sent to the Anthropic API. Speech and audio never leave this machine either way. If the call is slow or fails, the plain cleaned-up text is typed instead." />
-
-                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,4" Text="Anthropic API key" />
-                <PasswordBox x:Name="ApiKeyBox" Margin="0,0,0,4" MinHeight="28" Padding="6,4"
-                             VerticalContentAlignment="Center"
-                             Foreground="{StaticResource InputText}"
-                             PasswordChanged="OnApiKeyChanged" />
-                <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,6" Text="{Binding ApiKeyStatus}" />
-                <Button Content="Forget stored key" HorizontalAlignment="Left" Margin="0,0,0,12"
-                        Command="{Binding ClearApiKeyCommand}" />
-
-                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,4" Text="Style" />
-                <ComboBox ItemsSource="{Binding CleanupStyles}" SelectedItem="{Binding Draft.Cleanup.Style}" />
-
-                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,4" Text="Model" />
-                <ComboBox IsEditable="True" ItemsSource="{Binding CleanupModels}"
-                          Text="{Binding Draft.Cleanup.Model, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Style="{StaticResource Hint}"
-                           Text="claude-opus-5 rewrites best; claude-haiku-4-5 answers fastest and costs least." />
-
-                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,4" Text="Give up after (ms)" />
-                <TextBox Width="90" HorizontalAlignment="Left"
-                         Text="{Binding CleanupTimeoutText, UpdateSourceTrigger=PropertyChanged}" />
-
-                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,4" Text="Personal dictionary" />
-                <TextBox Text="{Binding VocabularyText, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Style="{StaticResource Hint}"
-                           Text="Names, jargon and acronyms the recogniser gets wrong, comma separated, spelled how you want them typed." />
-
-                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,4" Text="Extra instructions" />
-                <TextBox Text="{Binding Draft.Cleanup.CustomInstructions, UpdateSourceTrigger=PropertyChanged}"
-                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
-                         VerticalContentAlignment="Top" />
-                <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,0"
-                           Text="For example: British spelling. Never use em dashes. Keep it under three sentences." />
-            </StackPanel>
-        </Expander>
-
-
-        <Expander Grid.Row="17" Grid.ColumnSpan="2" Margin="0,0,0,10"
-                  Foreground="{StaticResource Brand.Text}"
-                  Header="History (keeps what you dictate on disk)">
-            <StackPanel Margin="0,10,0,0">
-                <CheckBox IsChecked="{Binding Draft.History.Enabled}">
-                    <TextBlock Text="Keep a log of every dictation" TextWrapping="Wrap" />
-                </CheckBox>
-                <TextBlock Style="{StaticResource Hint}" Margin="0,-6,0,12"
-                           Text="So you can copy back a dictation that went into the wrong window. Everything you dictate is stored in plain text under your profile — switch this off if that is not something you want on disk." />
-
-                <CheckBox IsChecked="{Binding Draft.History.OpenOnStart}"
-                          Content="Open the history window when Talk2Me starts" />
-
-                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,4" Text="Keep at most" />
-                <TextBox Width="90" HorizontalAlignment="Left"
-                         Text="{Binding HistoryMaxEntriesText, UpdateSourceTrigger=PropertyChanged}" />
-
-                <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8" Text="{Binding HistoryStatus}" />
-                <Button Content="Clear history…" HorizontalAlignment="Left" Margin="0"
-                        Command="{Binding ClearHistoryCommand}" />
-            </StackPanel>
-        </Expander>
-
-        <TextBlock Grid.Row="18" Style="{StaticResource Label}" Text="Downloaded models" VerticalAlignment="Top" Margin="0,4,12,10" />
-        <StackPanel Grid.Row="18" Grid.Column="1" Margin="0,0,0,6">
-            <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,6" Text="{Binding ModelStorageText}" />
-
-            <ItemsControl ItemsSource="{Binding InstalledModels}" Margin="0,0,0,8">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <CheckBox IsChecked="{Binding IsSelected}" Margin="0,0,0,4">
+                <ListBox ItemsSource="{Binding Pages}"
+                         SelectedItem="{Binding SelectedNavPage}"
+                         Background="Transparent" BorderThickness="0"
+                         ItemContainerStyle="{StaticResource Ui.NavItem}"
+                         HorizontalContentAlignment="Stretch"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource Brand.Text}" />
-                                <TextBlock Text="{Binding Detail}" Margin="8,0,0,0" FontSize="11.5"
-                                           VerticalAlignment="Center"
-                                           Foreground="{StaticResource Brand.TextMuted}" />
+                                <Path Data="{Binding Icon}" Width="17" Height="17" Stretch="Uniform"
+                                      Margin="0,0,11,0" VerticalAlignment="Center"
+                                      StrokeThickness="1.5" StrokeLineJoin="Round"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" />
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
                             </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- ===================== Pages ===================== -->
+        <DockPanel Grid.Column="1">
+
+            <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Ui.Border}" BorderThickness="0,1,0,0"
+                    Padding="28,12">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Content="Cancel" IsCancel="True" Style="{StaticResource Ui.Button}" Margin="0,0,8,0" />
+                        <Button Content="Save" IsDefault="True" Style="{StaticResource Ui.PrimaryButton}"
+                                Command="{Binding SaveCommand}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Status}" VerticalAlignment="Center" FontSize="11.5"
+                               Foreground="{DynamicResource Ui.Accent}" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </Border>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,24,28,24">
+                <Grid>
+
+                    <!-- ============ General ============ -->
+                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=General}">
+                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="General" />
+                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                                   Text="Hold your push-to-talk key, speak, release. The text is typed into whatever has focus." />
+
+                        <UniformGrid Columns="2">
+                            <Button Style="{StaticResource HomeCard}" Command="{Binding NavigateCommand}"
+                                    CommandParameter="{x:Static vm:SettingsPage.Transcription}">
+                                <DockPanel>
+                                    <Path DockPanel.Dock="Left" Data="{x:Static views:Icons.Microphone}"
+                                          Width="20" Height="20" Stretch="Uniform" Margin="0,2,12,0"
+                                          VerticalAlignment="Top" StrokeThickness="1.5" StrokeLineJoin="Round"
+                                          Stroke="{DynamicResource Ui.Accent}" />
+                                    <StackPanel>
+                                        <TextBlock Text="Transcription" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Ui.Text}" />
+                                        <TextBlock Text="Engine, language and models" FontSize="11.5"
+                                                   TextWrapping="Wrap" Foreground="{DynamicResource Ui.TextMuted}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Button>
+                            <Button Style="{StaticResource HomeCard}" Command="{Binding NavigateCommand}"
+                                    CommandParameter="{x:Static vm:SettingsPage.Activation}">
+                                <DockPanel>
+                                    <Path DockPanel.Dock="Left" Data="{x:Static views:Icons.Keyboard}"
+                                          Width="20" Height="20" Stretch="Uniform" Margin="0,2,12,0"
+                                          VerticalAlignment="Top" StrokeThickness="1.5" StrokeLineJoin="Round"
+                                          Stroke="{DynamicResource Ui.Accent}" />
+                                    <StackPanel>
+                                        <TextBlock Text="Activation" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Ui.Text}" />
+                                        <TextBlock Text="Hotkey and how text is inserted" FontSize="11.5"
+                                                   TextWrapping="Wrap" Foreground="{DynamicResource Ui.TextMuted}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Button>
+                            <Button Style="{StaticResource HomeCard}" Command="{Binding NavigateCommand}"
+                                    CommandParameter="{x:Static vm:SettingsPage.Appearance}">
+                                <DockPanel>
+                                    <Path DockPanel.Dock="Left" Data="{x:Static views:Icons.Palette}"
+                                          Width="20" Height="20" Stretch="Uniform" Margin="0,2,12,0"
+                                          VerticalAlignment="Top" StrokeThickness="1.5" StrokeLineJoin="Round"
+                                          Stroke="{DynamicResource Ui.Accent}" />
+                                    <StackPanel>
+                                        <TextBlock Text="Appearance" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Ui.Text}" />
+                                        <TextBlock Text="Theme and the status pill" FontSize="11.5"
+                                                   TextWrapping="Wrap" Foreground="{DynamicResource Ui.TextMuted}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Button>
+                            <Button Style="{StaticResource HomeCard}" Command="{Binding NavigateCommand}"
+                                    CommandParameter="{x:Static vm:SettingsPage.History}">
+                                <DockPanel>
+                                    <Path DockPanel.Dock="Left" Data="{x:Static views:Icons.Clock}"
+                                          Width="20" Height="20" Stretch="Uniform" Margin="0,2,12,0"
+                                          VerticalAlignment="Top" StrokeThickness="1.5" StrokeLineJoin="Round"
+                                          Stroke="{DynamicResource Ui.Accent}" />
+                                    <StackPanel>
+                                        <TextBlock Text="History" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Ui.Text}" />
+                                        <TextBlock Text="Review previous dictations" FontSize="11.5"
+                                                   TextWrapping="Wrap" Foreground="{DynamicResource Ui.TextMuted}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Button>
+                        </UniformGrid>
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Your stats" />
+                        <UniformGrid Columns="3">
+                            <Border Style="{StaticResource StatTile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource StatCaption}" Text="Dictations" />
+                                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding StatCount}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatTile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource StatCaption}" Text="Speech duration" />
+                                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding StatSpeech}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatTile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource StatCaption}" Text="Avg words / minute" />
+                                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding StatWordsPerMinute}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatTile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource StatCaption}" Text="Total words" />
+                                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding StatWords}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatTile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource StatCaption}" Text="Total characters" />
+                                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding StatCharacters}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource StatTile}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource StatCaption}" Text="Time saved" />
+                                    <TextBlock Style="{StaticResource StatValue}" Text="{Binding StatTimeSaved}" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                        <TextBlock Style="{StaticResource Ui.Hint}"
+                                   Text="Time saved compares your speech against typing the same words at 40 wpm. Stats come from the dictation history, so clearing it resets them." />
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Files" />
+                        <Button Content="Open data folder" Style="{StaticResource Ui.Button}"
+                                HorizontalAlignment="Left" Command="{Binding OpenDataFolderCommand}" />
+                        <TextBlock Style="{StaticResource Ui.Hint}"
+                                   Text="{Binding SettingsPath, StringFormat='Settings: {0}'}" />
+                    </StackPanel>
+
+                    <!-- ============ Transcription ============ -->
+                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Transcription}">
+                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="Transcription" />
+                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                                   Text="Speech never leaves this machine. Both engines run locally." />
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Engine" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding Engines}"
+                                      SelectedItem="{Binding Draft.Engine}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="Auto uses Parakeet for English and 24 other European languages, and Whisper for the rest." />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Language" />
+                            <TextBox Style="{StaticResource Ui.TextBox}"
+                                     Text="{Binding Draft.Language, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" Text="An ISO 639-1 code such as en, fr, de — or auto." />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Microphone" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding InputDevices}"
+                                      SelectedItem="{Binding SelectedInputDevice}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Whisper model" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding WhisperModels}"
+                                      SelectedItem="{Binding Draft.Model}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="Only used when Whisper is the active engine. LargeV3Turbo is a 1.6 GB download." />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Downloaded models" />
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,12" Text="{Binding ModelStorageText}" />
+
+                        <ItemsControl ItemsSource="{Binding InstalledModels}" Margin="0,0,0,14" HorizontalAlignment="Left">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Style="{StaticResource Ui.CheckBox}" IsChecked="{Binding IsSelected}"
+                                              Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Label}" Foreground="{DynamicResource Ui.Text}" />
+                                            <TextBlock Text="{Binding Detail}" FontSize="11.5"
+                                                       Foreground="{DynamicResource Ui.TextMuted}" />
+                                        </StackPanel>
+                                    </CheckBox>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Button Content="Delete selected…" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                                    Command="{Binding DeleteSelectedModelsCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Button Content="Delete all…" Style="{StaticResource Ui.DangerButton}"
+                                    Command="{Binding DeleteAllModelsCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ============ Activation ============ -->
+                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Activation}">
+                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="Activation" />
+                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                                   Text="How you start a dictation, and how the finished text gets into the window you are working in." />
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Push-to-talk key" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" IsEditable="True"
+                                      ItemsSource="{Binding Hotkeys}"
+                                      Text="{Binding Draft.Hotkey, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="Hold to talk, release to type. Pick a name from the list, or type a hex code like 0xA3." />
+                        </StackPanel>
+
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
+                                  IsChecked="{Binding Draft.SuppressHotkey}">
+                            <TextBlock Text="Hide the key from other apps (ignored for modifier keys)" TextWrapping="Wrap" />
                         </CheckBox>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
 
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Delete selected…" Margin="0"
-                        Command="{Binding DeleteSelectedModelsCommand}"
-                        CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
-                <Button Content="Delete all…"
-                        Command="{Binding DeleteAllModelsCommand}"
-                        CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
-            </StackPanel>
-        </StackPanel>
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Ignore taps shorter than (ms)" />
+                            <TextBox Style="{StaticResource Ui.TextBox}" Width="120" HorizontalAlignment="Left"
+                                     Text="{Binding MinimumHoldText, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
 
-        <TextBlock Grid.Row="19" Grid.ColumnSpan="2" Style="{StaticResource Hint}" Margin="0,8,0,14"
-                   Text="{Binding SettingsPath, StringFormat='Saved to {0}'}" />
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Insert text by" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding InjectionModes}"
+                                      SelectedItem="{Binding Draft.InjectionMode}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="Auto types short text as key events and pastes long text through the clipboard." />
+                        </StackPanel>
 
-        <StackPanel Grid.Row="20" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Cancel" IsCancel="True" />
-            <Button Content="Save" IsDefault="True" Command="{Binding SaveCommand}" />
-        </StackPanel>
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
+                                  IsChecked="{Binding Draft.RemoveFillerWords}"
+                                  Content="Remove filler words (um, uh, erm…)" />
+                        <CheckBox Style="{StaticResource Ui.CheckBox}"
+                                  IsChecked="{Binding Draft.AppendTrailingSpace}"
+                                  Content="Add a trailing space after each dictation" />
+                    </StackPanel>
+
+                    <!-- ============ Appearance ============ -->
+                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Appearance}">
+                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="Appearance" />
+                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                                   Text="The status pill floats over other applications, so it stays dark in both themes." />
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Theme" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding Themes}"
+                                      SelectedItem="{Binding Draft.Appearance.Theme}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="System follows the Windows app theme, and keeps following it if you change it. Applied when you save." />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Status pill" />
+
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
+                                  IsChecked="{Binding Draft.Overlay.AlwaysVisible}">
+                            <TextBlock Text="Keep the pill on screen between dictations" TextWrapping="Wrap" />
+                        </CheckBox>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Position" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding OverlayPositions}"
+                                      SelectedItem="{Binding Draft.Overlay.Position}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="The pill rests dimmed showing your hotkey, and returns to the front the moment you start speaking. It is click-through and never takes focus, so whatever you clicked into keeps the caret." />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ============ AI cleanup ============ -->
+                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Cleanup}">
+                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="AI cleanup" />
+                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                                   Text="Off by default. When on, the transcript — and nothing else — is sent to the Anthropic API. Speech and audio never leave this machine either way. If the call is slow or fails, the plain cleaned-up text is typed instead." />
+
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,20"
+                                  IsChecked="{Binding Draft.Cleanup.UseLlm}">
+                            <TextBlock Text="Rewrite each dictation with Claude before typing it" TextWrapping="Wrap" />
+                        </CheckBox>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Anthropic API key" />
+                            <PasswordBox x:Name="ApiKeyBox" Style="{StaticResource Ui.PasswordBox}"
+                                         PasswordChanged="OnApiKeyChanged" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" Text="{Binding ApiKeyStatus}" />
+                            <Button Content="Forget stored key" Style="{StaticResource Ui.Button}"
+                                    HorizontalAlignment="Left" Margin="0,10,0,0"
+                                    Command="{Binding ClearApiKeyCommand}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Style" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding CleanupStyles}"
+                                      SelectedItem="{Binding Draft.Cleanup.Style}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Model" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" IsEditable="True"
+                                      ItemsSource="{Binding CleanupModels}"
+                                      Text="{Binding Draft.Cleanup.Model, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="claude-opus-5 rewrites best; claude-haiku-4-5 answers fastest and costs least." />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Give up after (ms)" />
+                            <TextBox Style="{StaticResource Ui.TextBox}" Width="120" HorizontalAlignment="Left"
+                                     Text="{Binding CleanupTimeoutText, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Personal dictionary" />
+                            <TextBox Style="{StaticResource Ui.TextBox}"
+                                     Text="{Binding VocabularyText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="Names, jargon and acronyms the recogniser gets wrong, comma separated, spelled how you want them typed." />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Extra instructions" />
+                            <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="70"
+                                     Text="{Binding Draft.Cleanup.CustomInstructions, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}"
+                                       Text="For example: British spelling. Never use em dashes. Keep it under three sentences." />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ============ History ============ -->
+                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=History}">
+                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="History" />
+                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                                   Text="Everything you dictate is kept on this machine in plain text, so you can get back a dictation that went into the wrong window." />
+
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,14"
+                                  IsChecked="{Binding Draft.History.Enabled}"
+                                  Content="Keep a log of every dictation" />
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
+                                  IsChecked="{Binding Draft.History.OpenOnStart}"
+                                  Content="Open the history window when Talk2Me starts" />
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Keep at most" />
+                            <TextBox Style="{StaticResource Ui.TextBox}" Width="120" HorizontalAlignment="Left"
+                                     Text="{Binding HistoryMaxEntriesText, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Previous dictations" />
+
+                        <Border Height="240" CornerRadius="{StaticResource Ui.CornerRadius}"
+                                Background="{DynamicResource Ui.Card}">
+                            <Grid>
+                                <TextBlock Text="Nothing dictated yet." FontSize="11.5"
+                                           Foreground="{DynamicResource Ui.TextMuted}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="{Binding HistoryIsEmpty, Converter={StaticResource BoolToVisible}}" />
+                                <ListBox ItemsSource="{Binding HistoryEntries}"
+                                         SelectedItem="{Binding SelectedHistoryEntry}"
+                                         Background="Transparent" BorderThickness="0" Margin="4"
+                                         HorizontalContentAlignment="Stretch"
+                                         ItemContainerStyle="{StaticResource Ui.NavItem}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                                    <TextBlock Text="{Binding DayText}" FontSize="11"
+                                                               Foreground="{DynamicResource Ui.TextMuted}" />
+                                                    <TextBlock Text="{Binding TimeText}" FontSize="11" Margin="6,0,0,0"
+                                                               Foreground="{DynamicResource Ui.TextMuted}" />
+                                                    <TextBlock Text="{Binding MetaText}" FontSize="11" Margin="10,0,0,0"
+                                                               Foreground="{DynamicResource Ui.TextMuted}" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding FinalText}" TextWrapping="Wrap"
+                                                           MaxHeight="54" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0" HorizontalAlignment="Left">
+                            <Button Content="Copy selected" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                                    Command="{Binding CopyHistoryEntryCommand}"
+                                    CommandParameter="{Binding SelectedHistoryEntry}" />
+                            <Button Content="Clear history…" Style="{StaticResource Ui.DangerButton}"
+                                    Command="{Binding ClearHistoryCommand}" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Ui.Hint}"
+                                   Text="{Binding HistoryPath, StringFormat='Kept in {0}'}" />
+                    </StackPanel>
+
+                </Grid>
+            </ScrollViewer>
+        </DockPanel>
     </Grid>
 </Window>

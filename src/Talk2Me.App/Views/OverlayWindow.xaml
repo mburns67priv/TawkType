@@ -7,7 +7,7 @@
         xmlns:views="clr-namespace:Talk2Me.Desktop.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:OverlayViewModel}"
-        Title="Talk2Me"
+        Title="Talk2Me status"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -28,7 +28,7 @@
     <Border Margin="24" CornerRadius="26" Padding="1.5" Opacity="{Binding Opacity}">
         <Border.Style>
             <Style TargetType="Border">
-                <Setter Property="Background" Value="{StaticResource Brand.SurfaceBorder}" />
+                <Setter Property="Background" Value="{StaticResource Overlay.Border}" />
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding StateKey}" Value="Listening">
                         <Setter Property="Background" Value="{StaticResource Brand.VoiceGradient}" />
@@ -40,7 +40,7 @@
             <DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.5" Color="#0E0F16" />
         </Border.Effect>
 
-        <Border CornerRadius="25" Padding="16,10,18,10" Background="{StaticResource Brand.Surface}">
+        <Border CornerRadius="25" Padding="16,10,18,10" Background="{StaticResource Overlay.Surface}">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Brand mark; the bars take the state colour. -->
                 <views:BrandMark Width="18" Height="18" Margin="0,0,10,0" VerticalAlignment="Center">
@@ -63,7 +63,7 @@
                 </views:BrandMark>
 
                 <TextBlock Text="{Binding StatusText}"
-                           Foreground="{StaticResource Brand.Text}"
+                           Foreground="{StaticResource Overlay.Text}"
                            FontSize="14"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center" />

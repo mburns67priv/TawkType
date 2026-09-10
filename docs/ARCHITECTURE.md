@@ -61,6 +61,7 @@ Every stage is an interface so each can be swapped independently:
 | `ILlmClient` | `ClaudeLlmClient` (Anthropic SDK) | llama.cpp / ONNX for an offline rewrite |
 | `ITextInjector` | SendInput / clipboard | UI Automation `TextPattern` for exact caret insertion |
 | `IDictationHistory` | JSONL append under the profile | search, pinning, re-inject a past dictation |
+| Settings UI | nav rail + six pages, themed | per-page validation, an onboarding flow on first run |
 
 ## LLM cleanup
 
@@ -85,6 +86,28 @@ The API key never enters `settings.json`, which is plain text. `IApiKeyStore` ke
 `%LOCALAPPDATA%\Talk2Mepikey.dat`, encrypted by `DpapiApiKeyStore` with DPAPI under the current user
 (`ANTHROPIC_API_KEY` is the fallback). That protects the file at rest against other accounts on the
 machine — not against anything running as this user.
+
+## Theming
+
+`App.xaml` merges two dictionaries: slot 0 is the theme (`Themes/Light.xaml` or `Themes/Dark.xaml`),
+slot 1 is `Themes/Controls.xaml`. `ThemeManager` swaps slot 0 at runtime; every colour that varies is a
+`DynamicResource`, so open windows restyle in place rather than being reloaded.
+
+Two rules keep that working:
+
+- **The theme dictionaries must define exactly the same keys.** A key present in one and not the other
+  fails only in that theme, and only at the moment a user switches to it.
+- **A key is either a brush or a style, never both.** `Ui.Card` is the surface brush; the Border style is
+  `Ui.CardSurface`. Sharing a name resolves to whichever the dictionary saw last and throws
+  `'System.Windows.Style' is not a valid value for property 'Background'` when the window opens.
+
+Controls are templated rather than themed by property alone, because WPF's stock ComboBox, CheckBox and
+Button chrome is drawn from system colours and looks wrong the moment the app is dark. Inputs use
+`MinHeight`, never a fixed `Height`: a fixed height starves the templated `PART_ContentHost` and the text
+silently disappears while the control still reports its value.
+
+`AppTheme.System` reads `HKCU\…\Themes\Personalize\AppsUseLightTheme` and keeps following it through
+`SystemEvents.UserPreferenceChanged`.
 
 ## The overlay pill
 

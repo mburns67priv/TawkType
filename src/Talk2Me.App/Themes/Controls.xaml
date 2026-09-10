@@ -1,0 +1,369 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Controls are templated rather than themed by property alone: WPF's stock ComboBox, CheckBox and
+         Button chrome is drawn from system colours, which look wrong the moment the app is dark. -->
+
+    <sys:Double x:Key="Ui.Radius">6</sys:Double>
+    <CornerRadius x:Key="Ui.CornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="Ui.CardRadius">8</CornerRadius>
+
+    <!-- ===================== Text ===================== -->
+
+    <Style x:Key="Ui.PageTitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource Brand.DisplayFont}" />
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+
+    <Style x:Key="Ui.PageSubtitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.TextMuted}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,0,0,20" />
+    </Style>
+
+    <Style x:Key="Ui.SectionTitle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.TextMuted}" />
+        <Setter Property="Margin" Value="0,20,0,10" />
+    </Style>
+
+    <Style x:Key="Ui.Label" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="Margin" Value="0,0,0,5" />
+    </Style>
+
+    <Style x:Key="Ui.Hint" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.TextMuted}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,5,0,0" />
+    </Style>
+
+    <!-- ===================== Buttons ===================== -->
+
+    <Style x:Key="Ui.Button" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="Background" Value="{DynamicResource Ui.Card}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Ui.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="MinWidth" Value="88" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Ui.CornerRadius}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Ui.CardHover}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Ui.PrimaryButton" TargetType="Button" BasedOn="{StaticResource Ui.Button}">
+        <Setter Property="Background" Value="{DynamicResource Ui.Accent}" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.TextOnAccent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="Ui.DangerButton" TargetType="Button" BasedOn="{StaticResource Ui.Button}">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Danger}" />
+    </Style>
+
+    <!-- ===================== Inputs ===================== -->
+
+    <Style x:Key="Ui.TextBox" TargetType="TextBox">
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="Background" Value="{DynamicResource Ui.Input}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Ui.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="9,7" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Ui.Accent}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Ui.CornerRadius}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Ui.MultilineTextBox" TargetType="TextBox" BasedOn="{StaticResource Ui.TextBox}">
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="AcceptsReturn" Value="True" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Ui.CornerRadius}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Ui.PasswordBox" TargetType="PasswordBox">
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="Background" Value="{DynamicResource Ui.Input}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Ui.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="9,7" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Ui.CornerRadius}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ComboBox: toggle chrome plus a themed popup. The stock template paints system colours. -->
+    <Style x:Key="Ui.ComboBoxToggle" TargetType="ToggleButton">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Chrome"
+                            Background="{DynamicResource Ui.Input}"
+                            BorderBrush="{DynamicResource Ui.Border}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource Ui.CornerRadius}">
+                        <Path x:Name="Arrow" HorizontalAlignment="Right" VerticalAlignment="Center"
+                              Margin="0,0,11,0" Data="M0,0 L4,4 L8,0"
+                              Stroke="{DynamicResource Ui.TextMuted}" StrokeThickness="1.4" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Ui.ComboBoxItem" TargetType="ComboBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="4" Margin="3,1">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Ui.NavHover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Ui.NavSelected}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Ui.ComboBox" TargetType="ComboBox">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource Ui.ComboBoxItem}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton Style="{StaticResource Ui.ComboBoxToggle}"
+                                      Focusable="False"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      ClickMode="Press" />
+
+                        <ContentPresenter x:Name="Selected"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Left" VerticalAlignment="Center"
+                                          IsHitTestVisible="False" />
+
+                        <!-- Only shown when IsEditable; the editable combos let a model id be typed. -->
+                        <TextBox x:Name="PART_EditableTextBox"
+                                 Style="{StaticResource Ui.TextBox}"
+                                 Background="Transparent" BorderThickness="0"
+                                 Margin="1,1,30,1" Padding="9,0"
+                                 VerticalContentAlignment="Center"
+                                 Visibility="Collapsed"
+                                 Foreground="{DynamicResource Ui.Text}" />
+
+                        <Popup IsOpen="{TemplateBinding IsDropDownOpen}"
+                               Placement="Bottom" AllowsTransparency="True"
+                               PopupAnimation="Slide" Focusable="False">
+                            <Border Background="{DynamicResource Ui.Card}"
+                                    BorderBrush="{DynamicResource Ui.Border}"
+                                    BorderThickness="1"
+                                    CornerRadius="{StaticResource Ui.CornerRadius}"
+                                    MinWidth="{TemplateBinding ActualWidth}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                    Margin="0,4,0,0">
+                                <ScrollViewer>
+                                    <StackPanel IsItemsHost="True" Margin="0,4" />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEditable" Value="True">
+                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Selected" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- CheckBox: 18px rounded box, accent fill when ticked. -->
+    <Style x:Key="Ui.CheckBox" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal">
+                        <Border x:Name="Box" Width="18" Height="18" CornerRadius="4"
+                                VerticalAlignment="Top" Margin="0,1,10,0"
+                                Background="{DynamicResource Ui.Input}"
+                                BorderBrush="{DynamicResource Ui.Border}"
+                                BorderThickness="1">
+                            <Path x:Name="Tick" Data="M0,4 L3.5,7.5 L9,1" Stretch="None"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Stroke="{DynamicResource Ui.TextOnAccent}" StrokeThickness="1.8"
+                                  StrokeEndLineCap="Round" StrokeStartLineCap="Round"
+                                  Visibility="Collapsed" />
+                        </Border>
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Ui.Accent}" />
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Ui.Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Surfaces ===================== -->
+
+    <!-- Named CardSurface, not Card: Ui.Card is the theme brush and one key cannot be both. -->
+    <Style x:Key="Ui.CardSurface" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Ui.Card}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Ui.CardRadius}" />
+        <Setter Property="Padding" Value="16,14" />
+    </Style>
+
+    <!-- A card that navigates: the four tiles on the home page. -->
+    <Style x:Key="Ui.CardButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="{DynamicResource Ui.Card}"
+                            CornerRadius="{StaticResource Ui.CardRadius}"
+                            Padding="16,14">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Ui.CardHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Nav rail ===================== -->
+
+    <Style x:Key="Ui.NavItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource Ui.Text}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="{StaticResource Ui.CornerRadius}"
+                            Margin="8,1" Padding="10,9">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Ui.NavHover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Ui.NavSelected}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Ui.Accent}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

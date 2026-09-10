@@ -53,6 +53,9 @@ public partial class App : Application
             .ConfigureServices(ConfigureServices)
             .Build();
 
+        // Before any window is created, so nothing renders in the wrong theme first.
+        Services.GetRequiredService<ThemeManager>().Apply();
+
         _logger = Services.GetRequiredService<ILogger<App>>();
         _logger.LogInformation("Talk2Me {Version} starting", typeof(App).Assembly.GetName().Version);
 
@@ -163,6 +166,7 @@ public partial class App : Application
         services.AddSingleton<ClipboardPasteInjector>();
         services.AddSingleton<ITextInjector, AutoTextInjector>();
 
+        services.AddSingleton<ThemeManager>();
         services.AddSingleton<DictationHistoryStore>();
         services.AddSingleton<IDictationHistory>(sp => sp.GetRequiredService<DictationHistoryStore>());
 
@@ -239,8 +243,13 @@ public partial class App : Application
             return;
         }
 
-        _settingsWindow = new SettingsWindow(Services.GetRequiredService<SettingsViewModel>());
-        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        var viewModel = Services.GetRequiredService<SettingsViewModel>();
+        _settingsWindow = new SettingsWindow(viewModel);
+        _settingsWindow.Closed += (_, _) =>
+        {
+            viewModel.Dispose(); // transient, and it subscribes to the history
+            _settingsWindow = null;
+        };
         _settingsWindow.Show();
         _settingsWindow.Activate();
     }

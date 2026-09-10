@@ -19,7 +19,7 @@ hold key ──► mic capture (16 kHz) ──► release ──► Parakeet / W
 | Speech-to-text | Two engines behind one interface: NVIDIA Parakeet TDT 0.6B v3 (sherpa-onnx, CPU int8) for English and 24 other European languages, Whisper.net `large-v3-turbo` (CUDA 12 → Vulkan → CPU) for the rest |
 | Cleanup | Regex filler removal, whitespace, casing — always. Optionally a Claude rewrite on top: spoken corrections, lists, personal dictionary, tone |
 | Typing | `SendInput` Unicode events; clipboard paste for long text |
-| UI | WPF: tray icon, always-on-screen click-through pill, settings window, history window |
+| UI | WPF: tray icon, always-on-screen click-through pill, a six-page settings window, history window. Light and dark themes, or follow Windows |
 
 ## Run it
 
@@ -64,6 +64,18 @@ Notes:
   typical 3–8 s dictations. Switch with the **Engine** setting.
 - Installing the CUDA Toolkit 12.4+ moves Whisper to CUDA automatically. Parakeet on GPU would need the
   CUDA build of sherpa-onnx, which is not on NuGet.
+
+## Settings
+
+Settings is a nav rail plus pages rather than one long form: **General** (overview cards and your stats),
+**Transcription**, **Activation**, **Appearance**, **AI cleanup**, **History**.
+
+General shows totals from the dictation log — dictations, speech duration, average words per minute,
+total words and characters, and time saved against typing the same words at 40 wpm.
+
+**Appearance** picks Light, Dark, or System, which follows the Windows app theme and keeps following it
+if you change it. The change is live: open windows restyle without reopening. The status pill is
+deliberately excluded — it floats over other applications, so it stays dark in every theme.
 
 ## The status pill
 

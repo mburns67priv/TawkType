@@ -5,60 +5,72 @@
              xmlns:views="clr-namespace:Talk2Me.Desktop.Views"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-        <!-- ===== Talk2Me brand tokens. Keep in sync with branding/BRAND.md and tools/Talk2Me.Brand. ===== -->
-        <Color x:Key="Brand.VioletColor">#6D5DFF</Color>
-        <Color x:Key="Brand.CoralColor">#FF6A8A</Color>
-        <Color x:Key="Brand.InkColor">#0E0F16</Color>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Slot 0 is the theme. ThemeManager swaps this one entry for Dark.xaml and back;
+                     everything that varies is a DynamicResource, so the swap is live. -->
+                <ResourceDictionary Source="Themes/Light.xaml" />
+                <ResourceDictionary Source="Themes/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
-        <views:BoolToVisibilityConverter x:Key="BoolToVisible" />
-        <views:NullToCollapsedConverter x:Key="NullToCollapsed" />
+            <!-- ===== Talk2Me brand tokens. Keep in sync with branding/BRAND.md and tools/Talk2Me.Brand.
+                 These do not vary by theme: the mark is the mark in both. ===== -->
+            <Color x:Key="Brand.VioletColor">#6D5DFF</Color>
+            <Color x:Key="Brand.CoralColor">#FF6A8A</Color>
+            <Color x:Key="Brand.InkColor">#0E0F16</Color>
 
-        <SolidColorBrush x:Key="Brand.Accent" Color="{StaticResource Brand.VioletColor}" />
-        <SolidColorBrush x:Key="Brand.Coral" Color="{StaticResource Brand.CoralColor}" />
-        <SolidColorBrush x:Key="Brand.Ink" Color="{StaticResource Brand.InkColor}" />
-        <SolidColorBrush x:Key="Brand.Surface" Color="#F4171925" />
-        <SolidColorBrush x:Key="Brand.SurfaceRaised" Color="#FF1E2030" />
-        <SolidColorBrush x:Key="Brand.SurfaceBorder" Color="#2A2D3E" />
-        <SolidColorBrush x:Key="Brand.Text" Color="#F5F6FA" />
-        <SolidColorBrush x:Key="Brand.TextMuted" Color="#9CA1B8" />
-        <SolidColorBrush x:Key="State.Listening" Color="{StaticResource Brand.CoralColor}" />
-        <SolidColorBrush x:Key="State.Transcribing" Color="{StaticResource Brand.VioletColor}" />
-        <SolidColorBrush x:Key="State.Injecting" Color="#34D399" />
-        <SolidColorBrush x:Key="State.Error" Color="#FBBF24" />
+            <views:BoolToVisibilityConverter x:Key="BoolToVisible" />
+            <views:NullToCollapsedConverter x:Key="NullToCollapsed" />
 
-        <LinearGradientBrush x:Key="Brand.VoiceGradient" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="{StaticResource Brand.VioletColor}" Offset="0" />
-            <GradientStop Color="{StaticResource Brand.CoralColor}" Offset="1" />
-        </LinearGradientBrush>
+            <SolidColorBrush x:Key="Brand.Accent" Color="{StaticResource Brand.VioletColor}" />
+            <SolidColorBrush x:Key="Brand.Coral" Color="{StaticResource Brand.CoralColor}" />
+            <SolidColorBrush x:Key="Brand.Ink" Color="{StaticResource Brand.InkColor}" />
 
-        <FontFamily x:Key="Brand.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
-        <FontFamily x:Key="Brand.DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
+            <LinearGradientBrush x:Key="Brand.VoiceGradient" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="{StaticResource Brand.VioletColor}" Offset="0" />
+                <GradientStop Color="{StaticResource Brand.CoralColor}" Offset="1" />
+            </LinearGradientBrush>
 
-        <!-- The mark: speech bubble + three sound bars on a 24-unit grid. -->
-        <PathGeometry x:Key="Brand.BubbleGeometry"
-                      Figures="M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z" />
-        <GeometryGroup x:Key="Brand.BarsGeometry">
-            <RectangleGeometry Rect="8,8,2,4" RadiusX="1" RadiusY="1" />
-            <RectangleGeometry Rect="11,6,2,8" RadiusX="1" RadiusY="1" />
-            <RectangleGeometry Rect="14,7,2,6" RadiusX="1" RadiusY="1" />
-        </GeometryGroup>
+            <!-- ===== The overlay pill is pinned dark in every theme. It floats over other applications,
+                 so it has to read against their content, not against our window background. ===== -->
+            <SolidColorBrush x:Key="Overlay.Surface" Color="#F4171925" />
+            <SolidColorBrush x:Key="Overlay.Border" Color="#2A2D3E" />
+            <SolidColorBrush x:Key="Overlay.Text" Color="#F5F6FA" />
 
-        <tb:TaskbarIcon x:Key="TrayIcon"
-                        ToolTipText="Talk2Me — hold Right Ctrl to dictate"
-                        IconSource="pack://application:,,,/Assets/talk2me.ico"
-                        NoLeftClickDelay="True"
-                        LeftClickCommand="{x:Null}">
-            <tb:TaskbarIcon.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="History…" Click="OnHistoryClick" />
-                    <MenuItem Header="Settings…" Click="OnSettingsClick" />
-                    <MenuItem Header="Test dictation (records 3 s)" Click="OnTestDictationClick" />
-                    <MenuItem Header="Open data folder" Click="OnOpenDataFolderClick" />
-                    <MenuItem Header="Delete all downloaded models…" Click="OnDeleteModelsClick" />
-                    <Separator />
-                    <MenuItem Header="Quit Talk2Me" Click="OnQuitClick" />
-                </ContextMenu>
-            </tb:TaskbarIcon.ContextMenu>
-        </tb:TaskbarIcon>
+            <SolidColorBrush x:Key="State.Listening" Color="{StaticResource Brand.CoralColor}" />
+            <SolidColorBrush x:Key="State.Transcribing" Color="{StaticResource Brand.VioletColor}" />
+            <SolidColorBrush x:Key="State.Injecting" Color="#34D399" />
+            <SolidColorBrush x:Key="State.Error" Color="#FBBF24" />
+
+            <FontFamily x:Key="Brand.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
+            <FontFamily x:Key="Brand.DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
+
+            <!-- The mark: speech bubble + three sound bars on a 24-unit grid. -->
+            <PathGeometry x:Key="Brand.BubbleGeometry"
+                          Figures="M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z" />
+            <GeometryGroup x:Key="Brand.BarsGeometry">
+                <RectangleGeometry Rect="8,8,2,4" RadiusX="1" RadiusY="1" />
+                <RectangleGeometry Rect="11,6,2,8" RadiusX="1" RadiusY="1" />
+                <RectangleGeometry Rect="14,7,2,6" RadiusX="1" RadiusY="1" />
+            </GeometryGroup>
+
+            <tb:TaskbarIcon x:Key="TrayIcon"
+                            ToolTipText="Talk2Me — hold Right Ctrl to dictate"
+                            IconSource="pack://application:,,,/Assets/talk2me.ico"
+                            NoLeftClickDelay="True"
+                            LeftClickCommand="{x:Null}">
+                <tb:TaskbarIcon.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="History…" Click="OnHistoryClick" />
+                        <MenuItem Header="Settings…" Click="OnSettingsClick" />
+                        <MenuItem Header="Test dictation (records 3 s)" Click="OnTestDictationClick" />
+                        <MenuItem Header="Open data folder" Click="OnOpenDataFolderClick" />
+                        <MenuItem Header="Delete all downloaded models…" Click="OnDeleteModelsClick" />
+                        <Separator />
+                        <MenuItem Header="Quit Talk2Me" Click="OnQuitClick" />
+                    </ContextMenu>
+                </tb:TaskbarIcon.ContextMenu>
+            </tb:TaskbarIcon>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
