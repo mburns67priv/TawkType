@@ -1,7 +1,10 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
+using Talk2Me.Desktop.Services;
 using Talk2Me.Desktop.ViewModels;
+using Talk2Me.Windows.Shell;
 
 namespace Talk2Me.Desktop.Views;
 
@@ -16,6 +19,12 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         DataContext = viewModel;
         viewModel.Saved += (_, _) => Close();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        TitleBarTheme.Apply(new WindowInteropHelper(this).Handle, ThemeManager.IsDark);
     }
 
     private void OnCancelClick(object sender, RoutedEventArgs e) => Close();

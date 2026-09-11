@@ -1,7 +1,9 @@
 using System.Windows;
+using System.Windows.Interop;
 using Microsoft.Win32;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Settings;
+using Talk2Me.Windows.Shell;
 
 namespace Talk2Me.Desktop.Services;
 
@@ -16,6 +18,13 @@ public sealed class ThemeManager : IDisposable
 
     private readonly ISettingsProvider _settings;
     private AppTheme _applied = (AppTheme)(-1);
+
+    /// <summary>
+    /// Whether the dark dictionary is in force. Static because the theme is genuinely one global
+    /// thing — it lives in Application.Resources — and windows need to ask before they have anything
+    /// else to ask. A window reads this as it is created; open ones are repainted by Apply.
+    /// </summary>
+    public static bool IsDark { get; private set; }
 
     public ThemeManager(ISettingsProvider settings)
     {
@@ -51,6 +60,13 @@ public sealed class ThemeManager : IDisposable
 
         var merged = Application.Current.Resources.MergedDictionaries;
         merged[0] = new ResourceDictionary { Source = source };
+
+        // The caption bar is not ours to style through XAML; DWM owns it, and it has to be told.
+        IsDark = resolved == AppTheme.Dark;
+        foreach (Window window in Application.Current.Windows)
+        {
+            TitleBarTheme.Apply(new WindowInteropHelper(window).Handle, IsDark);
+        }
     }
 
     /// <summary>Reads the Windows "app mode" setting. Defaults to light when the value is missing.</summary>

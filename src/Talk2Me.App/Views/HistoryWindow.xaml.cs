@@ -1,9 +1,12 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Interop;
 using Microsoft.Win32;
 using Talk2Me.Core.Settings;
+using Talk2Me.Desktop.Services;
 using Talk2Me.Desktop.ViewModels;
+using Talk2Me.Windows.Shell;
 
 namespace Talk2Me.Desktop.Views;
 
@@ -41,6 +44,7 @@ public partial class HistoryWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+        TitleBarTheme.Apply(new WindowInteropHelper(this).Handle, ThemeManager.IsDark);
 
         if (_placement.WindowLeft is { } left && _placement.WindowTop is { } top
             && !RememberedPlacement.TryRestore(this, left, top))
