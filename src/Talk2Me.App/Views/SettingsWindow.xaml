@@ -385,11 +385,9 @@
 
                         <StackPanel Style="{StaticResource Field}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Push-to-talk key" />
-                            <ComboBox Style="{StaticResource Ui.ComboBox}" IsEditable="True"
-                                      ItemsSource="{Binding Hotkeys}"
-                                      Text="{Binding Draft.Hotkey, UpdateSourceTrigger=PropertyChanged}" />
+                            <views:HotkeyBox Hotkey="{Binding Draft.Hotkey, Mode=TwoWay}" />
                             <TextBlock Style="{StaticResource Ui.Hint}"
-                                       Text="Hold to talk, release to type. Pick a name from the list, or type a hex code like 0xA3." />
+                                       Text="Hold to talk, release to type. Click the box and hold the keys you want — Esc leaves it as it is." />
                         </StackPanel>
 
                         <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"

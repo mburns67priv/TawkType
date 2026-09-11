@@ -1,18 +1,25 @@
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
+using Talk2Me.Core.Input;
 
 namespace Talk2Me.Windows.Input;
 
-/// <summary>Turns raw keyboard-hook events for the configured key into clean Pressed / Released pairs.</summary>
+/// <summary>
+/// Turns raw keyboard-hook events into clean Pressed / Released pairs for the configured combination.
+///
+/// The hook sees every key, so it also keeps the set of keys currently held: a combination fires when
+/// its trigger goes down and everything else it needs is already down, and stops the moment any of
+/// them comes up. That means releasing Shift ends the dictation just as releasing the trigger does,
+/// which is what holding a combination feels like.
+/// </summary>
 public sealed class PushToTalkHotkey : IPushToTalkHotkey
 {
-    private const int DefaultVirtualKey = 0xA3; // Right Ctrl
-
     private readonly ISettingsProvider _settings;
     private readonly ILogger<PushToTalkHotkey> _logger;
     private readonly LowLevelKeyboardHook _hook = new();
+    private readonly HashSet<int> _held = [];
 
-    private int _virtualKey = DefaultVirtualKey;
+    private Hotkey _hotkey = Hotkey.Default;
     private bool _suppress;
     private bool _isDown;
 
@@ -32,12 +39,13 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
     public void Start()
     {
         _hook.Install();
-        _logger.LogInformation("Keyboard hook installed; push-to-talk key = 0x{Vk:X2}", _virtualKey);
+        _logger.LogInformation("Keyboard hook installed; push-to-talk = {Hotkey}", _hotkey);
     }
 
     public void Stop()
     {
         _hook.Uninstall();
+        _held.Clear();
         _isDown = false;
     }
 
@@ -49,45 +57,76 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
 
     private void ApplySettings()
     {
-        var name = _settings.Current.Hotkey;
-        if (!VirtualKeys.TryParse(name, out var vk))
+        var text = _settings.Current.Hotkey;
+        if (!Hotkey.TryParse(text, out var hotkey))
         {
-            _logger.LogWarning("Unknown hotkey '{Hotkey}'; falling back to Right Ctrl", name);
-            vk = DefaultVirtualKey;
+            _logger.LogWarning("Unknown hotkey '{Hotkey}'; falling back to {Default}", text, Hotkey.Default);
+            hotkey = Hotkey.Default;
         }
 
-        _virtualKey = vk;
-        _suppress = _settings.Current.SuppressHotkey && !VirtualKeys.IsModifier(vk);
+        _hotkey = hotkey;
+        _suppress = _settings.Current.SuppressHotkey && !hotkey.IsBareModifier;
     }
 
     private void OnKeyEvent(object? sender, KeyHookEventArgs e)
     {
-        if (e.IsInjected || e.VirtualKey != _virtualKey)
+        if (e.IsInjected)
         {
             return;
         }
 
-        e.Handled = _suppress;
-
         if (e.IsDown)
         {
-            if (_isDown)
-            {
-                return; // key auto-repeat
-            }
-
-            _isDown = true;
-            Pressed?.Invoke(this, EventArgs.Empty);
+            _held.Add(e.VirtualKey);
         }
         else
         {
-            if (!_isDown)
-            {
-                return;
-            }
-
-            _isDown = false;
-            Released?.Invoke(this, EventArgs.Empty);
+            _held.Remove(e.VirtualKey);
         }
+
+        // While the combination is held, anything in it going up ends the dictation — including a
+        // modifier the user happened to let go of first.
+        if (_isDown && !e.IsDown && IsPartOfHotkey(e.VirtualKey))
+        {
+            _isDown = false;
+            e.Handled = _suppress && e.VirtualKey == _hotkey.Trigger;
+            Released?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        if (e.VirtualKey != _hotkey.Trigger)
+        {
+            return;
+        }
+
+        if (!e.IsDown || _isDown)
+        {
+            return; // the release above already dealt with it, or this is auto-repeat
+        }
+
+        if (!ModifiersHeld())
+        {
+            return; // the trigger without its modifiers is just that key, and not ours to take
+        }
+
+        e.Handled = _suppress;
+        _isDown = true;
+        Pressed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool IsPartOfHotkey(int virtualKey)
+        => virtualKey == _hotkey.Trigger || _hotkey.Required.Contains(virtualKey);
+
+    private bool ModifiersHeld()
+    {
+        foreach (var modifier in _hotkey.Required)
+        {
+            if (!_held.Contains(modifier))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

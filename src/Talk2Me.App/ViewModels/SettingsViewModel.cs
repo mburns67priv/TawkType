@@ -149,8 +149,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         set => SelectedPage = value?.Page ?? SettingsPage.General;
     }
 
-    public IReadOnlyList<string> Hotkeys { get; } = VirtualKeys.Names;
-
     public IReadOnlyList<TranscriptionEngine> Engines { get; } = Enum.GetValues<TranscriptionEngine>();
 
     /// <summary>

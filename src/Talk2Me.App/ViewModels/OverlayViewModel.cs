@@ -5,6 +5,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Talk2Me.Core.Abstractions;
+using Talk2Me.Core.Input;
 using Talk2Me.Core.Models;
 using Talk2Me.Core.Settings;
 
@@ -415,16 +416,9 @@ public sealed partial class OverlayViewModel : ObservableObject
         }
     }
 
-    /// <summary>"RightControl" reads badly on a bar; "Right Ctrl" does.</summary>
-    private static string FriendlyHotkey(string hotkey) => hotkey switch
-    {
-        "RightControl" => "Right Ctrl",
-        "LeftControl" => "Left Ctrl",
-        "RightShift" => "Right Shift",
-        "LeftShift" => "Left Shift",
-        "RightAlt" => "Right Alt",
-        "LeftAlt" => "Left Alt",
-        "CapsLock" => "Caps Lock",
-        _ => hotkey,
-    };
+    /// <summary>
+    /// Settings written by an older version say "RightControl"; the bar should say "Right Ctrl".
+    /// Parsing and printing does that, and prints a combination the same way the picker showed it.
+    /// </summary>
+    private static string FriendlyHotkey(string hotkey) => Hotkey.ParseOrDefault(hotkey).ToString();
 }

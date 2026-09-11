@@ -26,7 +26,8 @@ public sealed class Talk2MeSettings
     public TranscriptionEngine Engine { get; set; } = TranscriptionEngine.Auto;
 
     /// <summary>Key name understood by the platform hotkey layer, e.g. "RightControl", "F9", "CapsLock" or a hex VK "0xA3".</summary>
-    public string Hotkey { get; set; } = "RightControl";
+    /// <summary>The canonical form; older files saying "RightControl" still parse to the same key.</summary>
+    public string Hotkey { get; set; } = "Right Ctrl";
 
     /// <summary>When true the hotkey is swallowed so the focused app never sees it. Leave off for modifier keys.</summary>
     public bool SuppressHotkey { get; set; }
