@@ -72,13 +72,35 @@ per-user, needs no administrator rights, and updates itself from that same relea
 > *"Windows protected your PC"*. Choose **More info** → **Run anyway**. That warning is about the
 > absence of a paid certificate, not about anything found in the file.
 
-The installer is around 37 MB. **Speech models are not included and are not fetched automatically.**
-The first time TawkType runs it walks you through setting up — microphone, language, the model and its
-download, the key you want to hold — and finishes by having you dictate a sentence into a box of its
-own, so you leave knowing it works rather than hoping. Nothing that large is downloaded without you
-asking for it, and the walkthrough is on the tray menu if you want it again.
+The installer is around 37 MB. **Speech models are not included and are not fetched automatically** —
+nothing that large is downloaded without you asking for it. [The first run](#the-first-run) walks you
+through choosing one, and through everything else, ending with you dictating a sentence.
 
 Or [run from source](#running-from-source).
+
+## The first run
+
+The first time TawkType starts it opens a short setup, and the last thing it asks you to do is
+dictate. Seven steps:
+
+1. **Welcome** — what it does, and what it does with what you say.
+2. **Microphone** — pick your input device and watch the level move as you talk.
+3. **Model** — choose a language; TawkType says which engine that needs and what it costs to
+   download, then fetches it and loads it.
+4. **Key** — hold the combination you want to dictate with. It warns you about the obvious clashes:
+   the shortcuts nearly every application has, the Windows key, Caps Lock, and a plain key that would
+   still type while you held it.
+5. **Try it** — hold your key, say a sentence, and watch it appear in a box TawkType owns.
+6. **Privacy** — whether to keep a history, and whether to allow the Claude rewrite.
+7. **Done** — what is actually true, and an offer to start with Windows.
+
+Each answer is saved as you give it, so there is nothing to confirm at the end and nothing to lose if
+you close the window. Nothing is taken on trust either: you cannot move past the microphone step until
+the meter has moved, past the model step until the model has *loaded* rather than merely downloaded,
+or past the practice step until a dictation has actually produced words. "Ready" means it worked.
+
+**Skip setup** is there if you cannot finish today. **Set up TawkType…** on the tray menu opens it
+again whenever you want, as does the `--setup` flag.
 
 ## Requirements
 
@@ -136,13 +158,11 @@ cd TawkType
 dotnet run --project src/TawkType.App
 ```
 
-TawkType lives in the system tray and on the taskbar. The first run opens a short setup: it checks the
-microphone can hear you, downloads and loads the model your language needs, records the key you want
-to hold, and ends with you dictating a sentence into its own box. Parakeet is about 640 MB, Whisper
-`large-v3-turbo` about 1.5 GB, and they go into `%LOCALAPPDATA%\TawkType\models`.
+TawkType lives in the system tray and on the taskbar, and opens [the first run](#the-first-run) the
+same way an installed copy does. Parakeet is about 640 MB, Whisper `large-v3-turbo` about 1.5 GB, and
+they go into `%LOCALAPPDATA%\TawkType\models`.
 
-After that, hold Right Ctrl and talk. `--setup` opens the walkthrough again, as does **Set up
-TawkType…** on the tray menu.
+After that, hold Right Ctrl and talk.
 
 ## The status bar
 
@@ -165,7 +185,7 @@ Eight pages, light or dark or following Windows:
 
 | Page | What's there |
 |---|---|
-| **General** | Overview, your dictation stats, where the files live |
+| **General** | Overview, your dictation stats, where the files live, deleting your data, and what happens to it if you uninstall |
 | **Transcription** | Engine, language, microphone, and managing downloaded models |
 | **Activation** | Push-to-talk key, optional toggle key, tap threshold, how text gets inserted, sounds, recording limit |
 | **Modes** | The four behaviours, the key that cycles them, and what each one does |
@@ -209,6 +229,15 @@ settings and models:
 | `models\` | Downloaded speech models |
 | `logs\tawktype.log` | Rolling 5 MB debug log. Records how long and how many characters, **never the words themselves** |
 
+**Uninstalling leaves all of it where it is**, so reinstalling picks up where you left off with your
+models still on disk. If you would rather it went, tick *Delete all of this if I uninstall TawkType*
+on Settings → General and an uninstall takes the lot.
+
+**Delete my data…**, on the same page, does it now: models, history, vocabulary, settings and the
+stored key. It tells you the size and names everything that is about to go first. TawkType keeps
+working afterwards — it simply starts again from nothing, which means downloading a model a second
+time.
+
 ## Performance
 
 Measured on an i7-11700F with an RTX 4060 Ti, same 13-second clip, best of 5:
@@ -224,7 +253,7 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 329 unit tests, ~2 s
+dotnet test                                              # 385 unit tests, ~2 s
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Focus -- 15           # what the focus probe sees

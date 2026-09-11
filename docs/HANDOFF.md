@@ -1,7 +1,7 @@
 # TawkType — handoff
 
-Written 2026-09-10 at the end of the first build session; updated 2026-09-11 after the review and
-feature passes. Read this first; then `README.md` for usage, `docs/ARCHITECTURE.md` for design,
+Written 2026-09-10 at the end of the first build session; updated through 2026-09-11 after the
+review, the feature passes, first run, the licence and the uninstall work. Read this first; then `README.md` for usage, `docs/ARCHITECTURE.md` for design,
 `branding/BRAND.md` for the identity. `docs/REVIEW-2026-09-11.md` and
 `docs/FEATURE-RESEARCH-2026-09-11.md` are the two assessments that drove most of what follows.
 
@@ -21,11 +21,14 @@ Windows only.
 
 ## State of the code
 
-- **Branch `main`, clean tree.** `v0.5.0` is the only release and the only tag — everything earlier
-  was deleted, releases and tags alike, because nothing had ever been installed from them. It is the
-  first build whose install and data folders cannot collide. **Nothing here has been run outside a
-  developer checkout**; that, not the release, is what is overdue.
-- **Builds clean** with `dotnet build`, **370 unit tests pass** with `dotnet test` in about two seconds.
+- **Branch `main`, clean tree, pushed.** `v0.5.0` is the only release and the only tag — everything
+  earlier was deleted, releases and tags alike, because nothing had ever been installed from them.
+  **Main is four commits ahead of that tag**: first run, the name sweep, the licence, and the
+  uninstall data question. A release cut from `main` today would be the first to contain any of them.
+- **Nothing here has ever been run outside a developer checkout.** That, not the release, is what is
+  overdue, and three separate things now depend on it: the taskbar icon (gotcha 20), the first run's
+  practice dictation, and the uninstall hook. See the roadmap.
+- **Builds clean** with `dotnet build`, **385 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
 - **Renamed to TawkType, completely.** Name, mark, palette, namespaces, projects, solution, assembly,
@@ -68,6 +71,11 @@ Windows only.
   *loaded*, and the last gate wants words back from the pipeline. **The practice dictation is the one
   part nobody has watched work**: an agent session has no voice. Everything else in the flow was
   driven and screenshotted, including the download and the warm-up.
+- **Uninstalling can take the data with it, if the user says so in advance.** A setting on
+  Settings → General, obeyed silently by Velopack's uninstall hook — which may show no UI and is
+  killed after 30 seconds, so the question cannot be asked during the uninstall itself. A
+  *Delete my data…* button beside it does the same thing on demand. `DataRemoval.Check` guards both.
+  **The hook has never executed.**
 
 ## Repo map
 
@@ -79,7 +87,8 @@ src/TawkType.Core            pipeline state machine, interfaces, settings, regex
                             reducers that make the awkward parts testable, all free of Windows deps:
                               Input/     Hotkey, HotkeyGesture, Activation (hold / toggle / Esc / mode)
                               Text/      PhraseBook, CaretFit, CorrectionGuess, Delivery, BasicTextCleaner
-                              Settings/  DictationMode, VocabularyEdit, VocabularyFormat, NumberField
+                              Settings/  DictationMode, VocabularyEdit, VocabularyFormat, NumberField,
+                                         DataRemoval (the guard in front of every recursive delete)
                               History/   DictationHistoryStore, HistoryQuery, LastDictation
                               Pipeline/  DictationEngine, Recovery
                               Onboarding/ SetupPlan (the steps and their gates), HotkeyCheck,
@@ -95,13 +104,14 @@ src/TawkType.App             WPF tray app (namespace TawkType.Desktop): App.xaml
                             HistoryWindow, DictationBoxWindow, RememberWindow, TaskbarWindow,
                             HotkeyBox, BrandMark;
                             Themes/ has Light.xaml, Dark.xaml and the templated Controls.xaml;
-                            Services/ has ModelMaintenance, ThemeManager, UpdateService, SoundCues,
+                            Services/ has ModelMaintenance, AppDataMaintenance, ThemeManager,
+                            UpdateService, SoundCues,
                             Logging/ has the file logger
 tools/TawkType.Bench         transcribes a WAV with one or both engines, prints latency side by side
 tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
 tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/TawkType.Core.Tests    xUnit, 370 tests. One file per behaviour; the names are the specification.
+tests/TawkType.Core.Tests    xUnit, 385 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -111,7 +121,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessmen
 
 ```bash
 dotnet run --project src/TawkType.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 329 tests, ~2 s
+dotnet test                                   # 385 tests, ~2 s
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Brand      # regenerate icon + exports after brand changes
@@ -536,18 +546,51 @@ site source and every snapshot from v2 on were already clean.
     there was nothing visible to click into. `Width`, not `MaxWidth`, for a box that starts empty.
     Caught by screenshotting the step; the XAML compiles either way.
 
+47. **A Velopack hook may not show UI, and is killed after 30 seconds.** Velopack's documentation is
+    explicit on both: "you may not show any UI to the user", and "if your application receives one of
+    these arguments and does not exit within the alloted time, it will be killed". So the obvious
+    design for "delete my data?" — a dialog during the uninstall — is not available, and a MessageBox
+    there would hang on anyone who walked away mid-answer. The question is asked in Settings instead
+    and `OnBeforeUninstallFastCallback` only obeys it. If you ever do want a prompt at uninstall time,
+    the hook has to spawn a detached copy from `%TEMP%` and return immediately.
+
+48. **Never delete a folder without `DataRemoval.Check`.** Two callers delete the data folder
+    recursively and one of them runs during an uninstall with nobody watching, while Velopack clears
+    a folder whose name differs by three letters. The check is pure and tested for exactly that: the
+    install folder, any folder containing it, anything near the root of a drive, and any relative
+    path. It also checks rootedness *before* normalising, because `Path.GetFullPath` resolves a
+    relative path against the current directory and would otherwise let `TawkType\models` through as
+    a real folder somewhere else.
+
+49. **The Bash tool's heredocs eat backslashes, so scripts with paths or escapes belong in a file.**
+    `python - <<'PY'` looks quoted and is not reliable here: `\\n` inside the script arrived as a real
+    newline, which silently corrupted a C# string literal into a multi-line one, and `%TEMP%\\Tawk…`
+    became a `\u` escape error. Three edits failed this way before the pattern was obvious. Write the
+    script with the Write tool and run it by path — the Python file itself is fine, it is the heredoc
+    that is not.
+
 ## Roadmap, in the order I would do it
 
-1. **Install the current build and use it.** Nothing has ever been installed from any release, so
-   this is a first install with no old copy to remove. It is also the first run of the first run:
-   a clean machine with no `settings.json` opens the setup window, and its last step is the
-   dictation nobody has yet watched land. What it proves is that the packaged build works at all
-   outside a developer checkout: the Start Menu entry, **the taskbar icon (gotcha 20, never once
-   tested against a real install)**, the tray, downloading a model from Settings, and a dictation
-   landing in another application.
+1. **Cut a release from `main` and install it.** Nothing has ever been installed from any release, so
+   this is a first install with no old copy to remove — and `main` is four commits past `v0.5.0`, so
+   the tag contains none of the work below.
 
-   An agent session cannot do it. Writes under `%LOCALAPPDATA%` and `HKCU` go into a per-session
-   overlay (gotcha 28), so everything verified here was verified there and nowhere else.
+   Three code paths have never executed anywhere, and one install exercises all three:
+
+   - **The taskbar icon** (gotcha 20). Fixed by a long hunt, never once tested against a real install.
+     Re-check it particularly because the manifest's assembly identity changed with the name sweep —
+     the only identity string that has moved since that fix was made.
+   - **The first run's practice dictation.** Every other step was driven and screenshotted here; that
+     one needs a voice. A clean machine with no `settings.json` opens setup by itself.
+   - **The uninstall hook.** Tick *Delete all of this if I uninstall TawkType* in Settings, uninstall,
+     and read `%TEMP%\TawkType\uninstall.log`. Then install again, leave the box unticked, uninstall,
+     and check the data folder survived — that is the default and the more important half.
+
+   Plus what an install has always been for: the Start Menu entry, the tray, downloading a model, and
+   a dictation landing in another application.
+
+   An agent session cannot do any of it. Writes under `%LOCALAPPDATA%` and `HKCU` go into a
+   per-session overlay (gotcha 28), so everything verified here was verified there and nowhere else.
 
 2. **Close review finding 6, the clipboard.** The restore races the paste and only text is put back,
    so an image or formatted content is destroyed by a dictation — more likely now that multiline
