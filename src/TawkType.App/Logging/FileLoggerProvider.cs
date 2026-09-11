@@ -15,7 +15,7 @@ public sealed class FileLoggerProvider : ILoggerProvider
     public FileLoggerProvider(string directory)
     {
         Directory.CreateDirectory(directory);
-        _path = Path.Combine(directory, "talk2me.log");
+        _path = Path.Combine(directory, "tawktype.log");
     }
 
     public ILogger CreateLogger(string categoryName) => new FileLogger(this, ShortName(categoryName));

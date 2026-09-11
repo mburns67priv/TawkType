@@ -24,7 +24,7 @@ before the Windows one has shipped something".
 
 - **Branch `main`, clean tree.** Last release tag `v0.2.9`, and a long way past it: everything below
   is in no installed copy. **Cutting a release is the most overdue thing in this repository.**
-- **Builds clean** with `dotnet build`, **326 unit tests pass** with `dotnet test` in about two seconds.
+- **Builds clean** with `dotnet build`, **329 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
 - **Renamed to TawkType**, display-only — see "The rename" below for the six identifiers that
@@ -82,7 +82,7 @@ tools/TawkType.Bench         transcribes a WAV with one or both engines, prints 
 tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
 tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/TawkType.Core.Tests    xUnit, 326 tests. One file per behaviour; the names are the specification.
+tests/TawkType.Core.Tests    xUnit, 329 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -92,7 +92,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessmen
 
 ```bash
 dotnet run --project src/TawkType.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 326 tests, ~2 s
+dotnet test                                   # 329 tests, ~2 s
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Brand      # regenerate icon + exports after brand changes
@@ -114,13 +114,14 @@ Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust,
 > who skipped several versions still gets everything in one step.
 
 - `settings.json` — all user settings; saved from the Settings window, hot-reloaded by every consumer.
-- `models\ggml-large-v3-turbo.bin` (1.6 GB) and `models\parakeet-tdt-0.6b-v3-int8\` (640 MB).
+- `models\ggml-large-v3-turbo.bin` (~1.6 GB) and `models\parakeet-tdt-0.6b-v3-int8\` (~670 MB).
+  **Neither is downloaded automatically** — Settings → Transcription does it, on the user's say-so.
 - `apikey.dat` — the Anthropic key for the cleanup pass, DPAPI-encrypted under the current user. Kept
   out of `settings.json`, which is plain text. `ANTHROPIC_API_KEY` is the fallback.
 - `history.jsonl` — every dictation, one JSON object per line, trimmed to `History.MaxEntries` (200 by
   default) **on disk**, not merely in the view. **Plain text**: this is everything the user has ever
   dictated. `History.Enabled` turns it off.
-- `logs\talk2me.log` — rolling 5 MB. Debug level. Every dictation logs how many characters, how
+- `logs\tawktype.log` — rolling 5 MB. Debug level. Every dictation logs how many characters, how
   many audio seconds and how many ms — **never the text**. That was false until `77adef3`; both
   transcribers logged the recognised words at Debug, so turning history off left a second plaintext
   archive of everything the user had said.
@@ -134,7 +135,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | .NET 8 + WPF, not Tauri/Electron | Key-*up* detection needs a low-level hook; text injection needs SendInput; the machine already had .NET 8 + VS 2022 and no Rust. One process, ~40 MB idle. |
 | Two engines behind one interface | Parakeet TDT 0.6B v3 for English + 24 European languages (better English WER, never hallucinates on silence, no GPU needed). Whisper large-v3-turbo for the other ~75 languages. `EngineSelection.Resolve` picks; setting `Engine` = Auto/Parakeet/Whisper overrides. |
 | Parakeet via sherpa-onnx on **CPU** | The NuGet runtime is CPU-only on Windows. Fast enough: 931 ms for 13 s of audio. A CUDA build exists only as a manual download. |
-| Whisper runtime order CUDA12 → Vulkan → CPU | No CUDA Toolkit installed, so Vulkan is what runs. Installing the toolkit flips to CUDA automatically. |
+| Whisper runtime order Vulkan → CPU | The CUDA 12 backend is a 538 MB DLL, several times the size of the rest of the app, and does nothing without the CUDA Toolkit installed. It is not shipped. Vulkan works with the stock NVIDIA/AMD/Intel driver. |
 | H.NotifyIcon.Wpf pinned to **2.3.2** | 2.4.x dropped net8.0 and silently resolves to the .NET Framework asset, which fails XAML compile. |
 | WaveIn at 16 kHz mono, not WASAPI | The driver resamples for free to exactly what both engines want. Swap for WASAPI only if latency or loopback becomes a need. |
 | Settings is a nav rail + pages, not one form | It had grown past 1400px with the expanders open and was genuinely hard to read. Eight pages (General / Transcription / Activation / Modes / Appearance / Vocabulary / AI cleanup / History) modelled on WhisperTyping, which the owner asked for by screenshot. |

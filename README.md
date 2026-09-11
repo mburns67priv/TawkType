@@ -68,8 +68,9 @@ per-user, needs no administrator rights, and updates itself from that same relea
 > *"Windows protected your PC"*. Choose **More info** → **Run anyway**. That warning is about the
 > absence of a paid certificate, not about anything found in the file.
 
-The installer is around 37 MB. Speech models are **not** included — TawkType downloads the one your
-chosen engine needs on first use, so you only fetch what you actually run.
+The installer is around 37 MB. **Speech models are not included and are not fetched automatically.**
+On first run TawkType tells you no model is downloaded and waits; go to **Settings → Transcription**
+and pick one. Nothing that large is ever downloaded without you asking for it.
 
 Or [run from source](#running-from-source).
 
@@ -95,10 +96,10 @@ cd TawkType
 dotnet run --project src/TawkType.App
 ```
 
-TawkType lives in the system tray and on the taskbar. On first run it downloads the active engine's model
-— Parakeet is 640 MB, Whisper `large-v3-turbo` is 1.6 GB — into
-`%LOCALAPPDATA%\Jupitor Studio\TawkType\models`. The
-status bar shows the download progress.
+TawkType lives in the system tray and on the taskbar. On first run it has no speech model, says so on
+the status bar, and waits: open **Settings → Transcription** and download one. Parakeet is about
+670 MB, Whisper `large-v3-turbo` about 1.6 GB, and they go into
+`%LOCALAPPDATA%\Jupitor Studio\TawkType\models`. The bar shows the progress.
 
 Then hold Right Ctrl and talk.
 
@@ -164,7 +165,7 @@ never takes your models and history with it:
 | `apikey.dat` | Your Anthropic key, DPAPI-encrypted for your Windows account |
 | `history.jsonl` | Every dictation. **Plain text** — turn it off in Settings → History if that's not for you, and the file is deleted rather than merely hidden |
 | `models\` | Downloaded speech models |
-| `logs\talk2me.log` | Rolling 5 MB debug log. Records how long and how many characters, **never the words themselves** |
+| `logs\tawktype.log` | Rolling 5 MB debug log. Records how long and how many characters, **never the words themselves** |
 
 ## Performance
 
@@ -181,7 +182,7 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 326 unit tests, ~2 s
+dotnet test                                              # 329 unit tests, ~2 s
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Focus -- 15           # what the focus probe sees

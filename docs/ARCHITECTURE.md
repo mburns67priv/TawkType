@@ -22,7 +22,9 @@ Visual Studio 2022 already installed, no Rust toolchain, no CUDA Toolkit.
   and the other 24 European languages it covers. Transducer architecture, so it is several times faster
   than Whisper, scores a lower English word error rate, and does not hallucinate on silence. ~670 MB.
 - **Whisper large-v3-turbo** through Whisper.net for the other ~75 languages. ~1.6 GB. Runtime order is
-  CUDA 12 → Vulkan → CPU; CUDA needs the toolkit installed, Vulkan works with the stock driver.
+  Vulkan → CPU. The CUDA 12 backend is deliberately **not shipped**: it is a 538 MB DLL, several times
+  the rest of the application, and it only does anything for someone who has installed the CUDA
+  Toolkit. Vulkan works with the stock NVIDIA, AMD or Intel driver, which covers almost everyone.
 
 Both engines stay registered; only the one the router selects is loaded, and it loads lazily.
 
