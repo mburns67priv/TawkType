@@ -20,7 +20,8 @@ Visual Studio 2022 already installed, no Rust toolchain, no CUDA Toolkit.
 
 - **Parakeet TDT 0.6B v3** (NVIDIA, CC-BY-4.0) through sherpa-onnx, int8 on CPU. Default for English
   and the other 24 European languages it covers. Transducer architecture, so it is several times faster
-  than Whisper, scores a lower English word error rate, and does not hallucinate on silence. ~670 MB.
+  than Whisper, scores a lower English word error rate, and does not hallucinate on silence. 640 MB on
+  disk, and about 850 MB of working set once it is loaded.
 - **Whisper large-v3-turbo** through Whisper.net for the other ~75 languages. ~1.6 GB. Runtime order is
   Vulkan → CPU. The CUDA 12 backend is deliberately **not shipped**: it is a 538 MB DLL, several times
   the rest of the application, and it only does anything for someone who has installed the CUDA

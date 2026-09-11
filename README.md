@@ -95,7 +95,7 @@ dotnet run --project src/TawkType.App
 
 TawkType lives in the system tray and on the taskbar. On first run it has no speech model, says so on
 the status bar, and waits: open **Settings → Transcription** and download one. Parakeet is about
-670 MB, Whisper `large-v3-turbo` about 1.6 GB, and they go into
+640 MB, Whisper `large-v3-turbo` about 1.6 GB, and they go into
 `%LOCALAPPDATA%\Jupitor Studio\TawkType\models`. The bar shows the progress.
 
 Then hold Right Ctrl and talk.

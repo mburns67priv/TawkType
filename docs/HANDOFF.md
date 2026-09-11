@@ -113,7 +113,7 @@ Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust,
 > who skipped several versions still gets everything in one step.
 
 - `settings.json` — all user settings; saved from the Settings window, hot-reloaded by every consumer.
-- `models\ggml-large-v3-turbo.bin` (~1.6 GB) and `models\parakeet-tdt-0.6b-v3-int8\` (~670 MB).
+- `models\ggml-large-v3-turbo.bin` (~1.6 GB) and `models\parakeet-tdt-0.6b-v3-int8\` (640 MB).
   **Neither is downloaded automatically** — Settings → Transcription does it, on the user's say-so.
 - `apikey.dat` — the Anthropic key for the cleanup pass, DPAPI-encrypted under the current user. Kept
   out of `settings.json`, which is plain text. `ANTHROPIC_API_KEY` is the fallback.

@@ -16,6 +16,11 @@ public sealed class ParakeetModelManager
     private const long OneMegabyte = 1024 * 1024;
 
     // Name -> approximate size, used for progress when Content-Length is missing.
+    /// <summary>
+    /// Rounded up a little: these drive the progress bar before anything has been downloaded, and a
+    /// bar that reaches 100% early looks broken in a way one that arrives slightly under does not. The
+    /// real files come to about 640 MB, not the 671 these add up to — do not quote them as sizes.
+    /// </summary>
     private static readonly (string Name, long ApproxBytes)[] Files =
     [
         ("encoder.int8.onnx", 652 * OneMegabyte),
