@@ -10,3 +10,8 @@ publish/
 # Packaging output. build/pack.ps1 is source; what it produces is not.
 build/publish/
 build/releases/
+
+# Work in progress that lives in the repo folder without belonging to the repo.
+# An agent session swept this into a commit with `git add -A`; ignoring it is cheaper than
+# remembering not to.
+docs/tawktype-brand/
