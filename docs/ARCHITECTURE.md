@@ -520,9 +520,10 @@ Open, roughly in the order worth doing:
    formatted content on the clipboard does not survive a dictation. More results go through the
    clipboard now that multiline text always pastes, so this is the most user-visible thing left.
    (`docs/REVIEW-2026-09-11.md`, finding 6.)
-2. **The filler regex still eats real words.** German "um" and a lowercase English "er" are removed as
-   disfluencies. All-capitals words are safe now, which is why *"The ER is open"* works, but nothing
-   protects the lowercase cases. (Same review, finding 10.)
+2. **The filler regex still eats real words.** German "um" and a lower-case English "er" are removed as
+   disfluencies. All-capitals words are safe now, which is why *"The ER is open"* works, but no
+   capitalisation rule can reach the lower-case collisions — telling a filler from a word there needs
+   to know the language. (Same review, finding 10, now partly closed.)
 3. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
    it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
 4. **A local `ILlmClient`** (llama.cpp or ONNX), so the rewrite works offline and "nothing leaves this

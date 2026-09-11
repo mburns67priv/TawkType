@@ -6,46 +6,70 @@ The strongest opportunity is to make TawkType **dependable local dictation that 
 
 I researched current official documentation for Wispr Flow, Superwhisper, Aqua Voice, Dragon Professional, and Windows Voice Access. This is a feature comparison, not a hands-on accuracy benchmark; vendor performance claims are not evidence that their recognition is better.
 
-## Status as of 2026-09-11 (added as sections landed)
+## Status — updated 2026-09-11
 
-This research is kept as written. **§1 through §7 are built**, except the per-application half of §5:
+The research below is kept exactly as written. This section records what has since been built, so
+nobody re-plans something that is finished or assumes something is finished because the rest is.
 
-- **§1** — `PhraseBook` applies spellings and replacements locally, with or without a key, and is
-  re-applied after a rewrite so the model cannot undo a correction. Its one unbuilt piece is the
-  "remember this replacement" action in the history window, which belongs with §7.
-- **§2** — snippets, triggered by saying "insert" and the trigger, typed exactly and never sent for
-  rewriting. The whole vocabulary imports and exports as its own JSON file.
-- **§3** — an optional toggle key, Esc to cancel, optional sounds (off by default, using the Windows
-  scheme), and a recording limit that finishes rather than discards.
+| § | Subject | State |
+|---|---|---|
+| 1 | Vocabulary without Claude | **Done** |
+| 2 | Spoken snippets | **Done** |
+| 3 | Toggle, cancellation, sounds | **Done** |
+| 4 | Dictation box and recovery | **Done** |
+| 5 | Modes | **Done**, except per-application defaults |
+| 6 | Caret-aware insertion | **Done** |
+| 7 | History as a correction tool | **Done** |
+| 8 | First-run experience | Not started |
+| 9 | Visible privacy | Not started |
 
-- **§4** — the dictation box. `Recovery` decides what can honestly be offered for a dictation that did
-  not arrive; the window holds the text editable until the user is done with it, and can hand the
-  foreground back to the window it was aimed at. It never opens itself, exactly as this section asks.
-  Its "preserve the transcript before attempting delivery" requirement was already met by `8a39890`
-  and the in-memory `LastDictation`.
+**§1 — vocabulary without Claude.** `PhraseBook` applies preferred spellings and replacements locally,
+with or without a key, and runs again after a rewrite so the model cannot undo a correction. The
+"remember this replacement" action this section wanted arrived with §7, in the history window.
 
-- **§7** — history as a correction tool. All seven of its bullets are in: search, edit, copy raw or
-  cleaned, re-run cleanup on the raw transcript, compare before and after, delete single entries, and
-  save a vocabulary replacement from a correction. The last of those is what §1 was left missing.
-  Its two cautions were both followed: cleanup is re-run over *text*, never by retranscribing audio,
-  and there is no "correct last insertion" blind-backspace anywhere.
+**§2 — spoken snippets.** Triggered by saying "insert" and the trigger, typed exactly, and never sent
+for rewriting. The whole vocabulary imports and exports as a JSON file of its own.
 
-- **§6** — caret-aware insertion. All five bullets: no doubled spaces, a separating space where one is
-  needed, no capital dropped into a continuation, a selection distinguished from a caret, and an
-  unreadable control treated exactly as it was before. It reads a bounded window through
-  `TextPattern` at delivery time and revalidates the destination first, as this section asks. Its
-  caution was followed too: no screenshots, no broad application text extraction, no clipboard
-  collection — the read is 64 characters either side of the caret and never leaves the machine.
+**§3 — toggle, cancellation, sounds.** An optional toggle key, Esc to cancel, optional sounds (off by
+default, using the Windows scheme), and a recording limit that *finishes* a runaway dictation rather
+than discarding it.
 
-- **§5** — modes. All four, built entirely from local settings: `DictationMode` bundles filler
-  removal, capitalisation, spacing, caret fitting and a vocabulary of its own; a key cycles them and
-  the bar shows which is in charge. The section's warning is enforced rather than merely observed — a
-  mode can only ever *narrow* the permission to use Claude, never grant it, and there is a test for
-  each direction. Its **per-application defaults are deliberately left out**, as the section itself
-  puts them later; `FocusTarget.ProcessName` is already captured, so that is a map and nothing else.
+**§4 — dictation box and recovery.** `Recovery` works out what can honestly be offered for a dictation
+that did not arrive; the box holds the text editable until the user is done with it and can hand the
+foreground back to the window it was aimed at. It never opens itself, exactly as this section asks.
+The "preserve the transcript before attempting delivery" requirement was already met by the
+`Recognised` event and the in-memory `LastDictation`.
 
-**§8 and §9 are untouched.** First-run (§8) and visible privacy (§9) are still open, and the ordering
-at the foot of this document still holds for them.
+**§5 — modes.** All four, built entirely from local settings: `DictationMode` bundles filler removal,
+capitalisation, spacing, caret fitting and a vocabulary of its own; a key cycles them and the bar shows
+which is in charge. This section's warning is enforced rather than merely observed — a mode can only
+ever *narrow* the permission to use Claude, never grant it, with a test in each direction.
+**Per-application defaults are the one part not built**, as this section itself puts them later.
+`FocusTarget.ProcessName` is already captured at key-down, so what remains is a map and a settings page.
+
+**§6 — caret-aware insertion.** All five bullets: no doubled spaces, a separating space where one is
+needed, no capital dropped into a continuation, a selection distinguished from a caret, and an
+unreadable control behaving exactly as it did before. It reads a bounded window through `TextPattern`
+at delivery time and revalidates the destination first. The caution was followed too — no screenshots,
+no broad application text extraction, no clipboard collection. Sixty-four characters either side of the
+caret, read locally and used locally.
+
+**§7 — history as a correction tool.** All seven bullets: search, edit, copy raw or cleaned, re-run
+cleanup on the raw transcript, compare before and after, delete single entries, and save a vocabulary
+replacement from a correction. Both cautions were followed: cleanup is re-run over *text*, never by
+retranscribing audio, and there is no blind-backspace "correct last insertion" anywhere.
+
+**§8 and §9 are untouched.** A first run that ends in a successful dictation, and a privacy panel that
+shows what is actually kept rather than what the settings imply. The ordering at the foot of this
+document still holds for them.
+
+### Small pieces still open
+
+- **§5's per-application defaults** — process name to mode.
+- **Remember… in the dictation box.** It is in the history window; the box is the other place the
+  wrong words are already on screen.
+- **Seeding the recogniser with the vocabulary.** Whisper's `initial_prompt` takes a word list, so the
+  names the user has taught TawkType could be got right before cleanup rather than corrected after.
 
 ## What the established apps offer
 

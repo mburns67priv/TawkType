@@ -47,9 +47,9 @@ before the Windows one has shipped something".
   rejected key (see "Gotchas" 9) — **nobody has yet seen a real rewrite**.
 - **The installed build's taskbar icon is fixed** as of 0.2.8, after a long hunt. The answer is in
   "Gotchas" 20, and it is not what anyone would guess.
-- **The review in `docs/REVIEW-2026-09-11.md` is mostly addressed.** Findings 1–5, 7, 8 and part of 11
-  are done. **Finding 6 (clipboard restore) and finding 10 (the filler regex) are still open**, and 6
-  matters more now that multiline results always paste. That doc carries a status note.
+- **The review in `docs/REVIEW-2026-09-11.md` is mostly addressed.** Findings 1–5, 7 and 8 are closed;
+  10, 11 and 14 are partly closed. **Finding 6, the clipboard, is the largest still fully open**, and
+  it matters more now that multiline results always paste. That doc carries a status table.
 - **`docs/FEATURE-RESEARCH-2026-09-11.md` §1–§7 are built**, except §5's per-application defaults,
   which the section itself puts later. §8 (first run) and §9 (visible privacy) are untouched.
 
@@ -453,12 +453,13 @@ build that performed it.
    at stake but the owner's own test machine, which is exactly why it is worth doing before that
    stops being true.
 
-2. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste and only
-   text is put back, so an image or formatted content is destroyed by a dictation — more likely now
-   that multiline results always paste. Finding 10 is the filler regex: it still removes German "um"
-   and a lowercase English "er". All-capitals words are protected, which is why *"The ER is open"*
-   survives, but the lowercase cases are open. Both are small, user-visible, and already written up
-   with reproductions.
+2. **Close review finding 6, the clipboard.** The restore races the paste and only text is put back,
+   so an image or formatted content is destroyed by a dictation — more likely now that multiline
+   results always paste. It is the largest fully-open finding and it is written up with a reproduction.
+
+   Then the rest of finding 10: the filler regex still removes German "um" and a lower-case English
+   "er". All-capitals words are protected, which is why *"The ER is open"* survives, but a
+   capitalisation rule cannot reach the lower-case collisions — that needs the language.
 3. **Prove the rewrite on real dictation** and tune `CleanupPrompt` against it. Still true: nobody has
    seen a successful call (gotcha 9), so every judgement about rewrite quality is currently a guess.
 4. **Finish the brand assets**: high-contrast tray variants, outlined SVG wordmarks, and a licence and
