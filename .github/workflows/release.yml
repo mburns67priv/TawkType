@@ -75,9 +75,14 @@ jobs:
         run: |
           $tag = 'v${{ steps.version.outputs.value }}'
           $notes = @"
-          Install Talk2Me by downloading **Talk2Me-win-Setup.exe** below and running it.
+          Install TawkType by downloading **Talk2MeApp-win-Setup.exe** below and running it.
 
-          Talk2Me is not code-signed yet, so Windows SmartScreen will warn you the first time. Choose
+          The installer is named after the package id, which deliberately still says Talk2Me: it is the
+          update channel installed copies already poll and the folder the installer clears, so renaming
+          it would break updates and risk your settings and downloaded models. The app itself is
+          TawkType.
+
+          TawkType is not code-signed yet, so Windows SmartScreen will warn you the first time. Choose
           **More info** then **Run anyway**. Installed copies update themselves from this feed.
 
           Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0); the

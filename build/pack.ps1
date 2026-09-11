@@ -1,10 +1,10 @@
-<#
+﻿<#
 .SYNOPSIS
-    Publishes Talk2Me and packs it into a Velopack installer.
+    Publishes TawkType and packs it into a Velopack installer.
 
 .DESCRIPTION
     Produces build/releases/, which contains everything a GitHub Release needs:
-      Talk2Me-win-Setup.exe   the installer people download
+      Talk2MeApp-win-Setup.exe  the installer people download - named from packId, not the app
       *-full.nupkg            the payload the installer and the updater read
       *-delta.nupkg           the small diff, when a previous release is present
       RELEASES-win            the feed the app checks for updates
@@ -30,7 +30,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $publish = Join-Path $root 'build/publish'
 $releases = Join-Path $root 'build/releases'
 
-Write-Host "==> publishing Talk2Me $Version" -ForegroundColor Cyan
+Write-Host "==> publishing TawkType $Version" -ForegroundColor Cyan
 
 if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
 
@@ -71,13 +71,17 @@ New-Item -ItemType Directory -Force -Path $releases | Out-Null
 # packId is the install folder name: %LOCALAPPDATA%\<packId>. It must NOT be "Talk2Me", because
 # builds before the installer kept user data in %LOCALAPPDATA%\Talk2Me, and the installer clears its
 # target directory before extracting. Installing over it destroys settings, history and gigabytes of
-# downloaded models before the app ever runs to migrate them. packTitle is what users actually see.
+# downloaded models before the app ever runs to migrate them.
+#
+# It is also not renamed to match TawkType, for the same reason plus one more: packId is the update
+# channel every installed copy already polls. packTitle is the half users actually see - the Start
+# Menu shortcut and the Programs and Features entry - so that is the half that carries the new name.
 vpk pack `
     --packId Talk2MeApp `
     --packVersion $Version `
     --packDir $publish `
     --mainExe Talk2Me.exe `
-    --packTitle 'Talk2Me' `
+    --packTitle 'TawkType' `
     --packAuthors 'Jupitor Studio' `
     --icon (Join-Path $root 'src/Talk2Me.App/Assets/talk2me.ico') `
     --channel $Channel `
