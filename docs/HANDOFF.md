@@ -21,8 +21,9 @@ Windows only.
 
 ## State of the code
 
-- **Branch `main`, clean tree.** Last release tag `v0.2.9`, and a long way past it: everything below
-  is in no installed copy. **Cutting a release is the most overdue thing in this repository.**
+- **Branch `main`, clean tree.** Last release tag `v0.4.0`, the first under the TawkType package id,
+  published and never installed by anyone. **Nothing here has been run outside a developer checkout**
+  — that, not the release, is what is overdue.
 - **Builds clean** with `dotnet build`, **329 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
@@ -210,20 +211,19 @@ installer clears `%LOCALAPPDATA%\<packId>` before extracting and packId is now `
 separation is the whole of gotcha 19 and it still matters — `DataFolderTests` asserts it so a future
 rename cannot quietly undo it.
 
-### The packId is the one thing that does not carry across
+### The packId is the one thing that would not have carried across
 
 Changing it makes this a different application to Velopack: anything installed as `Talk2MeApp` polls
-the old channel and **will never update to TawkType**. It has to be replaced by hand.
+the old channel and would never update to `TawkType`. It would have to be replaced by hand.
 
-**In practice that is one machine.** Nothing has been released to anybody — v0.3.0 exists, but the
-only installation of it is the owner's own test copy. There is no user base to strand, which is why
-this was worth doing now rather than never: the cost of renaming the package identity only ever goes
-up.
+**Nothing was ever installed anywhere** — not by a user, not by the owner. Releases up to v0.3.0 exist
+as artefacts and nobody ran their installer, so there was no copy to strand and no upgrade to get
+right. That is the whole reason this was the moment to do it: the cost of renaming a package identity
+is zero before the first install and never zero again.
 
-Nothing is lost in the replacement either. The data folder is outside both install directories, so
-uninstalling the old copy does not touch it and the new one migrates it on first launch — which is the
-half that still matters, because those gigabytes of models are tedious to fetch again even for one
-person.
+The migrations still exist and still work, and they are still worth having — a data folder can also be
+created by running from source, and the models in it are tedious to fetch again. They are just not
+load-bearing for anybody today.
 
 ### What is still called Talk2Me, and must be
 
@@ -436,21 +436,18 @@ build that performed it.
 
     The old releases still carry their inherited packages. Normally those could not be deleted — the
     published feeds name them, and an installed copy resolves updates through those names — but
-    nothing is installed anywhere except the owner's test machine, so they are safe to clean up while
-    that is still true. After the first real user, they are not.
+    nothing has ever been installed from any of them, so today they are safe to delete. That stops
+    being true the moment somebody installs a release and starts polling its feed.
 
 ## Roadmap, in the order I would do it
 
-1. **Cut v0.4.0 and install it yourself.** It is the first build under the new package identity, so
-   it arrives as a fresh install rather than an update, and it is the only way to find out whether the
-   four rename migrations survive outside a sandbox. Confirm the new copy finds the settings, the API
-   key, the history and — the expensive one — the downloaded models, and that the Start Menu entry
-   reads TawkType. Then uninstall the old Talk2Me copy, which will not update itself.
+1. **Install v0.4.0 and use it.** It is published, and nothing has ever been installed from any
+   release — so this is a first install, not an upgrade, and there is no old copy to remove. What it
+   proves is that the packaged build runs at all outside a developer checkout: the Start Menu entry,
+   the taskbar icon (gotcha 20), the tray, and a real dictation end to end.
 
-   An agent session cannot do any of this: its writes under `%LOCALAPPDATA%` and `HKCU` go into a
-   per-session overlay (gotcha 28), so the migrations were verified there and only there. Nothing is
-   at stake but the owner's own test machine, which is exactly why it is worth doing before that
-   stops being true.
+   An agent session cannot do it. Writes under `%LOCALAPPDATA%` and `HKCU` go into a per-session
+   overlay (gotcha 28), so everything verified here was verified there and nowhere else.
 
 2. **Close review finding 6, the clipboard.** The restore races the paste and only text is put back,
    so an image or formatted content is destroyed by a dictation — more likely now that multiline

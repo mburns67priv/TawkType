@@ -105,10 +105,6 @@ jobs:
           $notes = @"
           Install TawkType by downloading **TawkType-win-Setup.exe** below and running it.
 
-          If you happen to have the earlier Talk2Me build, install this and then uninstall that one —
-          the package was renamed, so the old copy will not update itself. Settings, history and
-          downloaded models move across on first launch.
-
           TawkType is not code-signed yet, so Windows SmartScreen will warn you the first time. Choose
           **More info** then **Run anyway**. Installed copies update themselves from this feed.
 

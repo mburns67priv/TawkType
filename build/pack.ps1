@@ -74,9 +74,9 @@ New-Item -ItemType Directory -Force -Path $releases | Out-Null
 #
 # "TawkType" is safe for the same reason the old id was: data is under
 # %LOCALAPPDATA%\Jupitor Studio\TawkType, a different path, so clearing the install folder cannot touch
-# it. Renaming the id does mean copies installed as Talk2MeApp will not update to this - they poll the
-# old channel - so any such install has to be replaced once by hand. Nothing has shipped to anyone,
-# so in practice that is the owner's test machine. See docs/HANDOFF.md.
+# it. Renaming the id would strand anything installed as Talk2MeApp - a different id is a different
+# application to Velopack, polling a different channel - but nothing was ever installed from any
+# release, so there was nothing to strand. See docs/HANDOFF.md.
 vpk pack `
     --packId TawkType `
     --packVersion $Version `
