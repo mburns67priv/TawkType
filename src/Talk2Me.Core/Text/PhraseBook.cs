@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Talk2Me.Core.Settings;
 
 namespace Talk2Me.Core.Text;
@@ -83,7 +83,7 @@ public static class PhraseBook
 
     /// <summary>
     /// The phrase as a whole-word match with flexible spacing. The boundaries are letters and digits
-    /// rather than \b so that entries ending in punctuation — "Talk2Me." — still behave.
+    /// rather than \b so that entries ending in punctuation — "TawkType." — still behave.
     /// </summary>
     private static string Pattern(string phrase)
     {

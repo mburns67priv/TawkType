@@ -1,4 +1,4 @@
-namespace Talk2Me.Core.Settings;
+﻿namespace Talk2Me.Core.Settings;
 
 /// <summary>The outcome of trying to teach Talk2Me a correction.</summary>
 /// <param name="Replacements">The new list, or the old one unchanged when <paramref name="Problem"/> is set.</param>
@@ -52,7 +52,7 @@ public static class VocabularyEdit
         {
             if (string.Equals(replacements[at].To.Trim(), to, StringComparison.CurrentCulture))
             {
-                return new VocabularyLearned(replacements, "Talk2Me already knows that one.", false);
+                return new VocabularyLearned(replacements, "TawkType already knows that one.", false);
             }
 
             // Overwrite rather than append. Two rules for one phrase leaves the user no way to see

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -14,21 +14,45 @@ namespace Talk2Me.Brand;
 /// </summary>
 internal static class Program
 {
-    private static readonly Color Violet = Parse("#6D5DFF");
-    private static readonly Color Coral = Parse("#FF6A8A");
-    private static readonly Color Ink = Parse("#0E0F16");
+    private static readonly Color Violet = Parse("#7867FF");
+    private static readonly Color AccentTint = Parse("#B4A9FF");
+    private static readonly Color Coral = Parse("#FF8A9E");
+    private static readonly Color Ink = Parse("#171925");
+    private static readonly Color LightAccent = Parse("#5740CC");
 
-    // 24-unit design grid. Speech bubble with a tail at the bottom-left, three sound bars inside.
+    // 24-unit design grid. A speech bubble with a tail at the bottom-left, holding three voice bars
+    // and an I-beam text cursor: speech going in, text coming out, and no microphone anywhere.
     private static readonly Geometry Bubble = Geometry.Parse(
-        "M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z");
+        "M7.13,2.63 H16.88 Q21.38,2.63 21.38,7.13 V14.63 Q21.38,19.13 16.88,19.13 H10.13 L4.88,22.5 "
+        + "V18.38 Q2.63,17.25 2.63,14.63 V7.13 Q2.63,2.63 7.13,2.63 Z");
 
     private static readonly Geometry Bars = new GeometryGroup
     {
         Children =
         {
-            new RectangleGeometry(new Rect(8, 8, 2, 4), 1, 1),
-            new RectangleGeometry(new Rect(11, 6, 2, 8), 1, 1),
-            new RectangleGeometry(new Rect(14, 7, 2, 6), 1, 1),
+            new RectangleGeometry(new Rect(6.75, 8.63, 1.5, 4.88), 0.75, 0.75),
+            new RectangleGeometry(new Rect(9.38, 7.13, 1.5, 7.88), 0.75, 0.75),
+            new RectangleGeometry(new Rect(12, 8.63, 1.5, 4.88), 0.75, 0.75),
+            new RectangleGeometry(new Rect(15, 7.13, 4.5, 1.13), 0.56, 0.56),
+            new RectangleGeometry(new Rect(16.69, 7.13, 1.13, 8.25), 0.56, 0.56),
+            new RectangleGeometry(new Rect(15, 14.25, 4.5, 1.13), 0.56, 0.56),
+        },
+    };
+
+    /// <summary>
+    /// Below this, the three voice bars and the I-beam's serifs merge into a smudge. The brand package
+    /// asks for separately adjusted small sizes rather than a shrunk 512; this is the simplest honest
+    /// version of that — a bubble and a single cursor stem, which still reads as "speech into text".
+    /// </summary>
+    private const int SmallestFullMark = 24;
+
+    private static readonly Geometry SmallBars = new GeometryGroup
+    {
+        Children =
+        {
+            new RectangleGeometry(new Rect(7.5, 8.25, 1.88, 7.5), 0.94, 0.94),
+            new RectangleGeometry(new Rect(11.25, 6.75, 1.88, 10.5), 0.94, 0.94),
+            new RectangleGeometry(new Rect(15, 8.25, 1.88, 7.5), 0.94, 0.94),
         },
     };
 
@@ -57,7 +81,7 @@ internal static class Program
         Save(Path.Combine(exports, "mark-white-512.png"), RenderMark(512, Brushes.White, Brushes.White));
         Save(Path.Combine(exports, "mark-violet-512.png"), RenderMark(512, new SolidColorBrush(Violet), new SolidColorBrush(Violet)));
         Save(Path.Combine(exports, "logo-on-dark.png"), RenderLogo(Brushes.White));
-        Save(Path.Combine(exports, "logo-on-light.png"), RenderLogo(new SolidColorBrush(Ink)));
+        Save(Path.Combine(exports, "logo-on-light.png"), RenderLogo(new SolidColorBrush(Ink), new SolidColorBrush(LightAccent)));
         Save(Path.Combine(exports, "social-1200x630.png"), RenderSocialCard());
 
         Console.WriteLine($"exports in {exports}");
@@ -98,7 +122,10 @@ internal static class Program
             }
 
             dc.DrawGeometry(Brushes.White, null, Bubble);
-            dc.DrawGeometry(new SolidColorBrush(Violet), null, Bars);
+
+            // The full mark below 24px is a smudge: the three voice bars and the I-beam's serifs are
+            // sub-pixel and merge. The small variant drops the cursor and widens the bars instead.
+            dc.DrawGeometry(new SolidColorBrush(Violet), null, size >= SmallestFullMark ? Bars : SmallBars);
             dc.Pop();
         });
     }
@@ -118,18 +145,22 @@ internal static class Program
         });
     }
 
-    private static RenderTargetBitmap RenderLogo(Brush textBrush)
+    private static RenderTargetBitmap RenderLogo(Brush textBrush, Brush? tint = null)
     {
-        const int width = 1600;
+        const double tile = 360;
+        const double margin = 60;
+        const double gap = 70;
         const int height = 480;
+
+        // Measured rather than fixed: "TawkType" is wider than the name this canvas was first sized
+        // for, and a hard-coded width silently clipped the last letters.
+        var text = Wordmark(300, textBrush, tint);
+        var width = (int)Math.Ceiling(margin + tile + gap + text.WidthIncludingTrailingWhitespace + margin);
+
         return Render(width, height, dc =>
         {
-            const double tile = 360;
-            var icon = RenderIcon((int)tile);
-            dc.DrawImage(icon, new Rect(60, (height - tile) / 2, tile, tile));
-
-            var text = Wordmark(300, textBrush);
-            dc.DrawText(text, new Point(60 + tile + 70, ((height - text.Height) / 2) - 8));
+            dc.DrawImage(RenderIcon((int)tile), new Rect(margin, (height - tile) / 2, tile, tile));
+            dc.DrawText(text, new Point(margin + tile + gap, ((height - text.Height) / 2) - 8));
         });
     }
 
@@ -158,7 +189,7 @@ internal static class Program
             dc.DrawText(name, new Point(340, 165));
 
             var tagline = new FormattedText(
-                "Hold. Speak. Done.",
+                "You talk. It types.",
                 CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 new Typeface(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
@@ -168,7 +199,7 @@ internal static class Program
             dc.DrawText(tagline, new Point(346, 340));
 
             var sub = new FormattedText(
-                "Push-to-talk dictation for Windows. Local. Private. Fast.",
+                "Local voice typing for Windows. Hold a key, speak, release.",
                 CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 new Typeface(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
@@ -179,12 +210,21 @@ internal static class Program
         });
     }
 
-    private static FormattedText Wordmark(double size, Brush brush)
+    /// <summary>
+    /// "Tawk" in the text colour, "Type" in the accent. The accent differs by background: the pale
+    /// tint is for dark grounds and is far too weak on white, where the brand package's light accent
+    /// is the one that carries.
+    /// </summary>
+    private static FormattedText Wordmark(double size, Brush brush, Brush? tint = null)
     {
         var typeface = new Typeface(
             new FontFamily("Segoe UI Variable Display, Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
-        var text = new FormattedText("Talk2Me", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, size, brush, 1.0);
-        text.SetForegroundBrush(VoiceGradient(), 4, 1); // the "2"
+        var text = new FormattedText("TawkType", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, size, brush, 1.0);
+
+        // "Tawk" stays neutral and "Type" takes the violet tint, as the brand package specifies. A
+        // single-colour wordmark is also valid, which is what a caller passing a flat brush gets if
+        // this line is removed.
+        text.SetForegroundBrush(tint ?? new SolidColorBrush(AccentTint), 4, 4);
         return text;
     }
 

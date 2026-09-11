@@ -2,7 +2,7 @@
 
 /// <summary>A phrase the recogniser produces, and the exact text it should become.</summary>
 /// <param name="From">What was heard, e.g. "talk to me".</param>
-/// <param name="To">What to type instead, e.g. "Talk2Me". Used verbatim, casing and all.</param>
+/// <param name="To">What to type instead, e.g. "TawkType". Used verbatim, casing and all.</param>
 public sealed record TextReplacement(string From = "", string To = "");
 
 /// <summary>Saved text, inserted by saying "insert" and the trigger.</summary>
@@ -18,7 +18,7 @@ public sealed record Snippet(string Trigger = "", string Text = "");
 public sealed class VocabularySettings
 {
     /// <summary>
-    /// Names, products and acronyms written the way they should be typed — "Talk2Me", "Jupitor Studio".
+    /// Names, products and acronyms written the way they should be typed — "TawkType", "Jupitor Studio".
     /// Matched however they were capitalised and rewritten to exactly this.
     /// </summary>
     public string[] Spellings { get; set; } = [];

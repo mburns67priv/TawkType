@@ -1,27 +1,28 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Every key here must also exist in Dark.xaml. The two are swapped wholesale at runtime. -->
+    <!-- Tokens from docs/tawktype-brand/BRAND-PACKAGE.md. -->
 
     <!-- Window ground, then the raised cards and inputs that sit on it. -->
     <SolidColorBrush x:Key="Ui.Window" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="Ui.Sidebar" Color="#F7F8FA" />
-    <SolidColorBrush x:Key="Ui.Card" Color="#F2F4F7" />
-    <SolidColorBrush x:Key="Ui.CardHover" Color="#E8EBF0" />
+    <SolidColorBrush x:Key="Ui.Sidebar" Color="#F6F7FB" />
+    <SolidColorBrush x:Key="Ui.Card" Color="#F1F3F9" />
+    <SolidColorBrush x:Key="Ui.CardHover" Color="#E7EAF3" />
     <SolidColorBrush x:Key="Ui.Input" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="Ui.Border" Color="#DFE3EA" />
+    <SolidColorBrush x:Key="Ui.Border" Color="#DCE0EA" />
 
-    <SolidColorBrush x:Key="Ui.Text" Color="#1B1C28" />
-    <SolidColorBrush x:Key="Ui.TextMuted" Color="#6B7182" />
+    <SolidColorBrush x:Key="Ui.Text" Color="#171925" />
+    <SolidColorBrush x:Key="Ui.TextMuted" Color="#5F6679" />
     <SolidColorBrush x:Key="Ui.TextOnAccent" Color="#FFFFFF" />
 
     <!-- Nav rail: selected row and its hover state. -->
-    <SolidColorBrush x:Key="Ui.NavSelected" Color="#E9E7FF" />
-    <SolidColorBrush x:Key="Ui.NavHover" Color="#EFF1F5" />
+    <SolidColorBrush x:Key="Ui.NavSelected" Color="#E7E3FF" />
+    <SolidColorBrush x:Key="Ui.NavHover" Color="#EEF0F6" />
 
-    <!-- The violet reads well on white at full strength. -->
-    <SolidColorBrush x:Key="Ui.Accent" Color="#5A49F0" />
-    <SolidColorBrush x:Key="Ui.AccentSoft" Color="#EDEBFF" />
+    <!-- The light accent, darker than the tile violet so it carries on white. -->
+    <SolidColorBrush x:Key="Ui.Accent" Color="#5740CC" />
+    <SolidColorBrush x:Key="Ui.AccentSoft" Color="#EAE6FF" />
     <SolidColorBrush x:Key="Ui.Danger" Color="#C4324B" />
 
 </ResourceDictionary>

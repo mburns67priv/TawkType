@@ -450,7 +450,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
         var answer = MessageBox.Show(
             $"Delete all {HistoryEntries.Count} entries from the dictation history?\n\n{_history.Path}",
-            "Talk2Me",
+            "TawkType",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
@@ -463,9 +463,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         {
             // The list would otherwise empty itself and the log would be back on the next launch.
             MessageBox.Show(
-                "Talk2Me could not delete the history file. It is still on disk and will come back the "
+                "TawkType could not delete the history file. It is still on disk and will come back the "
                 + "next time Talk2Me starts." + Environment.NewLine + Environment.NewLine + _history.Path,
-                "Talk2Me",
+                "TawkType",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }

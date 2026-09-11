@@ -15,15 +15,16 @@
 
             <!-- ===== Talk2Me brand tokens. Keep in sync with branding/BRAND.md and tools/Talk2Me.Brand.
                  These do not vary by theme: the mark is the mark in both. ===== -->
-            <Color x:Key="Brand.VioletColor">#6D5DFF</Color>
-            <Color x:Key="Brand.CoralColor">#FF6A8A</Color>
-            <Color x:Key="Brand.InkColor">#0E0F16</Color>
+            <Color x:Key="Brand.VioletColor">#7867FF</Color>
+            <Color x:Key="Brand.CoralColor">#FF8A9E</Color>
+            <Color x:Key="Brand.InkColor">#171925</Color>
 
             <views:BoolToVisibilityConverter x:Key="BoolToVisible" />
             <views:NullToCollapsedConverter x:Key="NullToCollapsed" />
             <views:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisible" />
 
             <SolidColorBrush x:Key="Brand.Accent" Color="{StaticResource Brand.VioletColor}" />
+            <SolidColorBrush x:Key="Brand.AccentTint" Color="#B4A9FF" />
             <SolidColorBrush x:Key="Brand.Coral" Color="{StaticResource Brand.CoralColor}" />
             <SolidColorBrush x:Key="Brand.Ink" Color="{StaticResource Brand.InkColor}" />
 
@@ -34,30 +35,39 @@
 
             <!-- ===== The overlay pill is pinned dark in every theme. It floats over other applications,
                  so it has to read against their content, not against our window background. ===== -->
-            <SolidColorBrush x:Key="Overlay.Surface" Color="#F4171925" />
-            <SolidColorBrush x:Key="Overlay.Border" Color="#2A2D3E" />
+            <SolidColorBrush x:Key="Overlay.Surface" Color="#F411131D" />
+            <SolidColorBrush x:Key="Overlay.Border" Color="#363C50" />
             <SolidColorBrush x:Key="Overlay.Text" Color="#F5F6FA" />
-            <SolidColorBrush x:Key="Overlay.TextMuted" Color="#8C90A8" />
+            <SolidColorBrush x:Key="Overlay.TextMuted" Color="#B5BDCF" />
 
             <SolidColorBrush x:Key="State.Listening" Color="{StaticResource Brand.CoralColor}" />
             <SolidColorBrush x:Key="State.Transcribing" Color="{StaticResource Brand.VioletColor}" />
-            <SolidColorBrush x:Key="State.Injecting" Color="#34D399" />
-            <SolidColorBrush x:Key="State.Error" Color="#FBBF24" />
+            <SolidColorBrush x:Key="State.Injecting" Color="#69D9B0" />
+            <SolidColorBrush x:Key="State.Error" Color="#FFD078" />
 
             <FontFamily x:Key="Brand.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
             <FontFamily x:Key="Brand.DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
 
-            <!-- The mark: speech bubble + three sound bars on a 24-unit grid. -->
+            <!-- The mark: a speech bubble holding three voice bars and an I-beam text cursor —
+                 speech going in on the left, text coming out on the right, and no microphone. Drawn on
+                 the brand package's 64-unit grid, scaled to the 24-unit one the app uses. -->
             <PathGeometry x:Key="Brand.BubbleGeometry"
-                          Figures="M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z" />
+                          Figures="M7.13,2.63 H16.88 Q21.38,2.63 21.38,7.13 V14.63 Q21.38,19.13 16.88,19.13 H10.13 L4.88,22.5 V18.38 Q2.63,17.25 2.63,14.63 V7.13 Q2.63,2.63 7.13,2.63 Z" />
+
+            <!-- Voice on the left, text on the right. Kept as one geometry so the whole inside of the
+                 bubble is a single cut-out and the mark still reads when it is filled flat. -->
             <GeometryGroup x:Key="Brand.BarsGeometry">
-                <RectangleGeometry Rect="8,8,2,4" RadiusX="1" RadiusY="1" />
-                <RectangleGeometry Rect="11,6,2,8" RadiusX="1" RadiusY="1" />
-                <RectangleGeometry Rect="14,7,2,6" RadiusX="1" RadiusY="1" />
+                <RectangleGeometry Rect="6.75,8.63,1.5,4.88" RadiusX="0.75" RadiusY="0.75" />
+                <RectangleGeometry Rect="9.38,7.13,1.5,7.88" RadiusX="0.75" RadiusY="0.75" />
+                <RectangleGeometry Rect="12,8.63,1.5,4.88" RadiusX="0.75" RadiusY="0.75" />
+                <!-- The I-beam: two serifs and a stem, the shape of a text cursor. -->
+                <RectangleGeometry Rect="15,7.13,4.5,1.13" RadiusX="0.56" RadiusY="0.56" />
+                <RectangleGeometry Rect="16.69,7.13,1.13,8.25" RadiusX="0.56" RadiusY="0.56" />
+                <RectangleGeometry Rect="15,14.25,4.5,1.13" RadiusX="0.56" RadiusY="0.56" />
             </GeometryGroup>
 
             <tb:TaskbarIcon x:Key="TrayIcon"
-                            ToolTipText="Talk2Me — hold Right Ctrl to dictate"
+                            ToolTipText="TawkType — hold Right Ctrl to dictate"
                             IconSource="pack://application:,,,/Assets/talk2me.ico"
                             NoLeftClickDelay="True"
                             LeftClickCommand="{x:Null}">
@@ -72,7 +82,7 @@
                         <MenuItem Header="Open data folder" Click="OnOpenDataFolderClick" />
                         <MenuItem Header="Delete all downloaded models…" Click="OnDeleteModelsClick" />
                         <Separator />
-                        <MenuItem Header="Quit Talk2Me" Click="OnQuitClick" />
+                        <MenuItem Header="Quit TawkType" Click="OnQuitClick" />
                     </ContextMenu>
                 </tb:TaskbarIcon.ContextMenu>
             </tb:TaskbarIcon>

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
@@ -243,8 +243,8 @@ public sealed class ModelMaintenance
 
     private static MessageBoxResult Show(Window? owner, string text, MessageBoxImage image, MessageBoxButton buttons)
         => owner is null
-            ? MessageBox.Show(text, "Talk2Me", buttons, image)
-            : MessageBox.Show(owner, text, "Talk2Me", buttons, image);
+            ? MessageBox.Show(text, "TawkType", buttons, image)
+            : MessageBox.Show(owner, text, "TawkType", buttons, image);
 
     private static string Label(ModelEntry entry)
     {

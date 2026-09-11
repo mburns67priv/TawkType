@@ -30,7 +30,11 @@ public sealed class SettingsStore : ISettingsProvider
     }
 
     /// <summary>
-    /// %LOCALAPPDATA%\Jupitor Studio\Talk2Me — deliberately *not* %LOCALAPPDATA%\Talk2Me, which is where
+    /// %LOCALAPPDATA%\Jupitor Studio\Talk2Me — kept under the old name through the TawkType rename,
+    /// because it holds settings, an encrypted API key, the dictation history and gigabytes of
+    /// downloaded models. A folder rename buys nothing a user can see and risks all of it.
+    ///
+    /// Deliberately *not* %LOCALAPPDATA%\Talk2Me either, which is where
     /// the Velopack installer puts the application itself. Sharing that folder would mean uninstalling
     /// Talk2Me deleted the user's settings, history and gigabytes of downloaded models along with it.
     /// </summary>

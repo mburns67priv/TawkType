@@ -136,10 +136,14 @@ public sealed partial class OverlayViewModel : ObservableObject
                 break;
             case DictationState.Transcribing:
                 StopListening();
-                Show("Transcribing…", state);
+                // Says what is happening rather than naming the step. "Transcribing" is our word for
+                // it; "turning speech into text" is what the user asked for.
+                Show("Turning speech into text…", state);
                 break;
             case DictationState.Polishing:
-                Show("Polishing…", state);
+                // Named, because this is the one step that sends anything off the machine. A user
+                // watching the bar should be able to see that happen.
+                Show("Rewriting with Claude…", state);
                 break;
             case DictationState.Injecting:
                 Show("Typing…", state);

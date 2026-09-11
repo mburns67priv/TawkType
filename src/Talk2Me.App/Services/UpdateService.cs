@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Velopack;
 using Velopack.Sources;
 
@@ -74,10 +74,10 @@ public sealed class UpdateService
         UpdateState.Checking => "Checking for updates…",
         UpdateState.Downloading => "Downloading update…",
         UpdateState.ReadyToRestart => $"Version {PendingVersion} is ready — it installs when Talk2Me restarts.",
-        UpdateState.UpToDate => $"Talk2Me {CurrentVersion} is up to date.",
-        UpdateState.NotInstalled => $"Talk2Me {CurrentVersion}, running from a local build. Updates apply to installed copies.",
+        UpdateState.UpToDate => $"TawkType {CurrentVersion} is up to date.",
+        UpdateState.NotInstalled => $"TawkType {CurrentVersion}, running from a local build. Updates apply to installed copies.",
         UpdateState.Failed => "Could not check for updates. Talk2Me carries on working.",
-        _ => $"Talk2Me {CurrentVersion}",
+        _ => $"TawkType {CurrentVersion}",
     };
 
     /// <summary>Checks now, then every few hours for as long as the app runs.</summary>

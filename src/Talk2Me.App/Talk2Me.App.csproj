@@ -8,7 +8,14 @@
     <AssemblyName>Talk2Me</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\talk2me.ico</ApplicationIcon>
-    <Description>Talk2Me desktop app: tray icon, overlay, settings.</Description>
+
+    <!-- What Windows shows in the file properties, the installer and Task Manager. The assembly name
+         stays Talk2Me: it is the executable an installed copy already updates, and renaming it is a
+         packaging change rather than a branding one. See the rename notes in docs/HANDOFF.md. -->
+    <Product>TawkType</Product>
+    <AssemblyTitle>TawkType</AssemblyTitle>
+    <Company>Jupitor Studio</Company>
+    <Description>TawkType: local voice typing for Windows. Hold a key, speak, release.</Description>
   </PropertyGroup>
 
   <ItemGroup>

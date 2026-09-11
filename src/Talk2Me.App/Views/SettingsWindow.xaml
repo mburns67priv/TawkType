@@ -7,7 +7,7 @@
         xmlns:views="clr-namespace:Talk2Me.Desktop.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}"
-        Title="Talk2Me"
+        Title="TawkType"
         Icon="pack://application:,,,/Assets/talk2me.ico"
         Width="840" Height="620"
         MinWidth="720" MinHeight="480"
@@ -82,13 +82,13 @@
                     <TextBlock VerticalAlignment="Center"
                                FontFamily="{StaticResource Brand.DisplayFont}" FontSize="17" FontWeight="Bold"
                                Foreground="{DynamicResource Ui.Text}">
-                        <Run Text="Talk" /><Run Text="2" Foreground="{StaticResource Brand.Coral}" /><Run Text="Me" />
+                        <Run Text="Tawk" /><Run Text="Type" Foreground="{StaticResource Brand.AccentTint}" />
                     </TextBlock>
                 </StackPanel>
 
                 <TextBlock DockPanel.Dock="Bottom" Margin="18,10,14,14" FontSize="11"
                            Foreground="{DynamicResource Ui.TextMuted}"
-                           Text="{Binding Version, StringFormat='Talk2Me v{0}'}" />
+                           Text="{Binding Version, StringFormat='TawkType v{0}'}" />
 
                 <ListBox ItemsSource="{Binding Pages}"
                          SelectedItem="{Binding SelectedNavPage}"
@@ -256,9 +256,9 @@
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Startup" />
                         <CheckBox Style="{StaticResource Ui.CheckBox}"
                                   IsChecked="{Binding StartWithWindows}"
-                                  Content="Start Talk2Me when I sign in to Windows" />
+                                  Content="Start TawkType when I sign in to Windows" />
                         <TextBlock Style="{StaticResource Ui.Hint}"
-                                   Text="The hotkey only works while Talk2Me is running." />
+                                   Text="The hotkey only works while TawkType is running." />
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Updates" />
                         <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,10" Text="{Binding UpdateStatus}" />

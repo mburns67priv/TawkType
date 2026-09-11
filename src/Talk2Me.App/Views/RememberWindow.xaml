@@ -1,4 +1,4 @@
-<Window x:Class="Talk2Me.Desktop.Views.RememberWindow"
+﻿<Window x:Class="Talk2Me.Desktop.Views.RememberWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Remember this correction"
@@ -17,7 +17,7 @@
                    FontSize="16" Margin="0,0,0,4" />
         <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Ui.TextMuted}" FontSize="11.5"
                    Margin="0,0,0,14"
-                   Text="Talk2Me will make this change to every dictation from now on, whether or not the Claude pass is switched on." />
+                   Text="TawkType will make this change to every dictation from now on, whether or not the Claude pass is switched on." />
 
         <TextBlock Text="When you hear" Style="{StaticResource Ui.Label}" />
         <TextBox x:Name="HeardBox" Style="{StaticResource Ui.TextBox}" Margin="0,0,0,12" />

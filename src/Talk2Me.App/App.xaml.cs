@@ -96,7 +96,7 @@ public partial class App : Application
         Services.GetRequiredService<ThemeManager>().Apply();
 
         _logger = Services.GetRequiredService<ILogger<App>>();
-        _logger.LogInformation("Talk2Me {Version} starting", typeof(App).Assembly.GetName().Version);
+        _logger.LogInformation("TawkType {Version} starting", typeof(App).Assembly.GetName().Version);
 
         DispatcherUnhandledException += (_, args) =>
         {
@@ -146,7 +146,7 @@ public partial class App : Application
 
             if (completed.Delivery == DictationDelivery.CopiedToClipboard)
             {
-                Dispatcher.BeginInvoke(() => overlayVm.ShowNotice("Copied instead", completed.Reason));
+                Dispatcher.BeginInvoke(() => overlayVm.ShowNotice("Copied — ready to paste", completed.Reason));
             }
             else if (completed.Delivery == DictationDelivery.Failed)
             {

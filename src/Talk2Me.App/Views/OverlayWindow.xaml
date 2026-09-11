@@ -7,7 +7,7 @@
         xmlns:views="clr-namespace:Talk2Me.Desktop.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:OverlayViewModel}"
-        Title="Talk2Me status"
+        Title="TawkType status"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"

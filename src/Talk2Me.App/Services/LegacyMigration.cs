@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using Talk2Me.Core.Settings;
 
 namespace Talk2Me.Desktop.Services;
@@ -45,7 +45,7 @@ internal static class LegacyMigration
         try
         {
             Directory.CreateDirectory(current);
-            File.WriteAllText(marker, "Talk2Me moved its data here. Delete this file to migrate again.");
+            File.WriteAllText(marker, "TawkType moved its data here. Delete this file to migrate again.");
         }
         catch (Exception)
         {
