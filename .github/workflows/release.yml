@@ -59,7 +59,7 @@ jobs:
           $current = 'v${{ steps.version.outputs.value }}'
 
           # Must match --packId in build/pack.ps1.
-          $packId = 'TawkType'
+          $packId = 'TawkTypeApp'
 
           # Skip our own tag. On a re-run the release already exists, and downloading it puts a package
           # of the version being built into the folder vpk checks — which fails with "there is a release
@@ -103,7 +103,7 @@ jobs:
         run: |
           $tag = 'v${{ steps.version.outputs.value }}'
           $notes = @"
-          Install TawkType by downloading **TawkType-win-Setup.exe** below and running it.
+          Install TawkType by downloading **TawkTypeApp-win-Setup.exe** below and running it.
 
           TawkType is not code-signed yet, so Windows SmartScreen will warn you the first time. Choose
           **More info** then **Run anyway**. Installed copies update themselves from this feed.

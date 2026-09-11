@@ -16,20 +16,10 @@ public sealed class DpapiApiKeyStore : IApiKeyStore
 {
     /// <summary>
     /// Additional entropy, bound into the ciphertext so a file copied from another install will not
-    /// decrypt as something else.
-    ///
-    /// Changing this value makes every existing apikey.dat undecryptable, which is why
-    /// <see cref="Legacy"/> exists and why a failed read falls back to it. Anything encrypted under
-    /// the old name is re-encrypted under this one the first time it is read, so the migration
-    /// happens once and nobody has to go and find their API key again.
+    /// decrypt as something else. Changing it makes every existing apikey.dat undecryptable and there
+    /// is no fallback that would rescue one, so do not change it without writing one first.
     /// </summary>
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("TawkType.ApiKey.v1");
-
-    /// <summary>
-    /// What the entropy was when the app was called TawkType. Read-only — never used to write.
-    /// Removing it strands the API key of anyone who has not yet launched a build that re-encrypts.
-    /// </summary>
-    private static readonly byte[] Legacy = Encoding.UTF8.GetBytes("Talk2Me.ApiKey.v1");
 
     private readonly ILogger<DpapiApiKeyStore> _logger;
     private readonly object _gate = new();
@@ -116,18 +106,9 @@ public sealed class DpapiApiKeyStore : IApiKeyStore
             return null;
         }
 
-        if (TryUnprotect(cipher, Entropy) is { } current)
+        if (TryUnprotect(cipher, Entropy) is { } key)
         {
-            return current;
-        }
-
-        // Written when the app was called TawkType. Re-encrypted here so this costs one write rather
-        // than a failed decrypt on every launch, and so the legacy entropy can eventually be dropped.
-        if (TryUnprotect(cipher, Legacy) is { } carried)
-        {
-            _logger.LogInformation("Re-encrypting the stored API key under the current name");
-            Write(carried);
-            return carried;
+            return key;
         }
 
         // Wrong user, a roamed profile, or a corrupt file. "No key" is recoverable — the user is

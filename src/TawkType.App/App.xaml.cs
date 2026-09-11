@@ -79,7 +79,6 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
-        LegacyMigration.Run();
 
         _host = Host.CreateDefaultBuilder()
             .ConfigureLogging(logging =>

@@ -5,7 +5,7 @@ TawkType is built on the work below. Licence details were taken from each packag
 ## Speech recognition models
 
 TawkType does **not** redistribute either model. Both are downloaded from Hugging Face on first use and
-stored in `%LOCALAPPDATA%\Jupitor Studio\TawkType\models`. Neither is modified.
+stored in `%LOCALAPPDATA%\TawkType\models`. Neither is modified.
 
 ### NVIDIA Parakeet TDT 0.6B v3
 

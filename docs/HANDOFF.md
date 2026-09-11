@@ -77,7 +77,7 @@ src/TawkType.App             WPF tray app (namespace TawkType.Desktop): App.xaml
                             DictationBoxWindow, RememberWindow, TaskbarWindow, HotkeyBox, BrandMark;
                             Themes/ has Light.xaml, Dark.xaml and the templated Controls.xaml;
                             Services/ has ModelMaintenance, ThemeManager, UpdateService, SoundCues,
-                            LegacyMigration; Logging/ has the file logger
+                            Logging/ has the file logger
 tools/TawkType.Bench         transcribes a WAV with one or both engines, prints latency side by side
 tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
@@ -108,10 +108,10 @@ Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust,
 
 `%LOCALAPPDATA%\TawkType\`
 
-> **The data folder has moved three times.** It is `%LOCALAPPDATA%\Jupitor Studio\TawkType` now.
-> `LegacyMigration` brings forward each of the places it used to be — `%LOCALAPPDATA%\Murmur`,
-> `%LOCALAPPDATA%\Talk2Me`, and `%LOCALAPPDATA%\Jupitor Studio\Talk2Me` — oldest first, so someone
-> who skipped several versions still gets everything in one step.
+> **Data lives in `%LOCALAPPDATA%\TawkType`**, and the application installs to
+> `%LOCALAPPDATA%\TawkTypeApp`. Those two must stay different: Velopack clears the install folder on
+> every update. There is no migration from the older locations any more — nothing was ever installed
+> from a release, so there was nothing to carry forward.
 
 - `settings.json` — all user settings; saved from the Settings window, hot-reloaded by every consumer.
 - `models\ggml-large-v3-turbo.bin` (1.5 GB) and `models\parakeet-tdt-0.6b-v3-int8\` (640 MB).
@@ -194,22 +194,22 @@ product. The design package is `docs/tawktype-brand/BRAND-PACKAGE.md`; the imple
 
 **It is now a complete rename.** The first pass changed only what a user reads and left six identifiers
 alone because changing them risked real data. The owner asked for all of them, so each one was changed
-*with a migration*, and every migration was exercised against a seeded old installation before being
-believed:
+*with a migration*, each exercised against a seeded old installation. Those migrations have since been
+removed — see below — because nothing was ever installed for them to find:
 
 | Identifier | Now | How an existing install survives |
 |---|---|---|
-| Data folder | `%LOCALAPPDATA%\Jupitor Studio\TawkType` | `LegacyMigration` moves the old folder wholesale on first run. **Verified**: settings, history and models all came across and the old folder was gone. |
-| DPAPI entropy | `TawkType.ApiKey.v1` | A failed decrypt retries with the old entropy and re-encrypts under the new one, once. **Verified**: a key written with the old value was readable and afterwards decrypted only with the new one. |
-| Run-key value | `TawkType` | The old name still counts as "enabled" when read, and is deleted whenever startup is written. **Verified**: the checkbox read On from a legacy value, and toggling left only the new name. |
+| Data folder | `%LOCALAPPDATA%\TawkType` | Nothing to carry: no release was ever installed. The migration code that did carry it has been removed. |
+| DPAPI entropy | `TawkType.ApiKey.v1` | No fallback. An `apikey.dat` written under the old name will not decrypt; the user is asked for the key again. |
+| Run-key value | `TawkType` | No fallback. An old `Talk2Me` entry, if one ever existed, would have to be removed by hand. |
 | Window AUMID | `JupitorStudio.TawkType` | It only has to be an identity no shortcut claims, which this is. Re-check gotcha 20 on a real install. |
-| Velopack packId | `TawkType` | **Does not migrate.** See below. |
+| Velopack packId | `TawkTypeApp` | **Does not migrate.** See below. The `App` suffix is what keeps it clear of the data folder. |
 | Assembly, namespaces, projects, solution | `TawkType.*` | Internal; nothing outside the repo refers to them. |
 
-The data folder is still *inside* `Jupitor Studio\` rather than `%LOCALAPPDATA%\TawkType`, because the
-installer clears `%LOCALAPPDATA%\<packId>` before extracting and packId is now `TawkType`. That
-separation is the whole of gotcha 19 and it still matters — `DataFolderTests` asserts it so a future
-rename cannot quietly undo it.
+The data folder sits flat under `%LOCALAPPDATA%` and the packId carries an `App` suffix, so the two
+paths differ by that suffix alone. That is the whole of gotcha 19 and `DataFolderTests` reads the id
+straight out of `build/pack.ps1` to assert it — shortening the packId to `TawkType` fails the build,
+which was confirmed by trying it.
 
 ### The packId is the one thing that would not have carried across
 
@@ -221,26 +221,17 @@ as artefacts and nobody ran their installer, so there was no copy to strand and 
 right. That is the whole reason this was the moment to do it: the cost of renaming a package identity
 is zero before the first install and never zero again.
 
-The migrations still exist and still work, and they are still worth having — a data folder can also be
-created by running from source, and the models in it are tedious to fetch again. They are just not
-load-bearing for anybody today.
+**The migration code has been removed**, along with the API-key and startup fallbacks that went with
+it. It existed to carry data forward from three older folder names, and there is nothing anywhere to
+carry: no release has been installed, and the owner has been uninstalling between tests. Anything
+still sitting under an old name is a spent developer folder that can be deleted by hand.
 
-### What is still called Talk2Me, and must be
+### Nothing is called Talk2Me any more
 
-Three values, all read-only and all with a comment saying why:
-
-- `LegacyMigration`'s source paths — the folders being migrated *from*.
-- `DpapiApiKeyStore.Legacy` — the entropy old keys were encrypted with.
-- `WindowsStartup.LegacyValueName` — the Run value to recognise and delete.
-
-Delete any of them and the corresponding migration stops working for anyone who has not yet run a
-build that performed it.
-
-**They are kept deliberately, not by oversight.** Removing them was considered and deferred: nothing
-has ever been installed, but running from source creates the same data folder, so whether there is
-anything left under the old name is a question about a real machine rather than about this repository.
-The right moment is after v0.4.0 has been installed once and confirmed to have carried everything
-across — at which point all three are dead and can go in a single commit.
+The three read-only values that were — the folders `LegacyMigration` read, the entropy old API keys
+were encrypted with, and the old Run-key name — are gone with the migration code. There is no path
+from a Talk2Me-era folder, key or startup entry into this build, and none is wanted: nothing was ever
+installed from a release, so there is nothing out there to rescue.
 
 ## Gotchas the next person will hit
 
@@ -290,16 +281,15 @@ across — at which point all three are dead and can go in a single commit.
     including during dictation, and deliberately *not* persisted, so a restart brings it back. While
     minimised the only ways back are the tray icon (left click, or "Show" on the menu) and
     turning Appearance → "Keep the pill on screen" from off to on.
-19. **The packId must never name a folder that holds user data.** Velopack installs to
+19. **The packId must never name the folder that holds user data.** Velopack installs to
     `%LOCALAPPDATA%\<packId>` and *clears that folder first*. Early builds kept user data in
-    `%LOCALAPPDATA%\Talk2Me`, so packing with `Talk2Me` as the id destroyed settings, history and
-    gigabytes of downloaded models before the app could migrate them. It happened once during
-    development, which is why the id was `Talk2MeApp` for a long time.
+    `%LOCALAPPDATA%\Talk2Me` and packed with `Talk2Me` as the id, which destroyed settings, history
+    and gigabytes of downloaded models before the app could run. It happened once, during development.
 
-    The id is `TawkType` now, and that is safe only because data lives in
-    `%LOCALAPPDATA%\Jupitor Studio\TawkType` — inside a vendor folder, a different path from the
-    install directory. `DataFolderTests` asserts both halves so a future rename cannot quietly collide
-    them again.
+    Today the data folder is `%LOCALAPPDATA%\TawkType` and the id is `TawkTypeApp`. **They differ by
+    that suffix and nothing else**, which is a thin margin for something this destructive — so
+    `DataFolderTests` reads the id out of `build/pack.ps1` rather than restating it, and fails if the
+    two ever name the same folder. Shortening the id to `TawkType` was tried, and does fail the build.
 
 20. **Velopack's init takes over the taskbar button's icon.** `VelopackApp.Build().Run()` sets a
     process-wide AppUserModelID, and from then on Windows resolves the button's icon through that

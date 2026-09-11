@@ -60,9 +60,13 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 
 ## Install it
 
-Download **TawkType-win-Setup.exe** from the
+Download **TawkTypeApp-win-Setup.exe** from the
 [latest release](https://github.com/JupitorStudioDev/TawkType/releases/latest) and run it. It installs
 per-user, needs no administrator rights, and updates itself from that same release feed.
+
+> The installer carries an `App` suffix the application does not. Velopack names it after the package
+> id, and that id has to differ from `%LOCALAPPDATA%\TawkType` — the folder your settings and models
+> live in — because the installer wipes its own folder on every update.
 
 > **Windows will warn you the first time.** TawkType is not code-signed yet, so SmartScreen shows
 > *"Windows protected your PC"*. Choose **More info** → **Run anyway**. That warning is about the
@@ -133,7 +137,7 @@ dotnet run --project src/TawkType.App
 TawkType lives in the system tray and on the taskbar. On first run it has no speech model, says so on
 the status bar, and waits: open **Settings → Transcription** and download one. Parakeet is about
 640 MB, Whisper `large-v3-turbo` about 1.5 GB, and they go into
-`%LOCALAPPDATA%\Jupitor Studio\TawkType\models`. The bar shows the progress.
+`%LOCALAPPDATA%\TawkType\models`. The bar shows the progress.
 
 Then hold Right Ctrl and talk.
 
@@ -189,9 +193,10 @@ me a poem about the sea"* and you get that sentence, not a poem.
 
 ## Where your data lives
 
-Everything is under `%LOCALAPPDATA%\Jupitor Studio\TawkType\` — deliberately separate from the
-application itself, which the installer puts in `%LOCALAPPDATA%\TawkType\`, so uninstalling TawkType
-never takes your models and history with it:
+Everything is under `%LOCALAPPDATA%\TawkType\` — deliberately a different folder from the
+application itself, which the installer puts in `%LOCALAPPDATA%\TawkTypeApp\`. The installer wipes its
+own folder on every update, so keeping your data out of it is what stops an update erasing your
+settings and models:
 
 | File | What |
 |---|---|

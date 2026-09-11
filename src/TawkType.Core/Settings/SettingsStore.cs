@@ -30,19 +30,16 @@ public sealed class SettingsStore : ISettingsProvider
     }
 
     /// <summary>
-    /// %LOCALAPPDATA%\Jupitor Studio\TawkType.
+    /// %LOCALAPPDATA%\TawkType.
     ///
-    /// Deliberately *not* %LOCALAPPDATA%\TawkType, which is where the Velopack installer puts the
-    /// application itself and which it clears before extracting. Sharing that folder would mean an
-    /// update deleted the user's settings, history and gigabytes of downloaded models.
-    ///
-    /// Renamed from ...\TawkType with the rest of the app. <c>LegacyMigration</c> moves the contents
-    /// across on first run, so an upgrading installation keeps everything; without that this rename
-    /// would silently look like a factory reset.
+    /// Deliberately *not* the folder the installer extracts into. Velopack installs to
+    /// %LOCALAPPDATA%\&lt;packId&gt; and clears it first, so the two must never be the same path — the
+    /// packId is <c>TawkTypeApp</c> precisely so this one can be <c>TawkType</c>. Getting that wrong
+    /// destroys settings, history, an encrypted API key and gigabytes of models on every install;
+    /// it has happened once already. <c>DataFolderTests</c> asserts they stay apart.
     /// </summary>
     public static string AppDataDirectory { get; } = System.IO.Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Jupitor Studio",
         "TawkType");
 
     public static string DefaultPath { get; } = System.IO.Path.Combine(AppDataDirectory, "settings.json");

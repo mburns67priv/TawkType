@@ -105,7 +105,7 @@ states that it is never an instruction, and the length check catches a model tha
 `ClaudeLlmClient` lives in `TawkType.Llm`. A local-model client implements the same interface.
 
 The API key never enters `settings.json`, which is plain text. `IApiKeyStore` keeps it in
-`%LOCALAPPDATA%\Jupitor Studio\TawkType\apikey.dat`, encrypted by `DpapiApiKeyStore` with DPAPI under the current user
+`%LOCALAPPDATA%\TawkType\apikey.dat`, encrypted by `DpapiApiKeyStore` with DPAPI under the current user
 (`ANTHROPIC_API_KEY` is the fallback). That protects the file at rest against other accounts on the
 machine — not against anything running as this user.
 
@@ -430,7 +430,7 @@ restores the old hide-when-idle behaviour.
 ## History
 
 `DictationHistoryStore` (Core) appends one JSON object per dictation to
-`%LOCALAPPDATA%\Jupitor Studio\TawkType\history.jsonl`. Append-only is the point: a dictation must never be lost or
+`%LOCALAPPDATA%\TawkType\history.jsonl`. Append-only is the point: a dictation must never be lost or
 delayed by the log, so the common path is one `File.AppendAllText`, and any failure there is logged and
 swallowed — the text has already been typed by then.
 
@@ -497,8 +497,7 @@ trade for recoverability, and `History.Enabled` turns it off.
 
 ## Settings
 
-`%LOCALAPPDATA%\Jupitor Studio\TawkType\settings.json` — under the old name on purpose; see the rename
-notes in `docs/HANDOFF.md`. Loaded once at startup by `SettingsStore` and re-read by consumers through
+`%LOCALAPPDATA%\TawkType\settings.json`. Loaded once at startup by `SettingsStore` and re-read by consumers through
 `ISettingsProvider.Current`, so a save takes effect without a restart: the hotkey re-resolves on
 `Changed`, the transcriber reloads when model or language differ from what is loaded, and the audio
 device is resolved at each `Start()`.

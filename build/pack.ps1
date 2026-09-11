@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Produces build/releases/, which contains everything a GitHub Release needs:
-      TawkType-win-Setup.exe  the installer people download
+      TawkTypeApp-win-Setup.exe  the installer people download - named from packId, not the app
       *-full.nupkg            the payload the installer and the updater read
       *-delta.nupkg           the small diff, when a previous release is present
       RELEASES-win            the feed the app checks for updates
@@ -68,17 +68,14 @@ if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
 
 New-Item -ItemType Directory -Force -Path $releases | Out-Null
 
-# packId is the install folder name: %LOCALAPPDATA%\<packId>, and the installer CLEARS that folder
-# before extracting. It must never collide with where user data lives, which is why it was not
-# "Talk2Me" back when data lived in %LOCALAPPDATA%\Talk2Me.
+# packId names the install folder: %LOCALAPPDATA%\<packId>, and the installer CLEARS it before
+# extracting. It must therefore never be the folder holding user data, which is %LOCALAPPDATA%\TawkType.
 #
-# "TawkType" is safe for the same reason the old id was: data is under
-# %LOCALAPPDATA%\Jupitor Studio\TawkType, a different path, so clearing the install folder cannot touch
-# it. Renaming the id would strand anything installed as Talk2MeApp - a different id is a different
-# application to Velopack, polling a different channel - but nothing was ever installed from any
-# release, so there was nothing to strand. See docs/HANDOFF.md.
+# So the id carries the App suffix and the data folder does not. Packing with "TawkType" as the id
+# would delete settings, history, the encrypted API key and gigabytes of downloaded models on every
+# install, before the app ever ran. That is not hypothetical - it happened once, under the old name.
 vpk pack `
-    --packId TawkType `
+    --packId TawkTypeApp `
     --packVersion $Version `
     --packDir $publish `
     --mainExe TawkType.exe `
