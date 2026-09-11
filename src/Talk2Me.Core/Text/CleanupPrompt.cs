@@ -14,7 +14,7 @@ public static class CleanupPrompt
 
     public const string CloseTag = "</transcript>";
 
-    public static string BuildSystemPrompt(CleanupSettings settings)
+    public static string BuildSystemPrompt(CleanupSettings settings, string[]? spellings = null)
     {
         var prompt = new StringBuilder();
 
@@ -51,9 +51,11 @@ public static class CleanupPrompt
         prompt.AppendLine();
         prompt.AppendLine("Style: " + StyleInstruction(settings.Style));
 
-        if (settings.Vocabulary is { Length: > 0 })
+        var vocabulary = spellings is { Length: > 0 } ? spellings : settings.Vocabulary;
+
+        if (vocabulary is { Length: > 0 })
         {
-            var terms = settings.Vocabulary
+            var terms = vocabulary
                 .Where(term => !string.IsNullOrWhiteSpace(term))
                 .Select(term => term.Trim())
                 .ToArray();

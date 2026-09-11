@@ -15,6 +15,7 @@ public sealed record NavPage(SettingsPage Page, string Title, string Blurb, Geom
         new(SettingsPage.Transcription, "Transcription", "Engine, language and models", Icons.Microphone),
         new(SettingsPage.Activation, "Activation", "Hotkey and how text is inserted", Icons.Keyboard),
         new(SettingsPage.Appearance, "Appearance", "Theme and the status pill", Icons.Palette),
+        new(SettingsPage.Vocabulary, "Vocabulary", "Spellings, replacements and snippets", Icons.Clipboard),
         new(SettingsPage.Cleanup, "AI cleanup", "Rewrite dictations with Claude", Icons.Sparkle),
         new(SettingsPage.History, "History", "Review previous dictations", Icons.Clock),
     ];

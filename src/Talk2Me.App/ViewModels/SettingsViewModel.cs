@@ -24,6 +24,7 @@ public enum SettingsPage
     Transcription,
     Activation,
     Appearance,
+    Vocabulary,
     Cleanup,
     History,
 }
@@ -35,6 +36,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly IApiKeyStore _apiKeys;
     private readonly IDictationHistory _history;
     private readonly UpdateService _updates;
+
+    /// <summary>Commas or line breaks, so a list can be pasted in either shape.</summary>
+    private static readonly char[] Separators = [',', (char)10, (char)13];
 
     /// <summary>Set by the password box as the user types. Null means "leave the stored key alone".</summary>
     private string? _pendingApiKey;
@@ -76,6 +80,14 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _cleanupTimeoutText;
+
+    /// <summary>One "heard => typed" per line.</summary>
+    [ObservableProperty]
+    private string _replacementsText;
+
+    /// <summary>One "trigger => text" per line; a literal backslash-n makes a line break in the text.</summary>
+    [ObservableProperty]
+    private string _snippetsText;
 
     [ObservableProperty]
     private string _vocabularyText;
@@ -126,7 +138,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _selectedInputDevice = _draft.InputDeviceName ?? InputDevices[0];
         _modelStorageText = models.Describe();
         _cleanupTimeoutText = _draft.Cleanup.TimeoutMs.ToString();
-        _vocabularyText = string.Join(", ", _draft.Cleanup.Vocabulary);
+        _vocabularyText = string.Join(Environment.NewLine, _draft.Vocabulary.Spellings);
+        _replacementsText = VocabularyFormat.Format(_draft.Vocabulary.Replacements);
+        _snippetsText = VocabularyFormat.Format(_draft.Vocabulary.Snippets);
         _historyMaxEntriesText = _draft.History.MaxEntries.ToString();
         _apiKeyStatus = DescribeApiKey();
 
@@ -292,9 +306,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             ? new CleanupSettings().Model
             : Draft.Cleanup.Model.Trim();
 
-        Draft.Cleanup.Vocabulary = VocabularyText
-            .Split([',', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToArray();
+        ApplyVocabularyEdits();
 
         if (_pendingApiKey is not null)
         {
@@ -419,6 +431,73 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     /// <summary>Raised after a download attempt so the app can re-check and warm up.</summary>
     public event EventHandler? ModelDownloaded;
 
+    /// <summary>
+    /// The whole vocabulary as one JSON file. Worth having: these lists are the part of Talk2Me that is
+    /// genuinely the user's own work, and they should be able to keep a copy, move it to another
+    /// machine, or share it with someone without retyping it.
+    /// </summary>
+    [RelayCommand]
+    private void ExportVocabulary()
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = "talk2me-vocabulary.json",
+            Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            ApplyVocabularyEdits();
+            File.WriteAllText(dialog.FileName, VocabularyFile.Write(Draft.Vocabulary));
+            Flash("Vocabulary exported.");
+        }
+        catch (Exception ex)
+        {
+            Flash("Could not export: " + ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void ImportVocabulary()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var imported = VocabularyFile.Read(File.ReadAllText(dialog.FileName));
+            if (imported is null)
+            {
+                Flash("That file is not a Talk2Me vocabulary.");
+                return;
+            }
+
+            // Into the boxes rather than straight into settings: the user still has to press Save, and
+            // can see what arrived before they do.
+            Draft.Vocabulary = imported;
+            VocabularyText = string.Join(Environment.NewLine, imported.Spellings);
+            ReplacementsText = VocabularyFormat.Format(imported.Replacements);
+            SnippetsText = VocabularyFormat.Format(imported.Snippets);
+            Flash("Vocabulary imported. Save to keep it.");
+        }
+        catch (Exception ex)
+        {
+            Flash("Could not import: " + ex.Message);
+        }
+    }
+
     [RelayCommand]
     private async Task DeleteSelectedModelsAsync(Window? owner)
     {
@@ -531,6 +610,19 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             ? $"Your settings use {_models.ActiveModelLabel}, and it is downloaded."
             : $"Your settings use {_models.ActiveModelLabel}, which is not downloaded. "
               + "Dictation does nothing until one is.";
+    }
+
+    /// <summary>Turns the three text boxes into the draft's lists. Shared by Save and by Export.</summary>
+    private void ApplyVocabularyEdits()
+    {
+        Draft.Vocabulary.Spellings = VocabularyText
+            .Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToArray();
+        Draft.Vocabulary.Replacements = VocabularyFormat.ParseReplacements(ReplacementsText);
+        Draft.Vocabulary.Snippets = VocabularyFormat.ParseSnippets(SnippetsText);
+
+        // The prompt keeps its own copy, so an older build still sees the words.
+        Draft.Cleanup.Vocabulary = Draft.Vocabulary.Spellings;
     }
 
     private string DescribeApiKey()

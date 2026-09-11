@@ -117,7 +117,9 @@ public partial class App : Application
         _overlay = new OverlayWindow(overlayVm, Services.GetRequiredService<ISettingsProvider>());
 
         _engine = Services.GetRequiredService<DictationEngine>();
+        var sounds = Services.GetRequiredService<SoundCues>();
         _engine.StateChanged += (_, state) => Dispatcher.BeginInvoke(() => overlayVm.ApplyState(state));
+        _engine.StateChanged += (_, state) => sounds.ForState(state);
         _engine.AudioLevelChanged += (_, level) => Dispatcher.BeginInvoke(() => overlayVm.PushLevel(level));
         _engine.Failed += (_, ex) => Dispatcher.BeginInvoke(() => overlayVm.ShowError(FriendlyMessage(ex)));
         // The buffer is set from the words themselves, before delivery; the history from the outcome.
@@ -239,6 +241,7 @@ public partial class App : Application
         services.AddSingleton<ITextInjector, AutoTextInjector>();
 
         services.AddSingleton<ThemeManager>();
+        services.AddSingleton<SoundCues>();
         services.AddSingleton<UpdateService>();
         services.AddSingleton<DictationHistoryStore>();
         services.AddSingleton<IDictationHistory>(sp => sp.GetRequiredService<DictationHistoryStore>());

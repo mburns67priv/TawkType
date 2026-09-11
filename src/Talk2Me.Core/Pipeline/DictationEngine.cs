@@ -34,6 +34,9 @@ public sealed class DictationEngine : IDisposable
     /// <summary>Long enough for a rewrite and an injection to finish; short enough to close the app.</summary>
     private static readonly TimeSpan ShutdownGrace = TimeSpan.FromSeconds(3);
 
+    /// <summary>Stops the recording running away when a key is stuck, a book is on it, or a toggle is left on.</summary>
+    private Timer? _recordingLimit;
+
     private DictationState _state = DictationState.Idle;
     private long _pressedAtTicks;
     private bool _started;
@@ -132,6 +135,7 @@ public sealed class DictationEngine : IDisposable
         _audio.LevelChanged -= OnLevelChanged;
 
         CancelDictation();
+        StopRecordingLimit();
 
         Task? work;
         lock (_gate)
@@ -167,6 +171,7 @@ public sealed class DictationEngine : IDisposable
 
         _logger.LogInformation("Dictation {Id} cancelled", session.Id);
         session.Cancel();
+        StopRecordingLimit();
         StopCapture();
         SetState(DictationState.Idle);
 
@@ -213,6 +218,7 @@ public sealed class DictationEngine : IDisposable
             // From here until the session is discarded, Escape belongs to us rather than to whatever
             // the user is typing into.
             _hotkey.DictationInProgress = true;
+            StartRecordingLimit();
             started = SetStateLocked(DictationState.Listening);
         }
 
@@ -262,6 +268,7 @@ public sealed class DictationEngine : IDisposable
             // than the minimum hold, which turned an accidental tap into an accepted recording.
             heldFor = Stopwatch.GetElapsedTime(_pressedAtTicks);
             transcribing = SetStateLocked(DictationState.Transcribing);
+            StopRecordingLimit();
         }
 
         Announce(transcribing);
@@ -441,6 +448,37 @@ public sealed class DictationEngine : IDisposable
         }
 
         return await probe.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Finishes the recording on its own after the configured time. Deliberately a finish rather than a
+    /// cancel: whatever was said up to that point is worth more than the silence after it.
+    /// </summary>
+    private void StartRecordingLimit()
+    {
+        StopRecordingLimit();
+
+        var seconds = _settings.Current.MaxRecordingSeconds;
+        if (seconds <= 0)
+        {
+            return;
+        }
+
+        _recordingLimit = new Timer(
+            _ =>
+            {
+                _logger.LogInformation("Recording reached the {Seconds}s limit; finishing it", seconds);
+                OnReleased(this, EventArgs.Empty);
+            },
+            null,
+            TimeSpan.FromSeconds(seconds),
+            Timeout.InfiniteTimeSpan);
+    }
+
+    private void StopRecordingLimit()
+    {
+        var timer = Interlocked.Exchange(ref _recordingLimit, null);
+        timer?.Dispose();
     }
 
     private void StopCapture()

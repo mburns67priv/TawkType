@@ -457,6 +457,45 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <!-- ============ Vocabulary ============ -->
+                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Vocabulary}">
+                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="Vocabulary" />
+                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                                   Text="Words Talk2Me should get right, and text it can type for you. All of this works on this machine, with or without the Claude pass." />
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Spellings" />
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="86"
+                                     Text="{Binding VocabularyText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="Names, products and acronyms, one per line, written the way you want them typed — Talk2Me, Jupitor Studio, GitHub. However they are heard, they come out like this." />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Replacements" />
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="86"
+                                     Text="{Binding ReplacementsText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="One per line, as heard =&gt; typed. For the mishearings a spelling cannot fix: talk to me =&gt; Talk2Me" />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Snippets" />
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="86"
+                                     Text="{Binding SnippetsText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="Saved text you insert by saying insert and the trigger: my signature =&gt; Michael Burns. Say &quot;insert my signature&quot;. Use 
+ for a line break. Snippets are typed exactly as written and are never sent for rewriting." />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Button Content="Import…" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                                    Command="{Binding ImportVocabularyCommand}" />
+                            <Button Content="Export…" Style="{StaticResource Ui.Button}"
+                                    Command="{Binding ExportVocabularyCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+
                     <!-- ============ AI cleanup ============ -->
                     <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Cleanup}">
                         <TextBlock Style="{StaticResource Ui.PageTitle}" Text="AI cleanup" />

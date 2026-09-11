@@ -61,6 +61,22 @@ public sealed class Talk2MeSettings
     /// <summary>The optional LLM rewrite pass that runs after <see cref="RemoveFillerWords"/>.</summary>
     public CleanupSettings Cleanup { get; set; } = new();
 
+    /// <summary>Local spellings, replacements and snippets. Applied with or without the Claude pass.</summary>
+    public VocabularySettings Vocabulary { get; set; } = new();
+
+    /// <summary>
+    /// A short sound when a dictation starts, finishes, and when one fails. Off by default: a sound on
+    /// every dictation is a lot of sound, and it is only worth it for people who cannot watch the bar.
+    /// </summary>
+    public bool PlaySounds { get; set; }
+
+    /// <summary>
+    /// Finish a dictation automatically after this many seconds, so a key held by a book or a toggle
+    /// left on does not record all afternoon. What was said up to that point is still delivered.
+    /// Zero means no limit.
+    /// </summary>
+    public int MaxRecordingSeconds { get; set; } = 300;
+
     /// <summary>The dictation log and its always-on-screen window.</summary>
     public HistorySettings History { get; set; } = new();
 
@@ -75,6 +91,7 @@ public sealed class Talk2MeSettings
         var copy = (Talk2MeSettings)MemberwiseClone();
         // MemberwiseClone is shallow; the draft must not share the nested sections.
         copy.Cleanup = Cleanup.Clone();
+        copy.Vocabulary = Vocabulary.Clone();
         copy.History = History.Clone();
         copy.Overlay = Overlay.Clone();
         copy.Appearance = Appearance.Clone();

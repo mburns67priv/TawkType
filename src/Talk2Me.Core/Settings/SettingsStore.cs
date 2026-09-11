@@ -64,7 +64,7 @@ public sealed class SettingsStore : ISettingsProvider
                 var loaded = JsonSerializer.Deserialize<Talk2MeSettings>(File.ReadAllText(Path), JsonOptions);
                 if (loaded is not null)
                 {
-                    return loaded;
+                    return Migrate(loaded);
                 }
             }
         }
@@ -74,5 +74,23 @@ public sealed class SettingsStore : ISettingsProvider
         }
 
         return new Talk2MeSettings();
+    }
+
+    /// <summary>
+    /// Brings older files forward. The vocabulary used to live under AI cleanup, because that was the
+    /// only thing that read it; it applies locally now, so it belongs to the app rather than to the
+    /// model. The old list is left in place, so downgrading does not lose it.
+    /// </summary>
+    private static Talk2MeSettings Migrate(Talk2MeSettings loaded)
+    {
+        loaded.Vocabulary ??= new VocabularySettings();
+        loaded.Cleanup ??= new CleanupSettings();
+
+        if (loaded.Vocabulary.Spellings.Length == 0 && loaded.Cleanup.Vocabulary.Length > 0)
+        {
+            loaded.Vocabulary.Spellings = (string[])loaded.Cleanup.Vocabulary.Clone();
+        }
+
+        return loaded;
     }
 }

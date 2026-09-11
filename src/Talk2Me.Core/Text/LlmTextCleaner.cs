@@ -6,10 +6,13 @@ using Talk2Me.Core.Settings;
 namespace Talk2Me.Core.Text;
 
 /// <summary>
-/// The default cleaner. Always produces the regex-cleaned text, then — when the LLM pass is enabled and
-/// configured — tries to replace it with a rewrite. Anything that goes wrong (no key, timeout, network,
-/// rate limit, a reply that fails the sanity checks) falls back to the regex text, so dictation keeps
-/// working when the network does not.
+/// The default cleaner: regex cleanup, then the local phrase book, then — when the LLM pass is enabled
+/// and configured — a rewrite. Anything that goes wrong (no key, timeout, network, rate limit, a reply
+/// that fails the sanity checks) falls back to the local text, so dictation keeps working when the
+/// network does not.
+///
+/// A dictation that expanded a snippet is never sent for rewriting. Snippets are exact by definition —
+/// a signature, a URL, a template — and a model asked to tidy them up would do exactly that.
 /// </summary>
 public sealed class LlmTextCleaner : ITextCleaner
 {
@@ -39,7 +42,16 @@ public sealed class LlmTextCleaner : ITextCleaner
     public async ValueTask<string> CleanAsync(string rawTranscript, CancellationToken cancellationToken = default)
     {
         var settings = _settings.Current;
-        var basic = BasicTextCleaner.Clean(rawTranscript, settings.RemoveFillerWords);
+        var cleaned = BasicTextCleaner.Clean(rawTranscript, settings.RemoveFillerWords);
+
+        var local = PhraseBook.Apply(cleaned, settings.Vocabulary);
+        var basic = local.Text;
+
+        if (local.ExpandedSnippet)
+        {
+            _logger.LogDebug("A snippet was inserted; typing it as written");
+            return basic;
+        }
 
         if (!settings.Cleanup.UseLlm || string.IsNullOrWhiteSpace(rawTranscript))
         {
@@ -52,13 +64,21 @@ public sealed class LlmTextCleaner : ITextCleaner
             return basic;
         }
 
-        var rewritten = await TryRewriteAsync(rawTranscript, settings.Cleanup, cancellationToken).ConfigureAwait(false);
-        return rewritten ?? basic;
+        var rewritten = await TryRewriteAsync(rawTranscript, settings, cancellationToken).ConfigureAwait(false);
+        if (rewritten is null)
+        {
+            return basic;
+        }
+
+        // Applied again on the way out: the model works from the raw transcript, so without this a
+        // rewrite would quietly undo every correction the user has written down.
+        return PhraseBook.Apply(rewritten, settings.Vocabulary).Text;
     }
 
     /// <summary>Returns the rewritten text, or null when the caller should fall back to the regex text.</summary>
-    private async Task<string?> TryRewriteAsync(string raw, CleanupSettings cleanup, CancellationToken cancellationToken)
+    private async Task<string?> TryRewriteAsync(string raw, Talk2MeSettings settings, CancellationToken cancellationToken)
     {
+        var cleanup = settings.Cleanup;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromMilliseconds(Math.Max(250, cleanup.TimeoutMs)));
 
@@ -67,7 +87,7 @@ public sealed class LlmTextCleaner : ITextCleaner
         try
         {
             var request = new LlmRequest(
-                CleanupPrompt.BuildSystemPrompt(cleanup),
+                CleanupPrompt.BuildSystemPrompt(cleanup, settings.Vocabulary.Spellings),
                 CleanupPrompt.BuildUserMessage(raw),
                 cleanup.Model,
                 MaxOutputTokens);
