@@ -138,11 +138,13 @@ public static class VirtualKey
         [0x2D] = "Insert",
         [0x2E] = "Delete",
         [0x5D] = "Menu",
-        [0x6A] = "Numpad *",
-        [0x6B] = "Numpad +",
-        [0x6D] = "Numpad -",
-        [0x6E] = "Numpad .",
-        [0x6F] = "Numpad /",
+        // Spelled out, not punctuation: "+" separates the keys in a combination, so a key whose own
+        // name contains one cannot survive a round trip through settings. See NoNameContainsSeparator.
+        [0x6A] = "Numpad Multiply",
+        [0x6B] = "Numpad Plus",
+        [0x6D] = "Numpad Minus",
+        [0x6E] = "Numpad Dot",
+        [0x6F] = "Numpad Divide",
         [0x90] = "Num Lock",
         [0x91] = "Scroll Lock",
         [0xBA] = ";",
@@ -188,7 +190,14 @@ public static class VirtualKey
         ["NumpadSubtract"] = 0x6D,
         ["NumpadMultiply"] = 0x6A,
         ["NumpadDivide"] = 0x6F,
+        ["Numpad ."] = 0x6E,
+        ["Numpad -"] = 0x6D,
+        ["Numpad *"] = 0x6A,
+        ["Numpad /"] = 0x6F,
     };
+
+    /// <summary>Every key this can name, for the round-trip invariant the tests check.</summary>
+    public static IReadOnlyCollection<int> AllNamed => Names.Keys;
 
     /// <summary>The name shown to the user, e.g. "Right Ctrl", "F9", "A".</summary>
     public static string Describe(int virtualKey)

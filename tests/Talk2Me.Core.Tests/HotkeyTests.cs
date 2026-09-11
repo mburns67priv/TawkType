@@ -80,4 +80,52 @@ public class HotkeyTests
         Assert.False(Hotkey.TryParse(text, out _));
         Assert.Equal(Hotkey.Default, Hotkey.ParseOrDefault(text));
     }
+
+    /// <summary>Every key this can name, plus the ranges Describe handles without a table entry.</summary>
+    public static IEnumerable<int> EveryKey()
+    {
+        foreach (var code in VirtualKey.AllNamed)
+        {
+            yield return code;
+        }
+
+        for (var digit = 0x30; digit <= 0x39; digit++) { yield return digit; }   // 0-9
+        for (var letter = 0x41; letter <= 0x5A; letter++) { yield return letter; } // A-Z
+        for (var pad = 0x60; pad <= 0x69; pad++) { yield return pad; }           // numpad digits
+        for (var f = 0x70; f <= 0x87; f++) { yield return f; }                   // F1-F24
+    }
+
+    /// <summary>
+    /// "+" separates the keys in a combination, so a key whose own name contains one cannot be read
+    /// back. "Numpad +" used to, and recording that key silently reverted the hotkey to the default.
+    /// </summary>
+    [Fact]
+    public void No_key_name_contains_the_separator()
+    {
+        var offenders = EveryKey().Select(VirtualKey.Describe).Where(name => name.Contains('+')).ToArray();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void Every_key_survives_a_round_trip_inside_a_combination()
+    {
+        foreach (var code in EveryKey())
+        {
+            var original = VirtualKey.IsModifier(code)
+                ? new Hotkey([code], 0)
+                : new Hotkey([VirtualKey.LeftControl], code);
+
+            Assert.True(Hotkey.TryParse(original.ToString(), out var round), original.ToString());
+            Assert.Equal(original, round);
+        }
+    }
+
+    [Theory]
+    [InlineData("NumpadAdd")]
+    [InlineData("Numpad .")]
+    public void The_older_numpad_spellings_still_parse(string stored)
+    {
+        Assert.True(Hotkey.TryParse(stored, out _));
+    }
 }

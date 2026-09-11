@@ -82,7 +82,12 @@ public sealed partial class WhisperTranscriber : ITranscriber
         var text = await TranscribeCoreAsync(samples, cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
 
-        _logger.LogDebug("Transcribed {Seconds:F1}s in {Ms} ms: {Text}", clip.Duration.TotalSeconds, stopwatch.ElapsedMilliseconds, text);
+        // Length, never the words — see the note in ParakeetTranscriber.
+        _logger.LogDebug(
+            "Whisper transcribed {Seconds:F1}s into {Chars} chars in {Ms} ms",
+            clip.Duration.TotalSeconds,
+            text.Length,
+            stopwatch.ElapsedMilliseconds);
         return new TranscriptResult(text, stopwatch.Elapsed, _loadedLanguage);
     }
 

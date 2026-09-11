@@ -61,7 +61,13 @@ public sealed class ParakeetTranscriber : ITranscriber
         var (text, language) = await TranscribeCoreAsync(samples, cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
 
-        _logger.LogDebug("Parakeet transcribed {Seconds:F1}s in {Ms} ms: {Text}", clip.Duration.TotalSeconds, stopwatch.ElapsedMilliseconds, text);
+        // Length, never the words. The log is a plain-text file that outlives any history setting, so a
+        // transcript here is a second permanent record of everything the user has ever dictated.
+        _logger.LogDebug(
+            "Parakeet transcribed {Seconds:F1}s into {Chars} chars in {Ms} ms",
+            clip.Duration.TotalSeconds,
+            text.Length,
+            stopwatch.ElapsedMilliseconds);
         return new TranscriptResult(text, stopwatch.Elapsed, language);
     }
 

@@ -7,21 +7,17 @@ namespace Talk2Me.Windows.Input;
 /// <summary>
 /// Turns raw keyboard-hook events into clean Pressed / Released pairs for the configured combination.
 ///
-/// The hook sees every key, so it also keeps the set of keys currently held: a combination fires when
-/// its trigger goes down and everything else it needs is already down, and stops the moment any of
-/// them comes up. That means releasing Shift ends the dictation just as releasing the trigger does,
-/// which is what holding a combination feels like.
+/// The decisions all live in <see cref="HotkeyGesture"/>, which is pure and tested; this class is the
+/// wiring between it and the Win32 hook. Everything that made this fragile — auto repeat, releasing a
+/// modifier first, changing the hotkey mid-hold — is a sequence of key events, and sequences are worth
+/// testing without a real keyboard.
 /// </summary>
 public sealed class PushToTalkHotkey : IPushToTalkHotkey
 {
     private readonly ISettingsProvider _settings;
     private readonly ILogger<PushToTalkHotkey> _logger;
     private readonly LowLevelKeyboardHook _hook = new();
-    private readonly HashSet<int> _held = [];
-
-    private Hotkey _hotkey = Hotkey.Default;
-    private bool _suppress;
-    private bool _isDown;
+    private readonly HotkeyGesture _gesture = new(Hotkey.Default);
 
     public PushToTalkHotkey(ISettingsProvider settings, ILogger<PushToTalkHotkey> logger)
     {
@@ -39,14 +35,20 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
     public void Start()
     {
         _hook.Install();
-        _logger.LogInformation("Keyboard hook installed; push-to-talk = {Hotkey}", _hotkey);
+        _logger.LogInformation("Keyboard hook installed; push-to-talk = {Hotkey}", Describe());
     }
 
     public void Stop()
     {
         _hook.Uninstall();
-        _held.Clear();
-        _isDown = false;
+
+        // The key-ups for anything held will never arrive now.
+        if (_gesture.IsActive)
+        {
+            Released?.Invoke(this, EventArgs.Empty);
+        }
+
+        _gesture.Reset();
     }
 
     public void Dispose()
@@ -54,6 +56,8 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
         Stop();
         _hook.Dispose();
     }
+
+    private string Describe() => Hotkey.ParseOrDefault(_settings.Current.Hotkey).ToString();
 
     private void ApplySettings()
     {
@@ -64,8 +68,14 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
             hotkey = Hotkey.Default;
         }
 
-        _hotkey = hotkey;
-        _suppress = _settings.Current.SuppressHotkey && !hotkey.IsBareModifier;
+        var suppress = _settings.Current.SuppressHotkey && !hotkey.IsBareModifier;
+
+        // Changing the hotkey while one is held strands the dictation: the release we are waiting for
+        // belongs to a combination we are no longer watching.
+        if (_gesture.Rebind(hotkey, suppress))
+        {
+            Released?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void OnKeyEvent(object? sender, KeyHookEventArgs e)
@@ -75,58 +85,16 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
             return;
         }
 
-        if (e.IsDown)
-        {
-            _held.Add(e.VirtualKey);
-        }
-        else
-        {
-            _held.Remove(e.VirtualKey);
-        }
+        var decision = _gesture.Handle(e.VirtualKey, e.IsDown);
+        e.Handled = decision.Swallow;
 
-        // While the combination is held, anything in it going up ends the dictation — including a
-        // modifier the user happened to let go of first.
-        if (_isDown && !e.IsDown && IsPartOfHotkey(e.VirtualKey))
+        if (decision.Pressed)
         {
-            _isDown = false;
-            e.Handled = _suppress && e.VirtualKey == _hotkey.Trigger;
+            Pressed?.Invoke(this, EventArgs.Empty);
+        }
+        else if (decision.Released)
+        {
             Released?.Invoke(this, EventArgs.Empty);
-            return;
         }
-
-        if (e.VirtualKey != _hotkey.Trigger)
-        {
-            return;
-        }
-
-        if (!e.IsDown || _isDown)
-        {
-            return; // the release above already dealt with it, or this is auto-repeat
-        }
-
-        if (!ModifiersHeld())
-        {
-            return; // the trigger without its modifiers is just that key, and not ours to take
-        }
-
-        e.Handled = _suppress;
-        _isDown = true;
-        Pressed?.Invoke(this, EventArgs.Empty);
-    }
-
-    private bool IsPartOfHotkey(int virtualKey)
-        => virtualKey == _hotkey.Trigger || _hotkey.Required.Contains(virtualKey);
-
-    private bool ModifiersHeld()
-    {
-        foreach (var modifier in _hotkey.Required)
-        {
-            if (!_held.Contains(modifier))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 }
