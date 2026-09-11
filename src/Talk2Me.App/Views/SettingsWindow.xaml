@@ -26,6 +26,14 @@
             <Setter Property="Margin" Value="0,0,0,18" />
             <Setter Property="Width" Value="420" />
             <Setter Property="HorizontalAlignment" Value="Left" />
+            <Style.Triggers>
+                <!-- A field that does not apply to the chosen engine: still readable, plainly inert.
+                     The templated controls draw their own chrome, so fading the group is the one
+                     change that greys the label, the input and the hint together. -->
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.45" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="StatCaption" TargetType="TextBlock">
@@ -285,16 +293,18 @@
                         <StackPanel Style="{StaticResource Field}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Engine" />
                             <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding Engines}"
-                                      SelectedItem="{Binding Draft.Engine}" />
+                                      SelectedItem="{Binding SelectedEngine}" />
                             <TextBlock Style="{StaticResource Ui.Hint}"
                                        Text="Auto uses Parakeet for English and 24 other European languages, and Whisper for the rest." />
                         </StackPanel>
 
-                        <StackPanel Style="{StaticResource Field}">
+                        <!-- Greyed under Parakeet, which detects the language itself: a live-looking
+                             field that changes nothing is worse than one that says so. -->
+                        <StackPanel Style="{StaticResource Field}" IsEnabled="{Binding LanguageApplies}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Language" />
                             <TextBox Style="{StaticResource Ui.TextBox}"
                                      Text="{Binding Draft.Language, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource Ui.Hint}" Text="An ISO 639-1 code such as en, fr, de — or auto." />
+                            <TextBlock Style="{StaticResource Ui.Hint}" Text="{Binding LanguageHint}" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <StackPanel Style="{StaticResource Field}">
@@ -303,12 +313,11 @@
                                       SelectedItem="{Binding SelectedInputDevice}" />
                         </StackPanel>
 
-                        <StackPanel Style="{StaticResource Field}">
+                        <StackPanel Style="{StaticResource Field}" IsEnabled="{Binding WhisperModelApplies}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Whisper model" />
                             <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding WhisperModels}"
                                       SelectedItem="{Binding Draft.Model}" />
-                            <TextBlock Style="{StaticResource Ui.Hint}"
-                                       Text="Only used when Whisper is the active engine. LargeV3Turbo is a 1.6 GB download." />
+                            <TextBlock Style="{StaticResource Ui.Hint}" Text="{Binding WhisperModelHint}" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Downloaded models" />

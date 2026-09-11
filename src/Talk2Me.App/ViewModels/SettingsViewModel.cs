@@ -151,6 +151,44 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     public IReadOnlyList<TranscriptionEngine> Engines { get; } = Enum.GetValues<TranscriptionEngine>();
 
+    /// <summary>
+    /// The engine, proxied so the fields that only some engines read can grey themselves out. Binding
+    /// the combo straight to the draft would set it without telling anyone.
+    /// </summary>
+    public TranscriptionEngine SelectedEngine
+    {
+        get => Draft.Engine;
+        set
+        {
+            if (Draft.Engine == value)
+            {
+                return;
+            }
+
+            Draft.Engine = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(LanguageApplies));
+            OnPropertyChanged(nameof(LanguageHint));
+            OnPropertyChanged(nameof(WhisperModelApplies));
+            OnPropertyChanged(nameof(WhisperModelHint));
+            RefreshModels(); // the catalogue marks what is in use, and that just changed
+        }
+    }
+
+    /// <summary>Parakeet works the language out itself, so the setting does nothing under it.</summary>
+    public bool LanguageApplies => Draft.Engine != TranscriptionEngine.Parakeet;
+
+    public string LanguageHint => LanguageApplies
+        ? "An ISO 639-1 code such as en, fr, de — or auto. Under Auto it also decides which engine runs."
+        : "Parakeet detects the language itself, so this is only used by Whisper and by Auto.";
+
+    /// <summary>Which Whisper size to load. Nothing to choose while Whisper cannot run.</summary>
+    public bool WhisperModelApplies => Draft.Engine != TranscriptionEngine.Parakeet;
+
+    public string WhisperModelHint => WhisperModelApplies
+        ? "LargeV3Turbo is a 1.6 GB download."
+        : "Only used when Whisper is the active engine.";
+
     public IReadOnlyList<string> WhisperModels { get; } = ModelManager.ModelNames;
 
     public IReadOnlyList<TextInjectionMode> InjectionModes { get; } = Enum.GetValues<TextInjectionMode>();
