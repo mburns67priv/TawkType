@@ -60,6 +60,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _activeModelText = string.Empty;
 
+    /// <summary>Which model the Download button would fetch. Defaults to the one the settings need.</summary>
+    [ObservableProperty]
+    private DownloadableModel? _selectedDownload;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDownloadIndeterminate))]
     private bool _isDownloading;
@@ -163,6 +167,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     public IReadOnlyList<string> CleanupModels { get; } = ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"];
 
     public ObservableCollection<ModelListItem> InstalledModels { get; } = new();
+
+    /// <summary>Everything that can be downloaded, for the picker beside the Download button.</summary>
+    public ObservableCollection<DownloadableModel> DownloadableModels { get; } = new();
 
     public ObservableCollection<HistoryEntry> HistoryEntries { get; } = new();
 
@@ -297,7 +304,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task DownloadModelAsync()
     {
-        if (IsDownloading)
+        var target = SelectedDownload;
+        if (IsDownloading || target is null || target.IsDownloaded)
         {
             return;
         }
@@ -309,8 +317,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         try
         {
             var progress = new Progress<ModelProgress>(report => DownloadProgress = report.Fraction);
-            await _models.DownloadActiveAsync(progress, _download.Token);
-            Flash("Model downloaded.");
+            await _models.DownloadAsync(target.Key, progress, _download.Token);
+            Flash(target.Label + " downloaded.");
         }
         catch (OperationCanceledException)
         {
@@ -404,6 +412,21 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HistoryIsEmpty));
     }
 
+    /// <summary>Rebuilds the download picker, keeping the user's choice if it is still on the list.</summary>
+    private void RefreshCatalogue()
+    {
+        var wanted = SelectedDownload?.Key ?? _models.ActiveModelKey;
+
+        DownloadableModels.Clear();
+        foreach (var model in _models.Catalogue())
+        {
+            DownloadableModels.Add(model);
+        }
+
+        SelectedDownload = DownloadableModels.FirstOrDefault(m => m.Key == wanted)
+            ?? DownloadableModels.FirstOrDefault();
+    }
+
     private void RefreshModels()
     {
         InstalledModels.Clear();
@@ -412,11 +435,13 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             InstalledModels.Add(new ModelListItem(model));
         }
 
+        RefreshCatalogue();
+
         ModelStorageText = _models.Describe();
         ActiveModelText = _models.IsActiveModelDownloaded
-            ? $"{_models.ActiveModelLabel} is downloaded and ready."
-            : $"{_models.ActiveModelLabel} is not downloaded ({_models.ActiveModelSizeText}). "
-              + "Dictation does nothing until it is.";
+            ? $"Your settings use {_models.ActiveModelLabel}, and it is downloaded."
+            : $"Your settings use {_models.ActiveModelLabel}, which is not downloaded. "
+              + "Dictation does nothing until one is.";
     }
 
     private string DescribeApiKey()

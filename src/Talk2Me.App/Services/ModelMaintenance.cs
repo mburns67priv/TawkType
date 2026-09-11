@@ -17,6 +17,23 @@ public sealed record InstalledModel(string Name, string Label, long Bytes, bool 
     public string SizeText => ModelStorage.FormatSize(Bytes);
 }
 
+/// <summary>
+/// A model the user can choose to download. <paramref name="Key"/> is what comes back to
+/// <see cref="ModelMaintenance.DownloadAsync"/>: the Parakeet sentinel, or a Whisper size's name.
+/// </summary>
+public sealed record DownloadableModel(string Key, string Label, long Bytes, bool IsDownloaded, bool IsActive)
+{
+    /// <summary>
+    /// What the picker shows: the name, then whether it is here or what it would cost. This is
+    /// ToString rather than a property because the templated ComboBox ignores DisplayMemberPath.
+    /// </summary>
+    public override string ToString()
+    {
+        var state = IsDownloaded ? "downloaded" : ModelStorage.FormatSize(Bytes) + " download";
+        return IsActive ? $"{Label} — {state}, in use" : $"{Label} — {state}";
+    }
+}
+
 /// <summary>Shared by the Settings window and the tray menu: describe and delete downloaded models.</summary>
 public sealed class ModelMaintenance
 {
@@ -45,34 +62,73 @@ public sealed class ModelMaintenance
 
     public string ModelsDirectory => _storage.ModelsDirectory;
 
+    /// <summary>Not a Whisper size name, so it cannot collide with one.</summary>
+    private const string ParakeetKey = "Parakeet";
+
+    private const long ParakeetApproximateBytes = 671L * 1024 * 1024;
+
     /// <summary>The engine the current settings would use, named for the UI.</summary>
     public string ActiveModelLabel => _router.ActiveEngine == TranscriptionEngine.Parakeet
         ? "Parakeet TDT 0.6B v3"
         : "Whisper " + _settings.Current.Model;
 
-    /// <summary>Roughly what the active engine's model will cost to download.</summary>
-    public string ActiveModelSizeText => _router.ActiveEngine == TranscriptionEngine.Parakeet
-        ? "about 670 MB"
-        : "about 1.6 GB";
-
     /// <summary>False when the active engine has nothing to load; dictation fails until this is fixed.</summary>
     public bool IsActiveModelDownloaded => _router.IsModelReady;
 
     /// <summary>
-    /// Downloads the active engine's model. Nothing else downloads: the transcribers refuse to fetch
-    /// hundreds of megabytes on their own, so this is the only path, and the user chose to be here.
+    /// Every model Talk2Me knows how to fetch, marked with what is already here and what the current
+    /// settings would use. Nothing downloads on its own, so this is also the whole menu.
     /// </summary>
-    public async Task DownloadActiveAsync(IProgress<ModelProgress>? progress, CancellationToken cancellationToken)
+    public IReadOnlyList<DownloadableModel> Catalogue()
     {
-        if (_router.ActiveEngine == TranscriptionEngine.Parakeet)
+        var active = _router.ActiveEngine;
+        var activeWhisper = ModelManager.ParseModelType(_settings.Current.Model);
+
+        var models = new List<DownloadableModel>
+        {
+            new(
+                ParakeetKey,
+                "Parakeet TDT 0.6B v3 (int8)",
+                ParakeetApproximateBytes,
+                _parakeetModels.IsDownloaded,
+                active == TranscriptionEngine.Parakeet),
+        };
+
+        foreach (var name in ModelManager.ModelNames)
+        {
+            var type = ModelManager.ParseModelType(name);
+            models.Add(new DownloadableModel(
+                name,
+                "Whisper " + name,
+                ModelManager.ApproximateBytes(type),
+                _whisperModels.IsDownloaded(type),
+                active == TranscriptionEngine.Whisper && type == activeWhisper));
+        }
+
+        return models;
+    }
+
+    /// <summary>
+    /// Downloads one model by key. This is the only thing in Talk2Me that downloads one: the
+    /// transcribers refuse to, so holding the hotkey can never start a surprise transfer.
+    /// </summary>
+    public async Task DownloadAsync(string key, IProgress<ModelProgress>? progress, CancellationToken cancellationToken)
+    {
+        if (string.Equals(key, ParakeetKey, StringComparison.OrdinalIgnoreCase))
         {
             await _parakeetModels.EnsureModelAsync(progress, cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        var type = ModelManager.ParseModelType(_settings.Current.Model);
-        await _whisperModels.EnsureModelAsync(type, progress, cancellationToken).ConfigureAwait(false);
+        await _whisperModels
+            .EnsureModelAsync(ModelManager.ParseModelType(key), progress, cancellationToken)
+            .ConfigureAwait(false);
     }
+
+    /// <summary>The key in <see cref="Catalogue"/> for whichever model the current settings would load.</summary>
+    public string ActiveModelKey => _router.ActiveEngine == TranscriptionEngine.Parakeet
+        ? ParakeetKey
+        : ModelManager.ParseModelType(_settings.Current.Model).ToString();
 
     public string Describe()
     {

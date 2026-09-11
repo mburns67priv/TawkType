@@ -39,6 +39,10 @@ public sealed class ModelManager
 
     public static IReadOnlyList<string> ModelNames { get; } = Enum.GetNames<GgmlType>();
 
+    /// <summary>Roughly what this model costs to download, for telling the user before they commit.</summary>
+    public static long ApproximateBytes(GgmlType type)
+        => ApproximateSizes.TryGetValue(type, out var bytes) ? bytes : 0;
+
     public static GgmlType ParseModelType(string? name)
         => Enum.TryParse<GgmlType>(name, ignoreCase: true, out var type) ? type : GgmlType.LargeV3Turbo;
 
