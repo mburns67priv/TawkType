@@ -58,6 +58,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path build/releases | Out-Null
           $current = 'v${{ steps.version.outputs.value }}'
 
+          # Must match --packId in build/pack.ps1.
+          $packId = 'TawkType'
+
           # Skip our own tag. On a re-run the release already exists, and downloading it puts a package
           # of the version being built into the folder vpk checks — which fails with "there is a release
           # equal or greater to the current version", naming a release the job itself fetched.
@@ -72,9 +75,19 @@ jobs:
             # its predecessor's history and grew. v0.3.0 shipped 364 MB of assets, 17 packages, for an
             # application that is 37 MB. A user on any version can always take the newest full package,
             # so the older ones buy nothing.
+            # The package id is in the pattern, not a wildcard. A delta can only be built against the
+            # same application, and everything in this folder gets uploaded to the new release — so a
+            # wildcard would attach the previous *identity's* package to it. That is not hypothetical:
+            # the id changed from Talk2MeApp to TawkType at v0.4.0.
             $previousVersion = $previous.TrimStart('v')
             Write-Host "previous release: $previous (fetching its full package for the delta)"
-            gh release download $previous --dir build/releases --pattern "*-$previousVersion-full.nupkg" --clobber
+            gh release download $previous --dir build/releases --pattern "$packId-$previousVersion-full.nupkg" --clobber
+
+            if (Get-ChildItem build/releases -Filter '*.nupkg' -EA SilentlyContinue) {
+              Write-Host "got it; this release will carry a delta"
+            } else {
+              Write-Host "$previous predates the $packId package id, so this one is a full package only"
+            }
           } else {
             Write-Host "no previous release; this one will be a full package only"
           }
