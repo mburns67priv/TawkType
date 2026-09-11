@@ -75,7 +75,8 @@ Windows only.
   Settings → General, obeyed silently by Velopack's uninstall hook — which may show no UI and is
   killed after 30 seconds, so the question cannot be asked during the uninstall itself. A
   *Delete my data…* button beside it does the same thing on demand. `DataRemoval.Check` guards both.
-  **The hook has never executed.**
+  The hook also clears the start-with-Windows entry every time, data question or not: TawkType writes
+  that value itself, so nothing else would. **The hook has never executed.**
 
 ## Repo map
 
@@ -716,6 +717,11 @@ site source and every snapshot from v2 on were already clean.
     `OnBeforeUninstallFastCallback` obeying the setting silently. `DataRemoval` guards both callers.
     The button and its confirmation were driven in the running app; the hook cannot be tested from a
     session that cannot install anything.
+36. Gave uninstalling its own section in the README — how, and why the question has to be asked
+    beforehand — and found a defect while writing it: nothing removed the start-with-Windows registry
+    value on uninstall, because TawkType writes it rather than Velopack, so every sign-in afterwards
+    would try to launch a deleted executable. The hook clears it now, whatever the user chose about
+    their data.
 
 ## Links
 

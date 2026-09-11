@@ -229,14 +229,54 @@ settings and models:
 | `models\` | Downloaded speech models |
 | `logs\tawktype.log` | Rolling 5 MB debug log. Records how long and how many characters, **never the words themselves** |
 
-**Uninstalling leaves all of it where it is**, so reinstalling picks up where you left off with your
-models still on disk. If you would rather it went, tick *Delete all of this if I uninstall TawkType*
-on Settings → General and an uninstall takes the lot.
+## Uninstalling the app
 
-**Delete my data…**, on the same page, does it now: models, history, vocabulary, settings and the
-stored key. It tells you the size and names everything that is about to go first. TawkType keeps
-working afterwards — it simply starts again from nothing, which means downloading a model a second
-time.
+Uninstall TawkType the ordinary way: **Settings → Apps → Installed apps**, find *TawkType*, and
+choose **Uninstall**. It is a per-user install, so no administrator prompt appears. The Start Menu
+entry, the tray icon and the application folder all go.
+
+**Your data does not.** By default an uninstall leaves `%LOCALAPPDATA%\TawkType\` exactly as it is —
+your models, your history, your vocabulary, your settings and your encrypted key. That is deliberate:
+a speech model is up to 1.5 GB to download again, and your vocabulary is your own work. Reinstall
+later and TawkType picks up where you left off, with no download and nothing to set up a second time.
+
+If you would rather it all went, you have two ways to do it, and which one you want depends on
+whether you are leaving or tidying.
+
+### Take it with the uninstall
+
+Before uninstalling, open **Settings → General** and tick **Delete all of this if I uninstall
+TawkType**. Then uninstall normally. The data folder is removed as part of it, with nothing further to
+confirm.
+
+It has to be decided in advance rather than during the uninstall, and that is not an oversight: the
+installer's hooks are not permitted to put a question on screen, and are stopped if they take longer
+than half a minute. Asking beforehand is the only way the question can honestly be asked at all — so
+if you skip this step and uninstall, your data stays behind.
+
+### Delete it now, without uninstalling
+
+**Settings → General → Delete my data…** removes the same things immediately, while TawkType keeps
+running. Use it when you want a clean slate, when you are handing the machine on, or when you meant
+to tick the box above and are about to uninstall.
+
+Before it deletes anything it shows you the total size and names what is about to go — how many
+models, how many dictations in the history, whether a key is stored, and the exact folder. Nothing
+happens until you say yes, and it cannot be undone.
+
+Afterwards TawkType still works. It simply starts again from nothing: the next dictation needs a model,
+so it has to be downloaded a second time, and the first run offers to walk you through it again.
+
+### By hand
+
+If TawkType is already gone and you want to be sure, delete `%LOCALAPPDATA%\TawkType` in File
+Explorer — paste that path into the address bar.
+
+Nothing outside that folder belongs to TawkType except one registry value: `TawkType` under
+`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written only if you turned on *Start TawkType
+when I sign in to Windows*. TawkType removes it during the uninstall, whatever you chose about your
+data — an entry pointing at a deleted application is nobody's idea of a feature. If you want to
+check, it is the row named *TawkType* in **Task Manager → Startup apps**.
 
 ## Performance
 

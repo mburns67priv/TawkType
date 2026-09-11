@@ -583,6 +583,11 @@ The relative-path check runs before the path is normalised, which is not fussine
 resolves a relative path against the current directory, so checking afterwards would quietly accept
 `TawkType\models` as some real folder elsewhere. A test caught it.
 
+The hook also removes the start-with-Windows entry, unconditionally and regardless of the data
+question. TawkType writes that value itself, under `HKCU\…\Run`, so Velopack knows nothing about it
+and would leave Windows trying to launch a deleted executable at every sign-in. Found while writing
+the README's uninstall section, which is a reasonable argument for writing documentation.
+
 The hook writes a line to `%TEMP%\TawkType\uninstall.log` — not to the log folder, which is inside
 what it is deleting. That file is the only evidence this path ever ran, and it has never run: an agent
 session cannot install anything (gotcha 28), so the first real uninstall will be its first execution.

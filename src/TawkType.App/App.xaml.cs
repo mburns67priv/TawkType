@@ -60,7 +60,7 @@ public partial class App : Application
         // uninstalls, and several of them exit the process rather than carrying on into the app.
         VelopackApp.Build()
             .SetAutoApplyOnStartup(true)
-            .OnBeforeUninstallFastCallback(_ => RemoveDataIfAsked())
+            .OnBeforeUninstallFastCallback(_ => OnUninstall())
             .Run();
 
         // Reproduces an installed copy's process identity from a plain build, which is the only
@@ -261,8 +261,8 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Velopack's uninstall hook. It deletes the data folder if the user said in Settings that it
-    /// should go, and does nothing at all otherwise.
+    /// Velopack's uninstall hook. It always removes the start-with-Windows entry, and deletes the data
+    /// folder as well if the user said in Settings that it should go.
     ///
     /// Everything about this method is shaped by the contract: Velopack's hooks may show no UI and are
     /// killed after 30 seconds, so there is no prompt here, nothing to await, and no exception that
@@ -273,10 +273,20 @@ public partial class App : Application
     /// Never verified against a real uninstall. An agent session cannot install anything (gotcha 28),
     /// so the first person to uninstall an installed build is the first person to run this.
     /// </summary>
-    private static void RemoveDataIfAsked()
+    private static void OnUninstall()
     {
         try
         {
+            // Unconditional, and nothing to do with the data question. TawkType writes this value
+            // itself, so Velopack knows nothing about it and would leave Windows trying to launch a
+            // deleted executable at every sign-in. The path argument is unused when disabling.
+            if (WindowsStartup.IsEnabled())
+            {
+                NoteForUninstall(WindowsStartup.Set(false, string.Empty)
+                    ? "removed the start-with-Windows entry"
+                    : "could not remove the start-with-Windows entry");
+            }
+
             var store = new SettingsStore(NullLogger<SettingsStore>.Instance);
             if (!store.Current.DeleteDataOnUninstall)
             {
