@@ -76,11 +76,35 @@ Or [run from source](#running-from-source).
 
 ## Requirements
 
-- Windows 10 or 11
-- A microphone
+- **Windows 10 or 11**, 64-bit
+- **A microphone**
 
-A GPU is optional. Whisper uses Vulkan when a current GPU driver is present and falls back to the CPU;
-Parakeet runs on the CPU and is fast enough there. **No CUDA Toolkit, no Python, no Rust.**
+|  | Minimum | Comfortable |
+|---|---|---|
+| CPU | 2 cores | 4+ cores |
+| RAM | 4 GB | 8 GB |
+| Free disk | ~1 GB | ~3 GB if you keep both models |
+
+**A GPU is optional.** Whisper uses Vulkan when a current graphics driver is present and falls back to
+the CPU. Parakeet is CPU-only and fast enough there. **No CUDA Toolkit, no Python, no Rust.**
+
+### What Parakeet actually costs
+
+The default engine, and the one those figures are about.
+
+- **640 MB on disk**, and about **850 MB of memory** while it is loaded — that is the whole
+  application, not just the model.
+- **CPU-only**, using half your logical cores, never fewer than two and never more than eight. On an
+  eight-core machine it takes four, so there is headroom for whatever you are dictating into.
+- Measured on an i7-11700F: **3.1 s to load** at startup, then **931 ms** to transcribe 13 seconds of
+  speech.
+
+Those timings are one desktop. A two-core laptop has fewer threads, slower ones, and less memory
+bandwidth, so expect several seconds to load and something nearer real time to transcribe — an
+estimate, not a measurement.
+
+Whisper `large-v3-turbo` is the alternative: a 1.6 GB model that uses the GPU when there is one. Better
+for the ~75 languages Parakeet does not cover, heavier everywhere else.
 
 Running from source needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0); the
 installer needs only the .NET 8 Desktop Runtime, and offers to fetch it.
