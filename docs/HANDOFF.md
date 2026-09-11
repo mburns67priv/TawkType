@@ -13,12 +13,11 @@ machine. There is no account and no telemetry, and the only thing that ever leav
 optional Claude rewrite, which is off until someone turns it on and supplies a key.
 
 Owner: Jupitor Studio. Home: [tawktype.com](https://tawktype.com). Working name was **Murmur**, then
-**TawkType**; it is now **TawkType**, because TawkType turned out to be another dictation product. The
-rename is display-only — see "The rename" below for the six identifiers that still say TawkType on
-purpose.
+**Talk2Me**; it is now **TawkType**, because Talk2Me turned out to be another dictation product. The
+rename is complete — see "The rename" below for the three values that still say Talk2Me on purpose,
+and why each one has to.
 
-Windows only. `docs/MACOS.md` works out what a Mac version would cost and why the answer is "not
-before the Windows one has shipped something".
+Windows only.
 
 ## State of the code
 

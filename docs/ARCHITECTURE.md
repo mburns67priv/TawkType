@@ -28,9 +28,9 @@ Visual Studio 2022 already installed, no Rust toolchain, no CUDA Toolkit.
 
 Both engines stay registered; only the one the router selects is loaded, and it loads lazily.
 
-The choice of WPF is the one decision here that is hard to undo: it is the reason `docs/MACOS.md`
-concludes that a Mac version means rebuilding the interface. Everything below the interface was kept
-platform-free on purpose, and that half would port untouched.
+`TawkType.Core` deliberately has no Windows dependency at all — no `DllImport`, no `System.Windows`, no
+registry — so the pipeline, the reducers and their tests are ordinary portable .NET. The interface is
+the part that is tied to WPF, and therefore to Windows.
 
 ## Pipeline
 

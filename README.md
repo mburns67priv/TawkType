@@ -79,9 +79,6 @@ Or [run from source](#running-from-source).
 - Windows 10 or 11
 - A microphone
 
-macOS is not supported. `docs/MACOS.md` is an honest assessment of what it would take — the pipeline
-is already platform-free, but the interface is WPF and would have to be rebuilt.
-
 A GPU is optional. Whisper uses Vulkan when a current GPU driver is present and falls back to the CPU;
 Parakeet runs on the CPU and is fast enough there. **No CUDA Toolkit, no Python, no Rust.**
 
@@ -207,7 +204,6 @@ copies update from.
 `docs/ARCHITECTURE.md` explains the design and `docs/HANDOFF.md` is the working notes, including the
 gotchas that cost the most time. `docs/REVIEW-2026-09-11.md` and `docs/FEATURE-RESEARCH-2026-09-11.md`
 are point-in-time assessments, each carrying a note of what has been addressed since.
-`docs/MACOS.md` works out what a Mac version would actually take.
 
 ## Credits
 
