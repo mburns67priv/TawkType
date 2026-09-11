@@ -26,6 +26,10 @@ Visual Studio 2022 already installed, no Rust toolchain, no CUDA Toolkit.
 
 Both engines stay registered; only the one the router selects is loaded, and it loads lazily.
 
+The choice of WPF is the one decision here that is hard to undo: it is the reason `docs/MACOS.md`
+concludes that a Mac version means rebuilding the interface. Everything below the interface was kept
+platform-free on purpose, and that half would port untouched.
+
 ## Pipeline
 
 ```

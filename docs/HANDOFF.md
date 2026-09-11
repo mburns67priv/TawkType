@@ -17,6 +17,9 @@ Owner: Jupitor Studio. Home: [tawktype.com](https://tawktype.com). Working name 
 rename is display-only — see "The rename" below for the six identifiers that still say Talk2Me on
 purpose.
 
+Windows only. `docs/MACOS.md` works out what a Mac version would cost and why the answer is "not
+before the Windows one has shipped something".
+
 ## State of the code
 
 - **Branch `main`, clean tree.** Last release tag `v0.2.9`, and a long way past it: everything below
