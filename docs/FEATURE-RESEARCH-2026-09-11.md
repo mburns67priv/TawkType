@@ -6,9 +6,10 @@ The strongest opportunity is to make Talk2Me **dependable local dictation that r
 
 I researched current official documentation for Wispr Flow, Superwhisper, Aqua Voice, Dragon Professional, and Windows Voice Access. This is a feature comparison, not a hands-on accuracy benchmark; vendor performance claims are not evidence that their recognition is better.
 
-## Status as of 2026-09-11 (added after the first three landed)
+## Status as of 2026-09-11 (added as sections landed)
 
-This research is kept as written. **§1, §2 and §3 are built** (`839d6de`, `b050a20`, `18008a5`):
+This research is kept as written. **§1, §2, §3 and §4 are built** (`839d6de`, `b050a20`, `18008a5`,
+and the dictation box):
 
 - **§1** — `PhraseBook` applies spellings and replacements locally, with or without a key, and is
   re-applied after a rewrite so the model cannot undo a correction. Its one unbuilt piece is the
@@ -18,9 +19,17 @@ This research is kept as written. **§1, §2 and §3 are built** (`839d6de`, `b0
 - **§3** — an optional toggle key, Esc to cancel, optional sounds (off by default, using the Windows
   scheme), and a recording limit that finishes rather than discards.
 
-**§4–§9 are untouched.** The Dictation Box (§4), modes (§5), caret-aware insertion (§6), history as a
-correction tool (§7), first-run (§8) and visible privacy (§9) are all still open, and the ordering at
-the foot of this document still holds for them.
+- **§4** — the dictation box. `Recovery` decides what can honestly be offered for a dictation that did
+  not arrive; the window holds the text editable until the user is done with it, and can hand the
+  foreground back to the window it was aimed at. It never opens itself, exactly as this section asks.
+  Its "preserve the transcript before attempting delivery" requirement was already met by `8a39890`
+  and the in-memory `LastDictation`.
+
+**§5–§9 are untouched.** Modes (§5), caret-aware insertion (§6), history as a correction tool (§7),
+first-run (§8) and visible privacy (§9) are all still open, and the ordering at the foot of this
+document still holds for them. §7 is the natural next one: the "remember this replacement" action it
+describes is what §1 was left missing, and it now has two places to live — the history window and the
+dictation box.
 
 ## What the established apps offer
 

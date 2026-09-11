@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using H.NotifyIcon;
@@ -39,6 +39,13 @@ public partial class App : Application
     private OverlayWindow? _overlay;
     private SettingsWindow? _settingsWindow;
     private HistoryWindow? _historyWindow;
+    private DictationBoxWindow? _dictationBox;
+
+    /// <summary>
+    /// The last dictation that did not reach where it was aimed, kept so the box can explain itself
+    /// when the user gets round to opening it. Cleared by the next dictation that lands properly.
+    /// </summary>
+    private DictationCompleted? _undelivered;
     private TaskbarWindow? _taskbarWindow;
     private DictationEngine? _engine;
     private ILogger<App>? _logger;
@@ -113,6 +120,7 @@ public partial class App : Application
         var overlayVm = Services.GetRequiredService<OverlayViewModel>();
         overlayVm.SettingsRequested += (_, _) => OnSettingsClick(this, new RoutedEventArgs());
         overlayVm.HistoryRequested += (_, _) => ShowHistoryWindow();
+        overlayVm.DictationBoxRequested += (_, _) => ShowDictationBox();
         overlayVm.QuitRequested += (_, _) => Shutdown();
         _overlay = new OverlayWindow(overlayVm, Services.GetRequiredService<ISettingsProvider>());
 
@@ -130,6 +138,12 @@ public partial class App : Application
         _engine.Completed += OnDictationCompleted;
         _engine.Completed += (_, completed) =>
         {
+            // Remembered, never shown unprompted. The bar says something happened; the box waits until
+            // it is asked for, because a window appearing over the user's work is a worse interruption
+            // than the delivery that just failed.
+            _undelivered = Recovery.For(completed).Needed ? completed : null;
+            Dispatcher.BeginInvoke(() => overlayVm.SetRecoverable(_undelivered is not null));
+
             if (completed.Delivery == DictationDelivery.CopiedToClipboard)
             {
                 Dispatcher.BeginInvoke(() => overlayVm.ShowNotice("Copied instead", completed.Reason));
@@ -150,6 +164,11 @@ public partial class App : Application
         if (e.Args.Contains("--settings", StringComparer.OrdinalIgnoreCase))
         {
             OnSettingsClick(this, new RoutedEventArgs());
+        }
+
+        if (e.Args.Contains("--dictation-box", StringComparer.OrdinalIgnoreCase))
+        {
+            ShowDictationBox();
         }
 
         if (e.Args.Contains("--overlay-demo", StringComparer.OrdinalIgnoreCase))
@@ -199,6 +218,12 @@ public partial class App : Application
             _historyWindow.Close();
         }
 
+        if (_dictationBox is not null)
+        {
+            _dictationBox.AllowClose = true;
+            _dictationBox.Close();
+        }
+
         if (_taskbarWindow is not null)
         {
             _taskbarWindow.AllowClose = true;
@@ -246,6 +271,8 @@ public partial class App : Application
         services.AddSingleton<DictationHistoryStore>();
         services.AddSingleton<IDictationHistory>(sp => sp.GetRequiredService<DictationHistoryStore>());
         services.AddSingleton<LastDictation>();
+        services.AddSingleton<IWindowActivator, Win32WindowActivator>();
+        services.AddSingleton<DictationBoxViewModel>();
 
         services.AddSingleton<DictationEngine>();
         services.AddSingleton<OverlayViewModel>();
@@ -338,6 +365,21 @@ public partial class App : Application
 
         _historyWindow.Show();
         _historyWindow.Activate();
+    }
+
+    private void OnDictationBoxClick(object sender, RoutedEventArgs e) => ShowDictationBox();
+
+    /// <summary>
+    /// Opens the box on whatever is worth recovering. Activating it here is right — the user asked for
+    /// it — and is the opposite of the automatic focus theft the box exists to avoid.
+    /// </summary>
+    private void ShowDictationBox()
+    {
+        _dictationBox ??= new DictationBoxWindow(Services.GetRequiredService<DictationBoxViewModel>());
+
+        Services.GetRequiredService<DictationBoxViewModel>().Load(_undelivered);
+        _dictationBox.Show();
+        _dictationBox.Activate();
     }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)

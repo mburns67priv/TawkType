@@ -30,6 +30,9 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
   and the bar says *Copied instead*.
 - **Nothing is lost.** Every dictation is kept locally, so one that went into the wrong window is a
   click away. Turn the log off and it means it — nothing keeps a second copy of your words.
+- **A dictation box when delivery fails.** If the text could not be typed, it waits in an editable
+  scratchpad you can copy from, correct, or send back to the window it was aimed at. It never opens
+  itself over what you were doing — the bar tells you, and you open it when you want it.
 - **Hold, or toggle.** Hold the key for a sentence; set an optional second key that starts and stops
   with a press each, for long passages or when holding is awkward. **Esc** abandons either — nothing is
   typed, nothing is recorded.
@@ -157,14 +160,14 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 240 unit tests, ~2 s
+dotnet test                                              # 247 unit tests, ~2 s
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Focus -- 15           # what the focus probe sees
 dotnet run --project tools/Talk2Me.Brand                 # regenerate the icon and logos
 ```
 
-Launch flags: `--settings`, `--history`, `--overlay-demo`.
+Launch flags: `--settings`, `--history`, `--dictation-box`, `--overlay-demo`.
 
 The version comes from the last release tag — `git describe` — so a local build reports the release it
 descends from rather than a number someone forgot to bump. `-p:Version` still wins where it matters.

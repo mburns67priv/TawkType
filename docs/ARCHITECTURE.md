@@ -72,6 +72,7 @@ Every stage is an interface so each can be swapped independently:
 | `ILlmClient` | `ClaudeLlmClient` (Anthropic SDK) | llama.cpp / ONNX for an offline rewrite |
 | `ITextInjector` | SendInput / clipboard | UI Automation `TextPattern` for exact caret insertion |
 | `IDictationHistory` | JSONL append under the profile | search, pinning, re-inject a past dictation |
+| `IWindowActivator` | `SetForegroundWindow` + settle poll | nothing planned; it exists for the dictation box |
 | Settings UI | nav rail + six pages, themed | per-page validation, an onboarding flow on first run |
 
 ## LLM cleanup
@@ -141,6 +142,40 @@ running, and shutdown could tear the process down mid-write.
 The focus probe result is taken at key-down but **re-checked at delivery**, because a dictation can
 easily outlive the window the user was aiming at. If the target has changed, the text goes to the
 clipboard rather than into whatever happens to be in front now.
+
+## The dictation box
+
+"Copied to your clipboard" is only half a recovery. The user still has to find the words, decide
+whether they are right, and get them somewhere — and if anything else touches the clipboard in
+between, they are gone. The dictation box is where a dictation that did not arrive waits instead:
+editable, and for as long as they want it.
+
+`Recovery.For` (Core, pure) turns a finished dictation into the offer made for it — the headline, the
+explanation, and which of three routes is honest:
+
+| Route | When | What the box offers |
+|---|---|---|
+| `None` | it was typed | nothing; no banner at all |
+| `SendBack` | the target window is still identifiable and not elevated | **Send it back**, plus Copy |
+| `CopyOnly` | elevated target, or no window to aim at | Copy, and a sentence saying why that is all |
+
+The elevated case is the one worth being careful about. Windows discards synthetic input aimed at a
+more privileged process and reports nothing, so a second attempt would fail exactly as silently as the
+first. Offering the button anyway would be worse than not having it — so the box says plainly that the
+text has to be pasted by hand.
+
+**Send it back** hands the foreground to the remembered window through `IWindowActivator` and then
+types into it. That works only because the user pressed a button in a window that is already in front:
+Windows lets a process *give away* the foreground, never take it. `Win32WindowActivator` restores a
+minimised target first, then polls until the switch has actually happened — `SetForegroundWindow`
+returns before it has, and typing into a window that is not yet in front loses the first characters.
+A window that has gone, or a switch Windows refuses, is an ordinary outcome: the box says so and falls
+back to Copy.
+
+**It never opens itself.** The bar reports the failure and grows a button; the box appears when it is
+asked for. A window that appeared over whatever the user was typing into would be a worse interruption
+than the delivery that just failed — and it would take the focus that the rest of this application
+works so hard never to touch.
 
 ## The phrase book
 

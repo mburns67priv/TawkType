@@ -1,4 +1,4 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 
 namespace Talk2Me.Desktop.Views;
 
@@ -36,6 +36,10 @@ public static class Icons
 
     public static Geometry Clipboard { get; } =
         Parse("M9,4.5 H15 V7 H9 Z M8,5.5 H6.5 V20 H17.5 V5.5 H16 M9.5,11 H14.5 M9.5,14.5 H14.5");
+
+    /// <summary>A tray with the text lifting out of it: the dictation that did not arrive, recovered.</summary>
+    public static Geometry Rescue { get; } =
+        Parse("M5,13.5 V19 H19 V13.5 M12,4 V14 M8.5,7.5 L12,4 L15.5,7.5");
 
     public static Geometry Minimize { get; } = Parse("M6,12 H18");
 

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
@@ -220,6 +220,21 @@ public sealed partial class OverlayViewModel : ObservableObject
 
     [RelayCommand]
     private void OpenHistory() => HistoryRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>
+    /// True while there is a dictation that did not reach its window. The button only appears then, so
+    /// the bar is not carrying a control that does nothing for the whole time nothing has gone wrong.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isRecoverable;
+
+    public void SetRecoverable(bool recoverable) => IsRecoverable = recoverable;
+
+    [RelayCommand]
+    private void OpenDictationBox() => DictationBoxRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>The user wants the scratchpad for a dictation that did not arrive.</summary>
+    public event EventHandler? DictationBoxRequested;
 
     [RelayCommand]
     private void CopyLast()

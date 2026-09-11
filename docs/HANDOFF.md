@@ -16,7 +16,7 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
 
 - **Branch `main`, clean tree.** Last release tag `v0.2.9`; several commits past it, so the next pack
   is overdue.
-- **Builds clean** with `dotnet build`, **240 unit tests pass** with `dotnet test`.
+- **Builds clean** with `dotnet build`, **247 unit tests pass** with `dotnet test`.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download, model deletion are all verified in the running
   app.
@@ -66,14 +66,15 @@ docs/                       ARCHITECTURE.md, HANDOFF.md
 
 ```bash
 dotnet run --project src/Talk2Me.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 240 tests, ~2 s
+dotnet test                                   # 247 tests, ~2 s
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Brand      # regenerate icon + exports after brand changes
 ```
 
 Dev launch flags: `--settings` opens Settings at start; `--history` opens the history window;
-`--overlay-demo` cycles the overlay through every state so it can be styled without dictating.
+`--dictation-box` opens the recovery scratchpad; `--overlay-demo` cycles the overlay through every
+state so it can be styled without dictating.
 
 Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust, no Python.
 
@@ -132,6 +133,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | A bad number says so instead of being dropped or clamped | Save used to ignore an unusable value silently: the box kept what was typed, the setting did not change, and the window closed looking like it had worked. Clamping would be worse, since a value the user never chose would be saved under their name. `NumberField` holds the range and the message; Save waits. |
 | The recording limit finishes rather than cancels | A key left under a book should not record all afternoon, but throwing the audio away would punish the user for the accident. Whatever was said still arrives. |
 | Sounds use `SystemSounds`, off by default | They respect whatever scheme the user has chosen, silence included, and they need no asset files. |
+| The dictation box never opens itself | It appears after a failed delivery, which is exactly when the user is mid-sentence in something else. A window arriving over that would be a worse interruption than the failure, and it would take the focus the rest of the app works so hard never to touch. The bar reports it; the user opens it. |
+| Send-it-back is refused for elevated targets | Windows discards synthetic input aimed at a more privileged process and says nothing either time, so a second attempt fails exactly as silently as the first. The box says the text has to be pasted by hand rather than offering a button that cannot work. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
 
 ## Measured numbers (owner's machine: i7-11700F, RTX 4060 Ti 8 GB)
@@ -291,6 +294,17 @@ Both transcripts were otherwise identical and correctly punctuated.
     exits silently, so a scripted launch aimed at testing a new build will quietly drive the *old* one
     that is already up. Check for a running process before believing a screenshot.
 
+36. **`SetForegroundWindow` returns before the switch has happened.** Typing immediately after it
+    loses the first characters into whatever was still in front. `Win32WindowActivator` polls
+    `GetForegroundWindow` until it matches, and gives up after 600 ms. Also: a process can only *give
+    away* the foreground, never take it, so this works from a button in a window that is already in
+    front and cannot be made to work from the background.
+37. **Merging `App.xaml` into another `Application` throws.** Loading it constructs `Talk2Me.Desktop.App`,
+    and WPF allows one `Application` per AppDomain — so a test harness that wants the app's windows has
+    to supply the brand keys itself rather than merging the dictionary that defines them. Window
+    `Icon` pack URIs resolve against the *entry* assembly too, so the harness needs its own copy of
+    `talk2me.ico` as a `Resource`.
+
 ## Roadmap, in the order I would do it
 
 1. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste, and only
@@ -304,7 +318,9 @@ Both transcripts were otherwise identical and correctly punctuated.
    cancel and toggle, the settings validation — is in no installed copy. Nothing here is in a user's
    hands yet.
 4. **"Remember this replacement"** in the history window: select a mishearing in a past dictation and
-   save the correction. The storage and the matching both exist now, so this is a UI affordance.
+   save the correction. The storage and the matching both exist now, so this is a UI affordance. With
+   the dictation box in, the same action belongs there too — a correction is most likely to be wanted
+   at the moment the wrong words are on screen.
 5. **Per-app tone**: read the foreground window's process name at release time, pick a preset. The
    `CleanupStyle` setting and prompt seam are already there; this just chooses the value per app.
 6. **Streaming partials** while the key is held (Parakeet is a transducer; it suits this).
@@ -363,6 +379,10 @@ Both transcripts were otherwise identical and correctly punctuated.
     phrase book with snippets and an import/export file, optional sounds, and a recording limit.
 21. Gave every numeric settings box real validation, after noticing the two new settings had shipped
     with no control at all and the existing boxes dropped bad values in silence.
+22. Built the dictation box (feature research §4): `Recovery` in Core decides what can honestly be
+    offered for a dictation that did not arrive, and the window holds the text, editable, until the
+    user is done with it — copy it, correct it, or hand the foreground back to the window it was aimed
+    at and type it there.
 
 ## Links
 

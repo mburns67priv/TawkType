@@ -1,4 +1,4 @@
-<Window x:Class="Talk2Me.Desktop.Views.OverlayWindow"
+﻿<Window x:Class="Talk2Me.Desktop.Views.OverlayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -103,6 +103,12 @@
                                     Command="{Binding OpenHistoryCommand}" ToolTip="History" />
                             <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Clipboard}"
                                     Command="{Binding CopyLastCommand}" ToolTip="Copy the last dictation" />
+                            <!-- Only while there is something to recover, so the bar is not carrying a
+                                 button that does nothing for the whole time nothing has gone wrong. -->
+                            <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Rescue}"
+                                    Command="{Binding OpenDictationBoxCommand}"
+                                    ToolTip="Open the dictation that did not arrive"
+                                    Visibility="{Binding IsRecoverable, Converter={StaticResource BoolToVisible}}" />
 
                             <TextBlock Text="{Binding Toast}" VerticalAlignment="Center" Margin="8,0,0,0"
                                        FontSize="11" Foreground="{StaticResource State.Injecting}" />

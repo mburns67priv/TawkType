@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Models;
@@ -365,7 +365,7 @@ public sealed class DictationEngine : IDisposable
                 delivery,
                 target.Description ?? target.Verdict.ToString());
 
-            Completed?.Invoke(this, result with { Delivery = delivery, Reason = reason });
+            Completed?.Invoke(this, result with { Delivery = delivery, Reason = reason, Target = target });
 
             SetState(DictationState.Idle);
         }
