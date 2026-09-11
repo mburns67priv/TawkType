@@ -38,6 +38,9 @@ public sealed class HotkeyGesture
     /// <summary>True while the combination is held and a dictation should be running.</summary>
     public bool IsActive { get; private set; }
 
+    /// <summary>The combination being watched, so a caller can tell whether a rebind changes anything.</summary>
+    public Hotkey Hotkey => _hotkey;
+
     /// <summary>
     /// Points the gesture at a different combination. Returns true when a dictation was in progress
     /// and has therefore ended: the keys being held are no longer the ones we are watching, and the

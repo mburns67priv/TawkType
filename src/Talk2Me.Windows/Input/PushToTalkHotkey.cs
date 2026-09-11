@@ -5,19 +5,19 @@ using Talk2Me.Core.Input;
 namespace Talk2Me.Windows.Input;
 
 /// <summary>
-/// Turns raw keyboard-hook events into clean Pressed / Released pairs for the configured combination.
+/// The Win32 end of the push-to-talk keys: installs the low-level hook, hands each event to
+/// <see cref="Activation"/>, and raises whatever that says happened.
 ///
-/// The decisions all live in <see cref="HotkeyGesture"/>, which is pure and tested; this class is the
-/// wiring between it and the Win32 hook. Everything that made this fragile — auto repeat, releasing a
-/// modifier first, changing the hotkey mid-hold — is a sequence of key events, and sequences are worth
-/// testing without a real keyboard.
+/// Every decision — hold, toggle, Escape, auto repeat, which keys were swallowed — lives in Core,
+/// where it is pure and tested. The sequences that broke in practice are impossible to produce
+/// reliably by hand, so they are worth testing without a real keyboard.
 /// </summary>
 public sealed class PushToTalkHotkey : IPushToTalkHotkey
 {
     private readonly ISettingsProvider _settings;
     private readonly ILogger<PushToTalkHotkey> _logger;
     private readonly LowLevelKeyboardHook _hook = new();
-    private readonly HotkeyGesture _gesture = new(Hotkey.Default);
+    private readonly Activation _activation = new(Hotkey.Default);
 
     public PushToTalkHotkey(ISettingsProvider settings, ILogger<PushToTalkHotkey> logger)
     {
@@ -32,10 +32,21 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
 
     public event EventHandler? Released;
 
+    public event EventHandler? CancelRequested;
+
+    public bool DictationInProgress
+    {
+        get => _activation.DictationInProgress;
+        set => _activation.DictationInProgress = value;
+    }
+
     public void Start()
     {
         _hook.Install();
-        _logger.LogInformation("Keyboard hook installed; push-to-talk = {Hotkey}", Describe());
+        _logger.LogInformation(
+            "Keyboard hook installed; hold = {Hold}, toggle = {Toggle}",
+            Hotkey.ParseOrDefault(_settings.Current.Hotkey),
+            string.IsNullOrWhiteSpace(_settings.Current.ToggleHotkey) ? "off" : _settings.Current.ToggleHotkey);
     }
 
     public void Stop()
@@ -43,12 +54,10 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
         _hook.Uninstall();
 
         // The key-ups for anything held will never arrive now.
-        if (_gesture.IsActive)
+        if (_activation.Reset())
         {
             Released?.Invoke(this, EventArgs.Empty);
         }
-
-        _gesture.Reset();
     }
 
     public void Dispose()
@@ -57,22 +66,34 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
         _hook.Dispose();
     }
 
-    private string Describe() => Hotkey.ParseOrDefault(_settings.Current.Hotkey).ToString();
-
     private void ApplySettings()
     {
         var text = _settings.Current.Hotkey;
-        if (!Hotkey.TryParse(text, out var hotkey))
+        if (!Hotkey.TryParse(text, out var hold))
         {
             _logger.LogWarning("Unknown hotkey '{Hotkey}'; falling back to {Default}", text, Hotkey.Default);
-            hotkey = Hotkey.Default;
+            hold = Hotkey.Default;
         }
 
-        var suppress = _settings.Current.SuppressHotkey && !hotkey.IsBareModifier;
+        Hotkey? toggle = null;
+        var toggleText = _settings.Current.ToggleHotkey;
+        if (!string.IsNullOrWhiteSpace(toggleText))
+        {
+            if (Hotkey.TryParse(toggleText, out var parsed))
+            {
+                toggle = parsed;
+            }
+            else
+            {
+                _logger.LogWarning("Unknown toggle hotkey '{Hotkey}'; leaving toggle off", toggleText);
+            }
+        }
 
-        // Changing the hotkey while one is held strands the dictation: the release we are waiting for
+        var suppress = _settings.Current.SuppressHotkey && !hold.IsBareModifier;
+
+        // Changing the keys while one is held strands the dictation: the release we are waiting for
         // belongs to a combination we are no longer watching.
-        if (_gesture.Rebind(hotkey, suppress))
+        if (_activation.Rebind(hold, suppress, toggle))
         {
             Released?.Invoke(this, EventArgs.Empty);
         }
@@ -85,10 +106,14 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
             return;
         }
 
-        var decision = _gesture.Handle(e.VirtualKey, e.IsDown);
+        var decision = _activation.Handle(e.VirtualKey, e.IsDown);
         e.Handled = decision.Swallow;
 
-        if (decision.Pressed)
+        if (decision.Cancel)
+        {
+            CancelRequested?.Invoke(this, EventArgs.Empty);
+        }
+        else if (decision.Pressed)
         {
             Pressed?.Invoke(this, EventArgs.Empty);
         }

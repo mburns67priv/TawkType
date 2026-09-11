@@ -105,6 +105,7 @@ public sealed class DictationEngine : IDisposable
         _started = true;
         _hotkey.Pressed += OnPressed;
         _hotkey.Released += OnReleased;
+        _hotkey.CancelRequested += OnCancelRequested;
         _audio.LevelChanged += OnLevelChanged;
         _hotkey.Start();
         _logger.LogInformation("Dictation engine started; hotkey = {Hotkey}", _settings.Current.Hotkey);
@@ -127,6 +128,7 @@ public sealed class DictationEngine : IDisposable
         _hotkey.Stop();
         _hotkey.Pressed -= OnPressed;
         _hotkey.Released -= OnReleased;
+        _hotkey.CancelRequested -= OnCancelRequested;
         _audio.LevelChanged -= OnLevelChanged;
 
         CancelDictation();
@@ -167,6 +169,12 @@ public sealed class DictationEngine : IDisposable
         session.Cancel();
         StopCapture();
         SetState(DictationState.Idle);
+
+        // Cancelled while still listening: no worker will ever run, so nothing else will clear it up.
+        if (session.Work is null)
+        {
+            DiscardSession(session);
+        }
     }
 
     public void Dispose() => Stop();
@@ -178,6 +186,8 @@ public sealed class DictationEngine : IDisposable
     public void EndDictation() => OnReleased(this, EventArgs.Empty);
 
     private void OnLevelChanged(object? sender, float level) => AudioLevelChanged?.Invoke(this, level);
+
+    private void OnCancelRequested(object? sender, EventArgs e) => CancelDictation();
 
     private void OnPressed(object? sender, EventArgs e)
     {
@@ -199,6 +209,10 @@ public sealed class DictationEngine : IDisposable
             _session?.Dispose();
             _session = new Session(Interlocked.Increment(ref _nextSessionId));
             _pressedAtTicks = Stopwatch.GetTimestamp();
+
+            // From here until the session is discarded, Escape belongs to us rather than to whatever
+            // the user is typing into.
+            _hotkey.DictationInProgress = true;
             started = SetStateLocked(DictationState.Listening);
         }
 
@@ -457,6 +471,8 @@ public sealed class DictationEngine : IDisposable
             _session.Dispose();
             _session = null;
         }
+
+        _hotkey.DictationInProgress = false;
     }
 
     private void Fail(Exception ex)

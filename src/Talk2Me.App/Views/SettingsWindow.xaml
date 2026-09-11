@@ -386,9 +386,19 @@
                         <StackPanel Style="{StaticResource Field}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Push-to-talk key" />
                             <views:HotkeyBox Hotkey="{Binding Draft.Hotkey, Mode=TwoWay}" />
-                            <TextBlock Style="{StaticResource Ui.Hint}"
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
                                        Text="Hold to talk, release to type. Click the box and hold the keys you want — Esc leaves it as it is." />
                         </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Toggle key (optional)" />
+                            <views:HotkeyBox Hotkey="{Binding Draft.ToggleHotkey, Mode=TwoWay}" AllowEmpty="True" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="Press once to start, again to finish — for long passages, or when holding a key is awkward. Backspace clears it." />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,18" TextWrapping="Wrap"
+                                   Text="Esc abandons a dictation in progress. Nothing is typed and nothing is recorded." />
 
                         <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
                                   IsChecked="{Binding Draft.SuppressHotkey}">

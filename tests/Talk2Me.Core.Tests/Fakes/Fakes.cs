@@ -10,6 +10,11 @@ public sealed class FakeHotkey : IPushToTalkHotkey
 
     public event EventHandler? Released;
 
+    public event EventHandler? CancelRequested;
+
+    /// <summary>Set by the engine; the tests read it to check Escape is only taken when it should be.</summary>
+    public bool DictationInProgress { get; set; }
+
     public bool IsStarted { get; private set; }
 
     public void Start() => IsStarted = true;
@@ -23,6 +28,9 @@ public sealed class FakeHotkey : IPushToTalkHotkey
     public void Press() => Pressed?.Invoke(this, EventArgs.Empty);
 
     public void Release() => Released?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Escape, as the hook would report it.</summary>
+    public void RequestCancel() => CancelRequested?.Invoke(this, EventArgs.Empty);
 }
 
 public sealed class FakeAudioCapture : IAudioCapture

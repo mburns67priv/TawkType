@@ -10,6 +10,19 @@ public interface IPushToTalkHotkey : IDisposable
 
     event EventHandler? Released;
 
+    /// <summary>
+    /// The user asked to abandon what is in progress — Escape, while a dictation is running. Only
+    /// raised while <see cref="DictationInProgress"/> is set, so Escape belongs to the focused
+    /// application the rest of the time.
+    /// </summary>
+    event EventHandler? CancelRequested;
+
+    /// <summary>
+    /// Set by the engine while there is something to cancel. It is the hotkey layer that sees Escape
+    /// first, and it has no other way to know whether taking it would be stealing.
+    /// </summary>
+    bool DictationInProgress { get; set; }
+
     /// <summary>Begins listening. On Windows this must be called from a thread that pumps messages (the UI thread).</summary>
     void Start();
 

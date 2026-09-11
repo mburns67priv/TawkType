@@ -27,6 +27,10 @@ public partial class HotkeyBox : UserControl
             FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
             OnHotkeyChanged));
 
+    /// <summary>Whether the box may be left with nothing in it, as an optional second shortcut is.</summary>
+    public static readonly DependencyProperty AllowEmptyProperty = DependencyProperty.Register(
+        nameof(AllowEmpty), typeof(bool), typeof(HotkeyBox), new PropertyMetadata(false));
+
     /// <summary>Keys currently held, in the order they went down, so the display reads as it was typed.</summary>
     private readonly List<int> _pressed = [];
 
@@ -36,6 +40,12 @@ public partial class HotkeyBox : UserControl
     {
         InitializeComponent();
         Show(Hotkey);
+    }
+
+    public bool AllowEmpty
+    {
+        get => (bool)GetValue(AllowEmptyProperty);
+        set => SetValue(AllowEmptyProperty, value);
     }
 
     /// <summary>The combination, in the form <see cref="Core.Input.Hotkey"/> reads and writes.</summary>
@@ -83,6 +93,13 @@ public partial class HotkeyBox : UserControl
 
         if (key == Key.Escape)
         {
+            Keyboard.ClearFocus();
+            return;
+        }
+
+        if (AllowEmpty && key is Key.Back or Key.Delete)
+        {
+            Hotkey = string.Empty;
             Keyboard.ClearFocus();
             return;
         }
@@ -163,8 +180,14 @@ public partial class HotkeyBox : UserControl
             return; // still being constructed
         }
 
-        Display.Text = Core.Input.Hotkey.TryParse(hotkey, out var parsed)
-            ? parsed.ToString()
-            : Core.Input.Hotkey.Default.ToString();
+        if (Core.Input.Hotkey.TryParse(hotkey, out var parsed))
+        {
+            Display.Text = parsed.ToString();
+            return;
+        }
+
+        // An optional shortcut that is not set says so; a required one falls back to the default
+        // rather than showing the user a blank box that still has a working key behind it.
+        Display.Text = AllowEmpty ? "Not set" : Core.Input.Hotkey.Default.ToString();
     }
 }

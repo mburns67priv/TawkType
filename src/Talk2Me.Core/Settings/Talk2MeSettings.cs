@@ -32,6 +32,13 @@ public sealed class Talk2MeSettings
     /// <summary>When true the hotkey is swallowed so the focused app never sees it. Leave off for modifier keys.</summary>
     public bool SuppressHotkey { get; set; }
 
+    /// <summary>
+    /// Optional second combination that starts and stops a dictation with separate presses, rather
+    /// than being held. Empty means off. For long passages, and for anyone who cannot comfortably
+    /// hold a key while speaking.
+    /// </summary>
+    public string ToggleHotkey { get; set; } = string.Empty;
+
     /// <summary>ISO 639-1 code, or "auto".</summary>
     public string Language { get; set; } = "en";
 
