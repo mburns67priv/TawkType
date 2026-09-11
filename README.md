@@ -73,8 +73,10 @@ per-user, needs no administrator rights, and updates itself from that same relea
 > absence of a paid certificate, not about anything found in the file.
 
 The installer is around 37 MB. **Speech models are not included and are not fetched automatically.**
-On first run TawkType tells you no model is downloaded and waits; go to **Settings → Transcription**
-and pick one. Nothing that large is ever downloaded without you asking for it.
+The first time TawkType runs it walks you through setting up — microphone, language, the model and its
+download, the key you want to hold — and finishes by having you dictate a sentence into a box of its
+own, so you leave knowing it works rather than hoping. Nothing that large is downloaded without you
+asking for it, and the walkthrough is on the tray menu if you want it again.
 
 Or [run from source](#running-from-source).
 
@@ -134,12 +136,13 @@ cd TawkType
 dotnet run --project src/TawkType.App
 ```
 
-TawkType lives in the system tray and on the taskbar. On first run it has no speech model, says so on
-the status bar, and waits: open **Settings → Transcription** and download one. Parakeet is about
-640 MB, Whisper `large-v3-turbo` about 1.5 GB, and they go into
-`%LOCALAPPDATA%\TawkType\models`. The bar shows the progress.
+TawkType lives in the system tray and on the taskbar. The first run opens a short setup: it checks the
+microphone can hear you, downloads and loads the model your language needs, records the key you want
+to hold, and ends with you dictating a sentence into its own box. Parakeet is about 640 MB, Whisper
+`large-v3-turbo` about 1.5 GB, and they go into `%LOCALAPPDATA%\TawkType\models`.
 
-Then hold Right Ctrl and talk.
+After that, hold Right Ctrl and talk. `--setup` opens the walkthrough again, as does **Set up
+TawkType…** on the tray menu.
 
 ## The status bar
 
@@ -228,7 +231,7 @@ dotnet run --project tools/TawkType.Focus -- 15           # what the focus probe
 dotnet run --project tools/TawkType.Brand                 # regenerate the icon and logos
 ```
 
-Launch flags: `--settings`, `--history`, `--dictation-box`, `--overlay-demo`.
+Launch flags: `--settings`, `--history`, `--dictation-box`, `--setup`, `--overlay-demo`.
 
 The version comes from the last release tag — `git describe` — so a local build reports the release it
 descends from rather than a number someone forgot to bump. `-p:Version` still wins where it matters.
@@ -264,7 +267,14 @@ Full list, with licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Licence
 
-**None yet — all rights reserved.** You're welcome to read the source. You do not currently have
-permission to use, copy, modify or distribute it. If you'd like to, open an issue and ask.
+**Source available, not open source.** See [LICENSE.md](LICENSE.md).
+
+Use TawkType for anything you like — personally, at work, in a business of any size — free, with no
+limit on machines. Read the source, and build it for your own use: it is published so the privacy
+claims above can be checked rather than taken on trust.
+
+What the licence does not give you is the right to redistribute TawkType or to build something else
+out of it: no copies, no modified versions, no porting it, no taking parts of the source into another
+project. If you want to do something it does not allow, open an issue and ask.
 
 [tawktype.com](https://tawktype.com) · built by [Jupitor Studio](https://github.com/JupitorStudioDev).

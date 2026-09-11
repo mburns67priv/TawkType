@@ -20,9 +20,9 @@ CC BY 4.0 permits commercial use, redistribution and modification provided NVIDI
 licence is linked, and any changes are stated. TawkType credits NVIDIA here, in the README and in the
 application itself (Settings → General → About).
 
-> If you fork TawkType and bundle the model weights with an installer, you are then *sharing* the
-> material, and CC BY 4.0's attribution terms apply to your distribution as well — carry this notice
-> with it.
+> Note for any future TawkType build that ships the weights rather than downloading them: bundling
+> them in an installer is *sharing* the material, so CC BY 4.0's attribution terms apply to that
+> distribution as well — this notice has to travel with it.
 
 ### OpenAI Whisper (large-v3-turbo and other sizes)
 
@@ -56,6 +56,7 @@ Whisper.net bundles builds of **whisper.cpp** (MIT, © 2023 Georgi Gerganov), an
 
 ## TawkType itself
 
-TawkType carries no licence at this time, which means all rights are reserved by Jupitor Studio. You may
-read the source; you do not have permission to use, copy, modify or distribute it. If you want to do any
-of those things, open an issue and ask.
+TawkType is **source available, not open source** — see [LICENSE.md](LICENSE.md). You may use the
+application for any purpose, free, and you may read and build the source. You may not redistribute it
+or make other works based on it. The components listed above keep their own licences, which the
+TawkType licence does not alter.

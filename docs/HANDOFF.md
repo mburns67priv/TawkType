@@ -13,9 +13,9 @@ machine. There is no account and no telemetry, and the only thing that ever leav
 optional Claude rewrite, which is off until someone turns it on and supplies a key.
 
 Owner: Jupitor Studio. Home: [tawktype.com](https://tawktype.com). Working name was **Murmur**, then
-**Talk2Me**; it is now **TawkType**, because Talk2Me turned out to be another dictation product. The
-rename is complete — see "The rename" below for the three values that still say Talk2Me on purpose,
-and why each one has to.
+a second name that turned out to be another dictation product's; it is now **TawkType**. That older
+name is a trademark belonging to somebody else, so it is not recorded anywhere in this repository —
+not in a string, an identifier, an environment variable or a comment. See "The rename" below.
 
 Windows only.
 
@@ -25,13 +25,16 @@ Windows only.
   was deleted, releases and tags alike, because nothing had ever been installed from them. It is the
   first build whose install and data folders cannot collide. **Nothing here has been run outside a
   developer checkout**; that, not the release, is what is overdue.
-- **Builds clean** with `dotnet build`, **329 unit tests pass** with `dotnet test` in about two seconds.
+- **Builds clean** with `dotnet build`, **370 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
 - **Renamed to TawkType, completely.** Name, mark, palette, namespaces, projects, solution, assembly,
-  window identity, installer, data folder. Nothing in the repository says Talk2Me, and the migration
-  code that used to carry old data forward has been deleted — nothing was ever installed under the
+  window identity, installer, data folder. Nothing in the repository carries the old name, and the
+  migration code that used to carry old data forward has been deleted — nothing was ever installed under the
   old name, so there was nothing to carry. See "The rename" below.
+- **It has a licence now, and it is not an open-source one.** `LICENSE.md`: use the application for
+  anything, free; read and build the source; no redistribution and no derivative works. Source
+  available, not open source — do not describe it as open source anywhere.
 - **The install folder and the data folder differ by three letters.** The app installs to
   `%LOCALAPPDATA%\TawkTypeApp`; data lives in `%LOCALAPPDATA%\TawkType`. Velopack clears its own folder
   on every install, so those two must never converge — gotcha 19, and `DataFolderTests` reads the id
@@ -57,8 +60,14 @@ Windows only.
 - **The review in `docs/REVIEW-2026-09-11.md` is mostly addressed.** Findings 1–5, 7 and 8 are closed;
   10, 11 and 14 are partly closed. **Finding 6, the clipboard, is the largest still fully open**, and
   it matters more now that multiline results always paste. That doc carries a status table.
-- **`docs/FEATURE-RESEARCH-2026-09-11.md` §1–§7 are built**, except §5's per-application defaults,
-  which the section itself puts later. §8 (first run) and §9 (visible privacy) are untouched.
+- **`docs/FEATURE-RESEARCH-2026-09-11.md` §1–§8 are built**, except §5's per-application defaults,
+  which the section itself puts later. §9 (visible privacy during use) is untouched.
+- **There is a first run** (§8): seven steps ending in a real dictation into a box TawkType owns. It
+  saves each answer as it is given, because the later steps use them, and no step is satisfied by the
+  user agreeing to it — the microphone gate wants a level, the model gate wants an engine that
+  *loaded*, and the last gate wants words back from the pipeline. **The practice dictation is the one
+  part nobody has watched work**: an agent session has no voice. Everything else in the flow was
+  driven and screenshotted, including the download and the warm-up.
 
 ## Repo map
 
@@ -73,6 +82,8 @@ src/TawkType.Core            pipeline state machine, interfaces, settings, regex
                               Settings/  DictationMode, VocabularyEdit, VocabularyFormat, NumberField
                               History/   DictationHistoryStore, HistoryQuery, LastDictation
                               Pipeline/  DictationEngine, Recovery
+                              Onboarding/ SetupPlan (the steps and their gates), HotkeyCheck,
+                                         MicrophoneCheck
 src/TawkType.Windows         WH_KEYBOARD_LL hook, WaveIn mic capture, SendInput + clipboard injection,
                             UiaFocusProbe (can text land here, and what is either side of the caret),
                             Win32WindowActivator, DPAPI key store, Run-key startup, taskbar identity
@@ -80,8 +91,9 @@ src/TawkType.Transcription   ParakeetTranscriber (sherpa-onnx), WhisperTranscrib
                             TranscriberRouter, model downloaders, ModelStorage
 src/TawkType.Llm             ClaudeLlmClient — the only project that references the Anthropic SDK
 src/TawkType.App             WPF tray app (namespace TawkType.Desktop): App.xaml has the palette + mark
-                            geometry; Views/ has OverlayWindow, SettingsWindow, HistoryWindow,
-                            DictationBoxWindow, RememberWindow, TaskbarWindow, HotkeyBox, BrandMark;
+                            geometry; Views/ has OverlayWindow, SettingsWindow, SetupWindow,
+                            HistoryWindow, DictationBoxWindow, RememberWindow, TaskbarWindow,
+                            HotkeyBox, BrandMark;
                             Themes/ has Light.xaml, Dark.xaml and the templated Controls.xaml;
                             Services/ has ModelMaintenance, ThemeManager, UpdateService, SoundCues,
                             Logging/ has the file logger
@@ -89,7 +101,7 @@ tools/TawkType.Bench         transcribes a WAV with one or both engines, prints 
 tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
 tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/TawkType.Core.Tests    xUnit, 329 tests. One file per behaviour; the names are the specification.
+tests/TawkType.Core.Tests    xUnit, 370 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -106,8 +118,9 @@ dotnet run --project tools/TawkType.Brand      # regenerate icon + exports after
 ```
 
 Dev launch flags: `--settings` opens Settings at start; `--history` opens the history window;
-`--dictation-box` opens the recovery scratchpad; `--overlay-demo` cycles the overlay through every
-state so it can be styled without dictating.
+`--dictation-box` opens the recovery scratchpad; `--setup` opens the first-run walkthrough (it opens
+by itself when `settings.json` is absent); `--overlay-demo` cycles the overlay through every state so
+it can be styled without dictating.
 
 Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust, no Python.
 
@@ -181,6 +194,15 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Cycling the mode does nothing mid-dictation | Changing how the words will be treated halfway through saying them is not something anyone means, and it would silently reinterpret a recording already in progress. |
 | Switching mode saves | A mode nobody can see the state of after a restart is worse than one extra settings write. The bar carries its name for the same reason. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
+| Source available, not open source | The source is published so the privacy claim can be checked rather than believed — that is most of the argument for a local dictation app. It is not published so somebody can ship a fork. Use is unrestricted and free, including commercially; distribution and derivative works are not granted. |
+| A bespoke licence rather than an off-the-shelf one | There is no well-known licence for "any use, no derivatives". PolyForm Strict looks like the fit and is **noncommercial** — its permitted purposes are personal use and noncommercial organisations. Noncommercial, Shield and Small-Business all permit derivative works; Internal-Use excludes personal use. Check the text before repeating any claim about which licence does what. |
+| The licence is reachable from inside the app | Settings → General → About has a Licence button. Most people who run TawkType will never see the repository, and a proprietary licence nobody can find is not much of one. |
+| First run saves each answer as it is given | The steps after it use them for real: the meter opens the device just chosen, the engine loads that language's model, the hook binds that key. A draft held back until Finish would have the user practise against the old settings — so there is no Cancel button, because there is nothing to roll back. |
+| No step is satisfied by the user agreeing to it | A wizard that collects settings can end with everything configured and nothing working. `SetupPlan` gates on observations instead: a level above the noise floor, a model that *loaded*, words back from a real dictation. "Ready" means it worked. |
+| The model gate wants the load as well as the download | A file on disk is not an engine — a missing runtime or a truncated download fails at initialisation. Calling that ready would be a lie told at the exact moment a new user is deciding whether this works. It also means the practice dictation is not the one waiting for a runtime to start for the first time. |
+| The practice box is typed into by the real injector | Nothing puts the words on screen by hand. The same key, the same engine, the same delivery — so a broken injection shows up in the one place where someone is watching, rather than being counted as a success. |
+| A settings file that already exists counts as set up | `SetupCompleted` is nullable, and `Migrate` reads null as "done". Onboarding is for a machine that has never run TawkType, not for everybody who updates to the version that added it. |
+| `HotkeyCheck` never says a combination is free | Windows cannot be asked what a key is already bound to. It names the shortcuts nearly everyone has, refuses the keys TawkType already binds, and says nothing about the rest — an unknown combination comes back usable, not proven clear. |
 
 ## Measured numbers (owner's machine: i7-11700F, RTX 4060 Ti 8 GB)
 
@@ -195,8 +217,8 @@ Both transcripts were otherwise identical and correctly punctuated.
 
 ## The rename
 
-The app is **TawkType**, at [tawktype.com](https://tawktype.com). Talk2Me was already another dictation
-product. The design package is `docs/tawktype-brand/BRAND-PACKAGE.md`; the implementer's half is
+The app is **TawkType**, at [tawktype.com](https://tawktype.com). The previous working name was
+already another dictation product's, and is a trademark of theirs. The design package is `docs/tawktype-brand/BRAND-PACKAGE.md`; the implementer's half is
 `branding/BRAND.md`.
 
 **It is now a complete rename.** The first pass changed only what a user reads and left six identifiers
@@ -208,7 +230,7 @@ removed — see below — because nothing was ever installed for them to find:
 |---|---|---|
 | Data folder | `%LOCALAPPDATA%\TawkType` | Nothing to carry: no release was ever installed. The migration code that did carry it has been removed. |
 | DPAPI entropy | `TawkType.ApiKey.v1` | No fallback. An `apikey.dat` written under the old name will not decrypt; the user is asked for the key again. |
-| Run-key value | `TawkType` | No fallback. An old `Talk2Me` entry, if one ever existed, would have to be removed by hand. |
+| Run-key value | `TawkType` | No fallback. An entry under the old name, if one ever existed, would have to be removed by hand. |
 | Window AUMID | `JupitorStudio.TawkType` | It only has to be an identity no shortcut claims, which this is. Re-check gotcha 20 on a real install. |
 | Velopack packId | `TawkTypeApp` | **Does not migrate.** See below. The `App` suffix is what keeps it clear of the data folder. |
 | Assembly, namespaces, projects, solution | `TawkType.*` | Internal; nothing outside the repo refers to them. |
@@ -228,7 +250,7 @@ uninstalling between tests. So there was no copy to strand, and the releases tha
 have since been deleted outright. That is the whole reason this was the moment: the cost of renaming a
 package identity is zero before the first install and never zero again.
 
-It moved twice. `Talk2MeApp` to `TawkType` with the rename, then to `TawkTypeApp` when the data folder
+It moved twice. The original id to `TawkType` with the rename, then to `TawkTypeApp` when the data folder
 was flattened to `%LOCALAPPDATA%\TawkType` and the two would otherwise have collided.
 
 **The migration code has been removed**, along with the API-key and startup fallbacks that went with
@@ -236,12 +258,53 @@ it. It existed to carry data forward from three older folder names, and there is
 carry: no release has been installed, and the owner has been uninstalling between tests. Anything
 still sitting under an old name is a spent developer folder that can be deleted by hand.
 
-### Nothing is called Talk2Me any more
+### The old name appears nowhere, and that is a requirement
 
-The three read-only values that were — the folders `LegacyMigration` read, the entropy old API keys
-were encrypted with, and the old Run-key name — are gone with the migration code. There is no path
-from a Talk2Me-era folder, key or startup entry into this build, and none is wanted: nothing was ever
-installed from a release, so there is nothing out there to rescue.
+It belongs to another company. Treat any reappearance of it as a defect rather than as untidiness.
+
+The three read-only values that carried it — the folders `LegacyMigration` read, the entropy old API
+keys were encrypted with, and the old Run-key name — went with the migration code. There is no path
+from a folder, key or startup entry under that name into this build, and none is wanted: nothing was
+ever installed from a release, so there is nothing out there to rescue.
+
+Seven things survived the bulk rename and were found later, by grepping case-*insensitively* across
+every file type rather than trusting the claim above. That is the lesson: the first sweep matched one
+capitalisation in `.cs` files, and not one of these was there.
+
+- `Directory.Build.props` set the old name as `<Product>`, which the compiler stamps into every
+  assembly — so the exe's Properties dialog and Task Manager both showed it.
+- The vocabulary export offered it, lower-cased, as its default filename.
+- `app.manifest` declared an `<assemblyIdentity>` under it. Vestigial for a .NET 8 app — the AUMID
+  that matters to the taskbar is set in code, not here — but embedded in the binary all the same.
+  **Worth a glance when the install of gotcha 20 is finally done**, since that fix was hard-won and
+  this is the only identity string that has changed since it was made.
+- The four taskbar-debugging environment variables, now `TAWKTYPE_TEST_AUMID`, `_ICONRES`,
+  `_WINDOWID` and `_SKIPPROP`. Gotcha 20 names them, so it changed with them.
+- A comment in `release.yml` naming the old packId.
+- The worked example in `docs/FEATURE-RESEARCH-2026-09-11.md`, which used the name to illustrate a
+  spelling rule.
+- A citation note in `docs/REVIEW-2026-09-11.md` giving the old project paths.
+
+The untracked working material in the repo folder was swept too, though git does not see it: the
+design package's announcement copy, the website's own audit note, and a dead v1 deployment snapshot
+under `website/.sites-runtime/` whose FAQ answered "why does the installer say [the old name]?" —
+obsolete as well as unwanted, since that stopped being the install identity at v0.5.0. The current
+site source and every snapshot from v2 on were already clean.
+
+**Three things sit outside this repository:**
+
+- **The checkout sits in a folder named after the old name** — `~/source/repos/<old name>`. Renaming
+  it is a `git mv`-free, close-everything-first job: quit the app, close the IDE, rename the folder to
+  `TawkType`, reopen. Nothing in the build refers to the folder by name.
+- **The live site is not built from this repository.** tawktype.com is live and is produced by a
+  separate site builder that has the new name; the untracked `website/` folder here is an earlier
+  prototype, not the source of truth, and nothing in it is deployed. It was swept anyway.
+- **Git history still carries it, and history is published.** 30 of the 69 commits name it in their
+  message and 50 touched content containing it, all of it on GitHub. Only a rewrite would remove that
+  — `git filter-repo` over messages and blobs, then a force push, which changes every SHA from the
+  first commit on and breaks every existing clone and link. Nothing is installed from those releases
+  and the repository is the owner's, so the cost is low, but it is a deliberate decision rather than
+  tidying: **ask before doing it.**
 
 ## Gotchas the next person will hit
 
@@ -293,8 +356,8 @@ installed from a release, so there is nothing out there to rescue.
     turning Appearance → "Keep the pill on screen" from off to on.
 19. **The packId must never name the folder that holds user data.** Velopack installs to
     `%LOCALAPPDATA%\<packId>` and *clears that folder first*. Early builds kept user data in
-    `%LOCALAPPDATA%\Talk2Me` and packed with `Talk2Me` as the id, which destroyed settings, history
-    and gigabytes of downloaded models before the app could run. It happened once, during development.
+    `%LOCALAPPDATA%\<name>` and packed with that same `<name>` as the id, which destroyed settings,
+    history and gigabytes of downloaded models before the app could run. It happened once, during development.
 
     Today the data folder is `%LOCALAPPDATA%\TawkType` and the id is `TawkTypeApp`. **They differ by
     that suffix and nothing else**, which is a thin margin for something this destructive — so
@@ -327,9 +390,9 @@ installed from a release, so there is nothing out there to rescue.
     - `WM_SETICON` with `ExtractIconEx`, restarting Explorer, and a fresh uninstall/reinstall all
       change nothing. Neither does an unregistered *process* AUMID with no window property.
     - **How to iterate on this without packing an installer.** The whole difference between a plain
-      build and an installed one is the process AUMID, so `TALK2ME_TEST_AUMID` makes `App` claim one at
-      startup and reproduces the bug from `dotnet build`. `TALK2ME_TEST_ICONRES`,
-      `TALK2ME_TEST_WINDOWID` and `TALK2ME_TEST_SKIPPROP` then vary the icon, the identity, or skip the
+      build and an installed one is the process AUMID, so `TAWKTYPE_TEST_AUMID` makes `App` claim one at
+      startup and reproduces the bug from `dotnet build`. `TAWKTYPE_TEST_ICONRES`,
+      `TAWKTYPE_TEST_WINDOWID` and `TAWKTYPE_TEST_SKIPPROP` then vary the icon, the identity, or skip the
       property, so a trial is a rebuild and a screenshot rather than a pack, uninstall and install.
 21. **`TaskbarWindow` must keep a normal window style.** It looks like it wants
     `WindowStyle="None"` + `AllowsTransparency` since it is never meant to be seen, but that stops WPF
@@ -363,7 +426,7 @@ installed from a release, so there is nothing out there to rescue.
 
     **Reads are the dangerous half, not writes.** The overlay serves back whatever a session — or an
     *earlier* session — wrote into it, and the result is indistinguishable from the real machine. A
-    phantom install from a previous session reported a 129 MB `%LOCALAPPDATA%\Talk2MeApp` folder
+    phantom install from a previous session reported a 129 MB install folder under the old packId
     complete with `Update.exe`, and registry uninstall entries to match. Acting on that produced
     confident, wrong advice about the user's own machine, twice in one session. The rule: **never
     describe the user's `%LOCALAPPDATA%`, `%APPDATA%` or `HKCU` back to them.** Give them a script and
@@ -453,10 +516,24 @@ installed from a release, so there is nothing out there to rescue.
     the warning it carries is this: deleting a published package breaks any installed copy polling
     that feed. It was free here only because there were no such copies. It will not be free again.
 
+45. **The first-run meter and the engine share one microphone.** `SetupViewModel` opens the same
+    `IAudioCapture` singleton the pipeline uses, purely to watch the level, and throws the clip away.
+    If a dictation starts while that step is open the engine takes the device over — so the meter
+    unsubscribes and *leaves the capture alone* rather than calling `Stop()`, which would take the
+    user's recording away mid-sentence. The engine's clip then carries a little of the metered audio
+    in front of it, which is harmless. Do not "tidy" that into an unconditional Stop.
+
+46. **An empty `TextBox` with `MaxWidth` and `HorizontalAlignment="Left"` collapses to nothing.** It
+    sizes itself to the text it does not have yet, so the practice box rendered about 40px wide and
+    there was nothing visible to click into. `Width`, not `MaxWidth`, for a box that starts empty.
+    Caught by screenshotting the step; the XAML compiles either way.
+
 ## Roadmap, in the order I would do it
 
-1. **Install v0.5.0 and use it.** Nothing has ever been installed from any release, so this is a
-   first install with no old copy to remove. What it proves is that the packaged build works at all
+1. **Install the current build and use it.** Nothing has ever been installed from any release, so
+   this is a first install with no old copy to remove. It is also the first run of the first run:
+   a clean machine with no `settings.json` opens the setup window, and its last step is the
+   dictation nobody has yet watched land. What it proves is that the packaged build works at all
    outside a developer checkout: the Start Menu entry, **the taskbar icon (gotcha 20, never once
    tested against a real install)**, the tray, downloading a model from Settings, and a dictation
    landing in another application.
@@ -480,8 +557,9 @@ installed from a release, so there is nothing out there to rescue.
 6. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
    it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
    Feature research §5 calls it the "later" half of modes.
-7. **First run** (§8) and **visible privacy** (§9): an onboarding flow that ends in a successful
-   dictation, and a panel that shows what is actually kept rather than what the settings imply.
+7. **Visible privacy** (§9): a panel that shows what is actually kept during use, rather than what
+   the settings imply. First run states it once, at the end, from what actually happened — but that
+   is a sentence at a moment, not an indicator while dictating.
 8. **Streaming partials** while the key is held. Parakeet is a transducer; it suits this.
 9. **Local `ILlmClient`** so the rewrite works offline and "nothing leaves this machine" holds with
    cleanup switched on.
@@ -566,6 +644,22 @@ installed from a release, so there is nothing out there to rescue.
     the README.
 31. Cut v0.5.0, then deleted every earlier release and tag — safe exactly once, while nothing had been
     installed from any of them.
+32. Built the first-run experience (feature research §8): `SetupPlan`, `HotkeyCheck` and
+    `MicrophoneCheck` in Core with 41 tests, a seven-step `SetupWindow` that saves as it goes, a
+    `SetupCompleted` flag whose migration treats an existing settings file as already set up, and a
+    tray item and `--setup` flag to open it again. Drove every step of the running window and
+    screenshotted it — including a real 78 MB download and warm-up — except the practice dictation,
+    which needs a voice.
+33. Took the previous working name out of the repository entirely, on the owner's instruction: it is
+    another company's trademark. Seven survivors of the bulk rename — the `Product` stamped into
+    every assembly, the vocabulary export's default filename, the manifest's assembly identity, the
+    four taskbar-debugging environment variables, a workflow comment, a worked example in the feature
+    research, and a citation note in the review. Found by grepping case-insensitively across every
+    file type rather than trusting the claim that none were left.
+34. Licensed it: `LICENSE.md`, source available rather than open source — unrestricted free use of
+    the application, no redistribution, no derivative works, name and mark reserved, contributions
+    assigned. README, `THIRD-PARTY-NOTICES.md` and the About panel say so and point at it. Written
+    rather than adopted, because the obvious off-the-shelf candidate turned out to be noncommercial.
 
 ## Links
 

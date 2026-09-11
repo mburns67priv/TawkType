@@ -291,6 +291,11 @@
                             <Button Content="All credits" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
                                     Command="{Binding OpenLinkCommand}"
                                     CommandParameter="https://github.com/JupitorStudioDev/TawkType/blob/main/THIRD-PARTY-NOTICES.md" />
+                            <!-- The terms have to be reachable from the application, not only from the
+                                 repository: most people who run TawkType will never see the repository. -->
+                            <Button Content="Licence" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                                    Command="{Binding OpenLinkCommand}"
+                                    CommandParameter="https://github.com/JupitorStudioDev/TawkType/blob/main/LICENSE.md" />
                             <Button Content="tawktype.com" Style="{StaticResource Ui.Button}"
                                     Command="{Binding OpenLinkCommand}"
                                     CommandParameter="https://tawktype.com" />
