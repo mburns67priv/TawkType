@@ -120,12 +120,21 @@ public partial class App : Application
         _engine.StateChanged += (_, state) => Dispatcher.BeginInvoke(() => overlayVm.ApplyState(state));
         _engine.AudioLevelChanged += (_, level) => Dispatcher.BeginInvoke(() => overlayVm.PushLevel(level));
         _engine.Failed += (_, ex) => Dispatcher.BeginInvoke(() => overlayVm.ShowError(FriendlyMessage(ex)));
+        // The buffer is set from the words themselves, before delivery; the history from the outcome.
+        _engine.Recognised += (_, recognised) =>
+            Services.GetRequiredService<LastDictation>().Set(ToRecord(recognised));
+        _engine.Completed += (_, completed) =>
+            Services.GetRequiredService<LastDictation>().Set(ToRecord(completed));
         _engine.Completed += OnDictationCompleted;
         _engine.Completed += (_, completed) =>
         {
             if (completed.Delivery == DictationDelivery.CopiedToClipboard)
             {
                 Dispatcher.BeginInvoke(() => overlayVm.ShowNotice("Copied instead", completed.Reason));
+            }
+            else if (completed.Delivery == DictationDelivery.Failed)
+            {
+                Dispatcher.BeginInvoke(() => overlayVm.ShowError(completed.Reason));
             }
         };
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
@@ -233,6 +242,7 @@ public partial class App : Application
         services.AddSingleton<UpdateService>();
         services.AddSingleton<DictationHistoryStore>();
         services.AddSingleton<IDictationHistory>(sp => sp.GetRequiredService<DictationHistoryStore>());
+        services.AddSingleton<LastDictation>();
 
         services.AddSingleton<DictationEngine>();
         services.AddSingleton<OverlayViewModel>();
@@ -291,22 +301,24 @@ public partial class App : Application
     {
         try
         {
-            Services.GetRequiredService<IDictationHistory>().Add(new DictationRecord
-            {
-                RawText = completed.RawText,
-                FinalText = completed.CleanText,
-                Engine = Services.GetRequiredService<TranscriberRouter>().ActiveEngine.ToString(),
-                AudioSeconds = completed.AudioDuration.TotalSeconds,
-                TranscriptionMs = (int)completed.TranscriptionTime.TotalMilliseconds,
-                CopiedNotTyped = completed.Delivery == DictationDelivery.CopiedToClipboard,
-            });
+            Services.GetRequiredService<IDictationHistory>().Add(ToRecord(completed));
         }
         catch (Exception ex)
         {
-            // The text is already typed; a history failure is never worth interrupting the user.
+            // The words are already in the session buffer; a history failure is not worth interrupting.
             _logger?.LogWarning(ex, "Could not record the dictation in the history");
         }
     }
+
+    private DictationRecord ToRecord(DictationCompleted completed) => new()
+    {
+        RawText = completed.RawText,
+        FinalText = completed.CleanText,
+        Engine = Services.GetRequiredService<TranscriberRouter>().ActiveEngine.ToString(),
+        AudioSeconds = completed.AudioDuration.TotalSeconds,
+        TranscriptionMs = (int)completed.TranscriptionTime.TotalMilliseconds,
+        Delivery = completed.Delivery,
+    };
 
     private void OnShowOverlayClick(object sender, RoutedEventArgs e) => RestoreOverlay();
 

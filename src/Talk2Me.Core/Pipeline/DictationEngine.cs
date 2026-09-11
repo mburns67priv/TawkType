@@ -68,6 +68,13 @@ public sealed class DictationEngine : IDisposable
 
     public event EventHandler<DictationState>? StateChanged;
 
+    /// <summary>
+    /// The words exist, before anything has been done with them. Subscribers can hold on to the result
+    /// so that a delivery which fails — or a window that has moved on — does not lose what was said.
+    /// Carries <see cref="DictationDelivery.Pending"/>; <see cref="Completed"/> carries the outcome.
+    /// </summary>
+    public event EventHandler<DictationCompleted>? Recognised;
+
     public event EventHandler<DictationCompleted>? Completed;
 
     public event EventHandler<Exception>? Failed;
@@ -200,20 +207,38 @@ public sealed class DictationEngine : IDisposable
             }
 
             var target = await ResolveFocusAsync().ConfigureAwait(false);
+
+            var result = new DictationCompleted(
+                transcript.Text,
+                clean,
+                clip.Duration,
+                transcript.ProcessingTime);
+
+            // Before delivery, not after. Injection is the step most likely to fail, and a result
+            // announced only on success is missing exactly when the user needs to get it back.
+            Recognised?.Invoke(this, result with { Delivery = DictationDelivery.Pending });
+
             var delivery = DictationDelivery.Typed;
             var reason = string.Empty;
 
             if (target.CanType)
             {
-                // Only when typing: a trailing space is there to run consecutive dictations together,
-                // which means nothing on the clipboard.
-                if (_settings.Current.AppendTrailingSpace)
-                {
-                    clean += " ";
-                }
+                // Only when typing: a trailing space runs consecutive dictations together, and means
+                // nothing on the clipboard. Kept off `clean` so a fallback copy does not carry it.
+                var typed = _settings.Current.AppendTrailingSpace ? clean + " " : clean;
 
                 SetState(DictationState.Injecting);
-                await _injector.InjectAsync(clean).ConfigureAwait(false);
+
+                try
+                {
+                    await _injector.InjectAsync(typed).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not deliver the dictation; keeping the text");
+                    delivery = DictationDelivery.Failed;
+                    reason = KeepForRecovery(clean);
+                }
             }
             else
             {
@@ -230,21 +255,30 @@ public sealed class DictationEngine : IDisposable
                 delivery,
                 target.Description ?? target.Verdict.ToString());
 
-            Completed?.Invoke(this, new DictationCompleted(
-                transcript.Text,
-                clean,
-                clip.Duration,
-                transcript.ProcessingTime)
-            {
-                Delivery = delivery,
-                Reason = reason,
-            });
+            Completed?.Invoke(this, result with { Delivery = delivery, Reason = reason });
 
             SetState(DictationState.Idle);
         }
         catch (Exception ex)
         {
             Fail(ex);
+        }
+    }
+
+    /// <summary>
+    /// Puts a result the user cannot see anywhere else within reach. Returns what to tell them.
+    /// </summary>
+    private string KeepForRecovery(string clean)
+    {
+        try
+        {
+            _clipboard.SetText(clean);
+            return "Could not type it — it is on the clipboard";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not put the undelivered dictation on the clipboard either");
+            return "Could not type it — open History to copy it";
         }
     }
 

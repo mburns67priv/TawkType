@@ -8,4 +8,10 @@ public enum DictationDelivery
 
     /// <summary>The focused window could not accept it, so it went to the clipboard instead.</summary>
     CopiedToClipboard,
+
+    /// <summary>Recognised, not yet delivered. The state a result is in while it is being handed over.</summary>
+    Pending,
+
+    /// <summary>Delivery was attempted and failed. The words still exist; they just did not arrive.</summary>
+    Failed,
 }

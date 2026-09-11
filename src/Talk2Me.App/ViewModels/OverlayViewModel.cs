@@ -5,6 +5,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Talk2Me.Core.Abstractions;
+using Talk2Me.Core.History;
 using Talk2Me.Core.Input;
 using Talk2Me.Core.Models;
 using Talk2Me.Core.Settings;
@@ -34,7 +35,7 @@ public sealed partial class OverlayViewModel : ObservableObject
     private static readonly TimeSpan ErrorSettleDelay = TimeSpan.FromSeconds(3);
 
     private readonly SettingsStore _settings;
-    private readonly IDictationHistory _history;
+    private readonly LastDictation _last;
     private readonly DispatcherTimer _elapsedTimer;
 
     private CancellationTokenSource? _settleTimer;
@@ -89,10 +90,10 @@ public sealed partial class OverlayViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowProgress))]
     private bool _isBusyWithModel;
 
-    public OverlayViewModel(SettingsStore settings, IDictationHistory history)
+    public OverlayViewModel(SettingsStore settings, LastDictation last)
     {
         _settings = settings;
-        _history = history;
+        _last = last;
 
         for (var i = 0; i < BarCount; i++)
         {
@@ -223,7 +224,9 @@ public sealed partial class OverlayViewModel : ObservableObject
     [RelayCommand]
     private void CopyLast()
     {
-        if (_history.Last is not { } record || string.IsNullOrWhiteSpace(record.FinalText))
+        // The session buffer, not the history file: someone who keeps no record on disk still wants
+        // to be able to copy the thing they just said, including one that failed to arrive.
+        if (_last.Value is not { } record || string.IsNullOrWhiteSpace(record.FinalText))
         {
             Flash("Nothing dictated yet");
             return;

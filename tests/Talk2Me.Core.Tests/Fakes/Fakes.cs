@@ -86,8 +86,16 @@ public sealed class FakeInjector : ITextInjector
 {
     public List<string> Injected { get; } = new();
 
+    /// <summary>Set to make delivery fail the way SendInput can.</summary>
+    public Exception? ExceptionToThrow { get; set; }
+
     public Task InjectAsync(string text, CancellationToken cancellationToken = default)
     {
+        if (ExceptionToThrow is not null)
+        {
+            return Task.FromException(ExceptionToThrow);
+        }
+
         Injected.Add(text);
         return Task.CompletedTask;
     }
