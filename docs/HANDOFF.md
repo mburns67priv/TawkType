@@ -399,12 +399,18 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     reader and every test script. `DictationMode` overrides `ToString()`; do the same for anything
     else that ends up in a list.
 
+43. **A re-run of the release workflow used to fail on its own release.** The delta step fetches the
+    most recent release for packaging; on a re-run that is the version being built, so vpk refused
+    with "there is a release equal or greater to the current version" — naming a package the job had
+    just downloaded. Both the v0.2.8 and v0.2.9 runs show as failed for this reason even though those
+    releases exist. The step skips its own tag now.
+
 ## Roadmap, in the order I would do it
 
-1. **Cut a release.** `v0.2.9` is the latest, and everything since — the review fixes, the phrase book,
-   modes, caret fitting, the dictation box, history corrections, and the whole rebrand — is in no
-   installed copy. Nothing here is in a user's hands. Pack it, install it *yourself* (gotcha 28: an
-   agent cannot), and check an upgrade from an existing install still finds its settings and models.
+1. **Install v0.3.0 yourself and check the upgrade.** The release is cut and published; what nobody
+   has verified is the thing the rename risked. Install over an existing copy and confirm it still
+   finds its settings, its API key, its history and its downloaded models, and that the Start Menu
+   entry now reads TawkType. An agent session cannot do this (gotcha 28) — the owner has to.
 2. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste and only
    text is put back, so an image or formatted content is destroyed by a dictation — more likely now
    that multiline results always paste. Finding 10 is the filler regex: it still removes German "um"

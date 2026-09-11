@@ -56,7 +56,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           New-Item -ItemType Directory -Force -Path build/releases | Out-Null
-          $previous = gh release list --limit 1 --json tagName --jq '.[0].tagName'
+          $current = 'v${{ steps.version.outputs.value }}'
+
+          # Skip our own tag. On a re-run the release already exists, and downloading it puts a package
+          # of the version being built into the folder vpk checks — which fails with "there is a release
+          # equal or greater to the current version", naming a release the job itself fetched.
+          $previous = gh release list --limit 2 --json tagName --jq '.[].tagName' |
+            Where-Object { $_ -ne $current } | Select-Object -First 1
+
           if ($previous) {
             Write-Host "previous release: $previous"
             gh release download $previous --dir build/releases --pattern '*.nupkg' --clobber
