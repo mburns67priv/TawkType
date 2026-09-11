@@ -9,7 +9,7 @@ This is a design package for the proposed name. It does not rename the applicati
 **TawkType — You talk. It types.**
 
 Push-to-talk dictation for Windows that turns speech into text where you are working. The personality is friendly, capable, and slightly playful. The unusual spelling belongs in the name; the rest of the experience should be easy to read.
-we arrived
+
 The promise is less typing and less interruption. Local transcription supports that promise through control and independence. Avoid positioning the product as a general voice assistant.
 
 ### Positioning statement
