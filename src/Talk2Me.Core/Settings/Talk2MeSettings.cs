@@ -48,16 +48,14 @@ public sealed class Talk2MeSettings
     /// <summary>Presses shorter than this are treated as accidental taps and ignored.</summary>
     public int MinimumHoldMs { get; set; } = 250;
 
+    /// <summary>Superseded by the active mode. Kept so an older file's answer can be migrated.</summary>
     public bool RemoveFillerWords { get; set; } = true;
 
     /// <summary>Append a trailing space so consecutive dictations flow into one sentence.</summary>
+    /// <summary>Superseded by the active mode. Kept so an older file's answer can be migrated.</summary>
     public bool AppendTrailingSpace { get; set; } = true;
 
-    /// <summary>
-    /// Read a little text around the caret before typing, so spacing and capitals fit where the words
-    /// are landing. On by default: it only ever acts on what it can actually see, and falls back to
-    /// the old behaviour for anything it cannot.
-    /// </summary>
+    /// <summary>Superseded by the active mode. Kept so an older file's answer can be migrated.</summary>
     public bool FitToCaret { get; set; } = true;
 
     public TextInjectionMode InjectionMode { get; set; } = TextInjectionMode.Auto;
@@ -70,6 +68,18 @@ public sealed class Talk2MeSettings
 
     /// <summary>Local spellings, replacements and snippets. Applied with or without the Claude pass.</summary>
     public VocabularySettings Vocabulary { get; set; } = new();
+
+    /// <summary>
+    /// The named behaviours the user can switch between. Seeded with the built-in four; editable, and
+    /// a settings file that has lost them all still dictates — see <c>DictationModes.Resolve</c>.
+    /// </summary>
+    public DictationMode[] Modes { get; set; } = DictationModes.BuiltIn();
+
+    /// <summary>Which of them is in charge right now. Persisted, so a choice survives a restart.</summary>
+    public string ActiveMode { get; set; } = DictationModes.CleanProse;
+
+    /// <summary>Cycles through <see cref="Modes"/>. Empty for none, like the toggle key.</summary>
+    public string ModeHotkey { get; set; } = string.Empty;
 
     /// <summary>
     /// A short sound when a dictation starts, finishes, and when one fails. Off by default: a sound on
@@ -93,12 +103,19 @@ public sealed class Talk2MeSettings
     /// <summary>Window theme.</summary>
     public AppearanceSettings Appearance { get; set; } = new();
 
+    /// <summary>
+    /// The mode in charge. Never null, so no caller has to decide what to do about a settings file
+    /// naming a mode that has since been deleted.
+    /// </summary>
+    public DictationMode ActiveModeOrDefault() => DictationModes.Resolve(Modes, ActiveMode);
+
     public Talk2MeSettings Clone()
     {
         var copy = (Talk2MeSettings)MemberwiseClone();
         // MemberwiseClone is shallow; the draft must not share the nested sections.
         copy.Cleanup = Cleanup.Clone();
         copy.Vocabulary = Vocabulary.Clone();
+        copy.Modes = Modes.Select(mode => mode.Clone()).ToArray();
         copy.History = History.Clone();
         copy.Overlay = Overlay.Clone();
         copy.Appearance = Appearance.Clone();

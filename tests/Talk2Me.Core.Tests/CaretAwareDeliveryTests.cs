@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Models;
 using Talk2Me.Core.Pipeline;
@@ -26,7 +26,7 @@ public sealed class CaretAwareDeliveryTests
     public CaretAwareDeliveryTests()
     {
         _settings.Current.MinimumHoldMs = 0;
-        _settings.Current.AppendTrailingSpace = true;
+        _settings.Current.ActiveModeOrDefault().AppendTrailingSpace = true;
         _focus.TargetToReturn = new FocusTarget(FocusVerdict.Editable, "notepad", "edit");
     }
 
@@ -172,7 +172,7 @@ public sealed class CaretAwareDeliveryTests
     [Fact]
     public async Task The_setting_turns_it_off()
     {
-        _settings.Current.FitToCaret = false;
+        _settings.Current.ActiveModeOrDefault().FitToCaret = false;
         _transcriber.TextToReturn = "and then we left";
         _focus.Caret = new CaretContext("we arrived", string.Empty);
 

@@ -424,18 +424,11 @@
                                        Text="Auto types short text as key events and pastes long text through the clipboard." />
                         </StackPanel>
 
-                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
-                                  IsChecked="{Binding Draft.RemoveFillerWords}"
-                                  Content="Remove filler words (um, uh, erm…)" />
-                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
-                                  IsChecked="{Binding Draft.AppendTrailingSpace}"
-                                  Content="Add a trailing space after each dictation" />
-                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,4"
-                                  IsChecked="{Binding Draft.FitToCaret}">
-                            <TextBlock Text="Fit the text to where it lands" TextWrapping="Wrap" />
-                        </CheckBox>
-                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="26,0,0,18" TextWrapping="Wrap"
-                                   Text="Looks at the words either side of your cursor just before typing, so a dictation does not double a space or start a capital in the middle of a sentence. Only ever acts on what it can actually see." />
+                        <!-- Filler removal, the trailing space and caret fitting used to live here as
+                             three checkboxes for the whole app. They belong to a mode now, so this
+                             points at where they went rather than showing controls that do nothing. -->
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,18" TextWrapping="Wrap"
+                                   Text="Filler words, the trailing space and fitting the text to where it lands are set per mode — see the Modes page." />
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="While you are talking" />
 
@@ -452,6 +445,85 @@
                                        Visibility="{Binding MaxRecordingError, Converter={StaticResource NullToCollapsed}}" />
                             <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
                                        Text="A safety net for a key left held down under a book. The dictation is finished rather than thrown away, so whatever you said still arrives. 0 turns it off." />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ============ Modes ============ -->
+                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Modes}">
+                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="Modes" />
+                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                                   Text="How the next dictation should behave. Changing a setting and choosing a mode are different acts: a mode is picked because of what you are about to say, so it is switchable in the second before saying it." />
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Use this mode" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding Modes}"
+                                      SelectedItem="{Binding ActiveMode}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Switch mode with" />
+                            <views:HotkeyBox Hotkey="{Binding Draft.ModeHotkey, Mode=TwoWay}" AllowEmpty="True" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="Steps to the next mode in the list. It does nothing to a dictation already running — changing how the words will be treated halfway through saying them is not something anyone means. Backspace clears it." />
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Edit a mode" />
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding Modes}"
+                                      SelectedItem="{Binding SelectedMode}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel DataContext="{Binding SelectedMode}"
+                                    Visibility="{Binding Converter={StaticResource NullToCollapsed}}">
+                            <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
+                                      IsChecked="{Binding RemoveFillerWords}"
+                                      Content="Remove filler words (um, uh, erm…)" />
+                            <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
+                                      IsChecked="{Binding Capitalise}"
+                                      Content="Start with a capital letter" />
+                            <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
+                                      IsChecked="{Binding AppendTrailingSpace}"
+                                      Content="Add a trailing space" />
+                            <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
+                                      IsChecked="{Binding FitToCaret}">
+                                <TextBlock Text="Fit the text to where it lands" TextWrapping="Wrap" />
+                            </CheckBox>
+
+                            <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,4"
+                                      IsChecked="{Binding MayUseLlm}">
+                                <TextBlock Text="Let this mode use the Claude pass" TextWrapping="Wrap" />
+                            </CheckBox>
+                            <TextBlock Style="{StaticResource Ui.Hint}" Margin="26,0,0,18" TextWrapping="Wrap"
+                                       Text="Only ever a restriction. Unticking it keeps this mode local whatever AI cleanup says; ticking it does not switch AI cleanup on, and picking a mode never authorises sending anything anywhere." />
+
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Style="{StaticResource Ui.Label}" Text="Tone, when the Claude pass runs" />
+                                <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding DataContext.CleanupStyles,
+                                                  RelativeSource={RelativeSource AncestorType=Window}}"
+                                          SelectedItem="{Binding Style}" />
+                            </StackPanel>
+
+                            <StackPanel Style="{StaticResource Field}">
+                                <TextBlock Style="{StaticResource Ui.Label}" Text="Words this mode adds" />
+                                <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="70"
+                                         Text="{Binding DataContext.ModeSpellingsText, RelativeSource={RelativeSource AncestorType=Window},
+                                                        UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                           Text="One per line, added to your main vocabulary rather than replacing it — a technical mode's identifiers, say. This is what &quot;preserve identifiers and acronyms&quot; amounts to without a model, and it is the part that matters day to day, because the identifiers you dictate are a small recurring set." />
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
 

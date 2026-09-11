@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Settings;
@@ -37,14 +37,22 @@ public sealed class LlmTextCleaner : ITextCleaner
         _logger = logger;
     }
 
-    public bool MayTakeAWhile => _settings.Current.Cleanup.UseLlm && _llm.IsConfigured;
+    public bool MayTakeAWhile
+        => _settings.Current.Cleanup.UseLlm
+            && _settings.Current.ActiveModeOrDefault().MayUseLlm
+            && _llm.IsConfigured;
 
     public async ValueTask<string> CleanAsync(string rawTranscript, CancellationToken cancellationToken = default)
     {
         var settings = _settings.Current;
-        var cleaned = BasicTextCleaner.Clean(rawTranscript, settings.RemoveFillerWords);
+        var mode = settings.ActiveModeOrDefault();
+        var cleaned = BasicTextCleaner.Clean(rawTranscript, mode);
 
-        var local = PhraseBook.Apply(cleaned, settings.Vocabulary);
+        // The mode's own words on top of the main list, never instead of it: a correction the user has
+        // taught Talk2Me should not stop applying because they picked a different mode.
+        var vocabulary = settings.Vocabulary.With(mode.Vocabulary);
+
+        var local = PhraseBook.Apply(cleaned, vocabulary);
         var basic = local.Text;
 
         if (local.ExpandedSnippet)
@@ -58,13 +66,22 @@ public sealed class LlmTextCleaner : ITextCleaner
             return basic;
         }
 
+        // A mode can only ever narrow this. Picking one must never be what authorises text leaving the
+        // machine — that decision belongs to the AI cleanup setting and nothing else.
+        if (!mode.MayUseLlm)
+        {
+            _logger.LogDebug("The {Mode} mode does not use the rewrite pass", mode.Name);
+            return basic;
+        }
+
         if (!_llm.IsConfigured)
         {
             _logger.LogDebug("LLM cleanup is on but {Provider} is not configured; using regex cleanup", _llm.ProviderName);
             return basic;
         }
 
-        var rewritten = await TryRewriteAsync(rawTranscript, settings, cancellationToken).ConfigureAwait(false);
+        var rewritten = await TryRewriteAsync(rawTranscript, settings, mode, vocabulary, cancellationToken)
+            .ConfigureAwait(false);
         if (rewritten is null)
         {
             return basic;
@@ -72,13 +89,21 @@ public sealed class LlmTextCleaner : ITextCleaner
 
         // Applied again on the way out: the model works from the raw transcript, so without this a
         // rewrite would quietly undo every correction the user has written down.
-        return PhraseBook.Apply(rewritten, settings.Vocabulary).Text;
+        return PhraseBook.Apply(rewritten, vocabulary).Text;
     }
 
     /// <summary>Returns the rewritten text, or null when the caller should fall back to the regex text.</summary>
-    private async Task<string?> TryRewriteAsync(string raw, Talk2MeSettings settings, CancellationToken cancellationToken)
+    private async Task<string?> TryRewriteAsync(
+        string raw,
+        Talk2MeSettings settings,
+        DictationMode mode,
+        VocabularySettings vocabulary,
+        CancellationToken cancellationToken)
     {
-        var cleanup = settings.Cleanup;
+        // The mode's tone wins over the settings page's: picking "Chat" is a statement about this
+        // dictation, and it would be strange for it not to reach the one step that can act on it.
+        var cleanup = settings.Cleanup.Clone();
+        cleanup.Style = mode.Style;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromMilliseconds(Math.Max(250, cleanup.TimeoutMs)));
 
@@ -87,7 +112,7 @@ public sealed class LlmTextCleaner : ITextCleaner
         try
         {
             var request = new LlmRequest(
-                CleanupPrompt.BuildSystemPrompt(cleanup, settings.Vocabulary.Spellings),
+                CleanupPrompt.BuildSystemPrompt(cleanup, vocabulary.Spellings),
                 CleanupPrompt.BuildUserMessage(raw),
                 cleanup.Model,
                 MaxOutputTokens);

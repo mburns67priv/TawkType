@@ -13,6 +13,10 @@ public sealed class FakeHotkey : IPushToTalkHotkey
 
     public event EventHandler? CancelRequested;
 
+    public event EventHandler? NextModeRequested;
+
+    public void NextMode() => NextModeRequested?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Set by the engine; the tests read it to check Escape is only taken when it should be.</summary>
     public bool DictationInProgress { get; set; }
 

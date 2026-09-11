@@ -24,6 +24,9 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 
 - **Two local engines.** NVIDIA Parakeet TDT 0.6B v3 for English and 24 other European languages, OpenAI
   Whisper `large-v3-turbo` for the rest. Talk2Me picks per language, or you can force one.
+- **Four modes, switched with a key.** *Literal* keeps what the recogniser produced, *Clean prose*
+  tidies it, *Chat* stays lower-case and unspaced, *Technical* protects acronyms and your own
+  identifiers. All four work with no model involved — picking one never sends anything anywhere.
 - **It fits the text to where it lands.** Before typing, it reads the few words either side of your
   cursor: no doubled spaces, a separating space where one is needed, and no capital letter dropped
   into the middle of a sentence. It only ever acts on what it can actually see.
@@ -105,13 +108,14 @@ activates it. Press a button or drag it and your caret stays exactly where it wa
 
 <img src="docs/images/settings-general.png" width="620" alt="The Talk2Me settings window">
 
-Seven pages, light or dark or following Windows:
+Eight pages, light or dark or following Windows:
 
 | Page | What's there |
 |---|---|
 | **General** | Overview, your dictation stats, where the files live |
 | **Transcription** | Engine, language, microphone, and managing downloaded models |
-| **Activation** | Push-to-talk key, optional toggle key, tap threshold, how text gets inserted and fitted, sounds, recording limit |
+| **Activation** | Push-to-talk key, optional toggle key, tap threshold, how text gets inserted, sounds, recording limit |
+| **Modes** | The four behaviours, the key that cycles them, and what each one does |
 | **Appearance** | Theme, and where the status bar sits |
 | **Vocabulary** | Spellings, replacements and snippets — with import and export |
 | **AI cleanup** | The optional Claude rewrite |
@@ -166,7 +170,7 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 298 unit tests, ~2 s
+dotnet test                                              # 326 unit tests, ~2 s
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Focus -- 15           # what the focus probe sees

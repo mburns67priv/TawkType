@@ -88,6 +88,12 @@
                     <!-- Toolbar. Left: the things you might want mid-session. Right: window controls. -->
                     <DockPanel Grid.Row="0" Margin="8,5,8,0">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <!-- The one setting that changes between one dictation and the next, so the
+                                 one worth a permanent place here. A mode you cannot see is a mode you
+                                 will be surprised by. -->
+                            <TextBlock Text="{Binding ModeName}" VerticalAlignment="Center"
+                                       Margin="0,0,8,0" FontSize="10.5"
+                                       Foreground="{StaticResource Overlay.TextMuted}" />
                             <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Minimize}"
                                     Command="{Binding HideCommand}"
                                     ToolTip="Hide the bar. Click the Talk2Me tray icon to bring it back." />

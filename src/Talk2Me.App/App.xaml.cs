@@ -153,6 +153,13 @@ public partial class App : Application
                 Dispatcher.BeginInvoke(() => overlayVm.ShowError(completed.Reason));
             }
         };
+        // Mode switching lives here rather than in the engine: the engine can read settings but not
+        // save them, and a mode the user picked has to survive a restart the way any other choice does.
+        Services.GetRequiredService<IPushToTalkHotkey>().NextModeRequested += (_, _) =>
+            Dispatcher.BeginInvoke(() => SwitchToNextMode(overlayVm));
+
+        overlayVm.SetMode(Services.GetRequiredService<SettingsStore>().Current.ActiveModeOrDefault().Name);
+
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
 
         if (Services.GetRequiredService<SettingsStore>().Current.History.OpenOnStart
@@ -365,6 +372,31 @@ public partial class App : Application
 
         _historyWindow.Show();
         _historyWindow.Activate();
+    }
+
+    /// <summary>
+    /// The mode-cycling key. Saved, not held in memory: a mode nobody can see the state of after a
+    /// restart is a worse thing than one extra settings write.
+    /// </summary>
+    private void SwitchToNextMode(OverlayViewModel overlay)
+    {
+        try
+        {
+            var store = Services.GetRequiredService<SettingsStore>();
+            var next = DictationModes.Next(store.Current.Modes, store.Current.ActiveMode);
+
+            var updated = store.Current.Clone();
+            updated.ActiveMode = next.Name;
+            store.Save(updated);
+
+            overlay.SetMode(next.Name);
+            overlay.ShowNotice(next.Name);
+        }
+        catch (Exception ex)
+        {
+            // Never worth failing a key press over; the mode simply stays as it was.
+            _logger?.LogWarning(ex, "Could not switch dictation mode");
+        }
     }
 
     private void OnDictationBoxClick(object sender, RoutedEventArgs e) => ShowDictationBox();

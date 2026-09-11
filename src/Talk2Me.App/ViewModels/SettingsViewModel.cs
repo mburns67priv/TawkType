@@ -23,6 +23,7 @@ public enum SettingsPage
     General,
     Transcription,
     Activation,
+    Modes,
     Appearance,
     Vocabulary,
     Cleanup,
@@ -66,6 +67,13 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(SaveBlockedBy))]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
     private string _maxRecordingMinutesText;
+
+    /// <summary>The mode being edited on the Modes page. Not the same as the one that is in charge.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedModeIsBuiltIn))]
+    private DictationMode? _selectedMode;
+
+    partial void OnSelectedModeChanged(DictationMode? value) => OnPropertyChanged(nameof(ModeSpellingsText));
 
     [ObservableProperty]
     private string _selectedInputDevice;
@@ -152,6 +160,13 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _draft = store.Current.Clone();
         _minimumHoldText = _draft.MinimumHoldMs.ToString();
         _maxRecordingMinutesText = NumberField.RecordingLimit.Format(_draft.MaxRecordingSeconds / 60d);
+
+        foreach (var mode in _draft.Modes)
+        {
+            Modes.Add(mode);
+        }
+
+        _selectedMode = Modes.FirstOrDefault(m => m.Name == _draft.ActiveMode) ?? Modes.FirstOrDefault();
         InputDevices = new[] { "(system default)" }.Concat(WaveInAudioCapture.ListInputDevices()).ToArray();
         _selectedInputDevice = _draft.InputDeviceName ?? InputDevices[0];
         _modelStorageText = models.Describe();
@@ -310,6 +325,46 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         => BadValuePage is { } page && page != SelectedPage
             ? $"Check the value on the {NavPage.All.First(nav => nav.Page == page).Title} page"
             : null;
+
+    /// <summary>
+    /// The selected mode's extra spellings, as one per line. A text box for the same reason the main
+    /// vocabulary is one: these lists are written in bursts and pasted from somewhere.
+    /// </summary>
+    public string ModeSpellingsText
+    {
+        get => SelectedMode is null ? string.Empty : string.Join(Environment.NewLine, SelectedMode.Vocabulary.Spellings);
+        set
+        {
+            if (SelectedMode is null)
+            {
+                return;
+            }
+
+            SelectedMode.Vocabulary.Spellings = (value ?? string.Empty)
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Built-in modes can be adjusted but not renamed or deleted, so their names stay meaningful.</summary>
+    public bool SelectedModeIsBuiltIn => SelectedMode?.IsBuiltIn ?? false;
+
+    public ObservableCollection<DictationMode> Modes { get; } = new();
+
+    /// <summary>The mode that will be used for the next dictation.</summary>
+    public DictationMode? ActiveMode
+    {
+        get => Modes.FirstOrDefault(m => m.Name == Draft.ActiveMode) ?? Modes.FirstOrDefault();
+        set
+        {
+            if (value is not null)
+            {
+                Draft.ActiveMode = value.Name;
+                OnPropertyChanged();
+            }
+        }
+    }
 
     public string SettingsPath => _store.Path;
 

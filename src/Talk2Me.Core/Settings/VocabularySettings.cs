@@ -1,4 +1,4 @@
-namespace Talk2Me.Core.Settings;
+﻿namespace Talk2Me.Core.Settings;
 
 /// <summary>A phrase the recogniser produces, and the exact text it should become.</summary>
 /// <param name="From">What was heard, e.g. "talk to me".</param>
@@ -28,6 +28,28 @@ public sealed class VocabularySettings
 
     /// <summary>Signatures, addresses, templates: saved text, spoken for.</summary>
     public Snippet[] Snippets { get; set; } = [];
+
+    /// <summary>
+    /// This vocabulary with another laid on top — a mode's own words added to the main list.
+    ///
+    /// Additive, and the extra list goes first so that where both name the same phrase, the more
+    /// specific one wins: a technical mode should be able to say what "the client" means without the
+    /// user having to remove their general entry for it.
+    /// </summary>
+    public VocabularySettings With(VocabularySettings? extra)
+    {
+        if (extra is null || (extra.Spellings.Length == 0 && extra.Replacements.Length == 0 && extra.Snippets.Length == 0))
+        {
+            return this;
+        }
+
+        return new VocabularySettings
+        {
+            Spellings = [.. extra.Spellings, .. Spellings],
+            Replacements = [.. extra.Replacements, .. Replacements],
+            Snippets = [.. extra.Snippets, .. Snippets],
+        };
+    }
 
     public VocabularySettings Clone() => new()
     {

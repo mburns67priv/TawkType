@@ -243,6 +243,44 @@ with the reason. Nothing is lost, and the history records it with `CopiedNotType
 applications; that part cannot be unit tested, because it depends on what each application chooses to
 expose.
 
+## Modes
+
+Changing a setting and choosing how the next dictation should behave are not the same act. A setting
+is a decision made once; a mode is a decision made because of what is about to be said, and it has to
+be switchable in the second before saying it.
+
+`DictationMode` is a named bundle of the post-processing choices, and **every one of them is local**:
+filler removal, whether to capitalise, the trailing space, caret fitting, and a vocabulary of its own.
+Four ship built in:
+
+| Mode | What it does, with no model involved |
+|---|---|
+| **Literal** | No fillers removed, no capital added. Preserves what the recogniser produced — which is not a promise that everything said was recovered, and no mode can make it one. |
+| **Clean prose** | The old defaults: fillers out, sentence capital, caret fitting on. |
+| **Chat** | Fillers out, no forced capital, no trailing space. |
+| **Technical** | No forced capital, `Verbatim` tone, and its own word list. |
+
+The one setting a mode cannot reach is whether text leaves the machine. `MayUseLlm` can only ever
+**narrow** `Cleanup.UseLlm` — unticking it keeps a mode local whatever the AI cleanup page says, and
+ticking it switches nothing on. Picking a mode must never be the act that authorises sending anything
+anywhere, so `LlmTextCleaner` checks both and there is a test for each direction.
+
+A mode's vocabulary is **added to** the main one rather than replacing it, and goes first so the more
+specific entry wins where both name a phrase. A correction the user has taught Talk2Me should not stop
+applying because they picked a different mode.
+
+Without a model, "preserve identifiers and acronyms" splits into three, and two of them survive:
+snippet text was already exact, acronyms are a rule rather than a judgement — an all-capitals word is
+never treated as a filler, so *"The ER is open"* keeps its department — and identifiers become a word
+list the user maintains. That is narrower than a model inferring them, and it is the part that matters
+day to day, because the identifiers anyone dictates are a small recurring set.
+
+The cycling key is a third gesture in the same `Activation` reducer, so it inherits suppression,
+auto-repeat and orphaned releases for free. It deliberately does nothing to a dictation already
+running: changing how the words will be treated halfway through saying them is not something anyone
+means. Switching **saves**, because a mode nobody can see the state of after a restart is worse than
+one extra settings write — and the bar carries the mode's name for the same reason.
+
 ## Fitting the text to where it lands
 
 A dictation used to be typed exactly as the cleaner produced it, plus an unconditional trailing space.

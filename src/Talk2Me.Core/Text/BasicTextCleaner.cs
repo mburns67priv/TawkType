@@ -1,5 +1,6 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Talk2Me.Core.Abstractions;
+using Talk2Me.Core.Settings;
 
 namespace Talk2Me.Core.Text;
 
@@ -17,9 +18,13 @@ public sealed partial class BasicTextCleaner : ITextCleaner
     }
 
     public ValueTask<string> CleanAsync(string rawTranscript, CancellationToken cancellationToken = default)
-        => ValueTask.FromResult(Clean(rawTranscript, _settings.Current.RemoveFillerWords));
+        => ValueTask.FromResult(Clean(rawTranscript, _settings.Current.ActiveModeOrDefault()));
 
+    /// <summary>The old two-argument form, kept for callers that have no mode to hand.</summary>
     public static string Clean(string raw, bool removeFillers)
+        => Clean(raw, new DictationMode { RemoveFillerWords = removeFillers });
+
+    public static string Clean(string raw, DictationMode mode)
     {
         if (string.IsNullOrWhiteSpace(raw))
         {
@@ -28,9 +33,9 @@ public sealed partial class BasicTextCleaner : ITextCleaner
 
         var text = raw.Trim();
 
-        if (removeFillers)
+        if (mode.RemoveFillerWords)
         {
-            text = FillerPattern().Replace(text, string.Empty);
+            text = FillerPattern().Replace(text, DropUnlessShouting);
             text = DuplicatePunctuation().Replace(text, "$1");
         }
 
@@ -38,12 +43,26 @@ public sealed partial class BasicTextCleaner : ITextCleaner
         text = SpaceBeforePunctuation().Replace(text, "$1");
         text = text.TrimStart(',', ' ');
 
-        if (text.Length > 0 && char.IsLower(text[0]))
+        if (mode.Capitalise && text.Length > 0 && char.IsLower(text[0]))
         {
             text = char.ToUpperInvariant(text[0]) + text[1..];
         }
 
         return text;
+    }
+
+    /// <summary>
+    /// Keeps a match that arrived in capitals. "ER", "AH" and "UM" are acronyms and initialisms, not
+    /// disfluencies — nobody says "um" in block capitals — so "The ER is open" kept its department.
+    ///
+    /// Only the all-capitals form is protected. "Um," at the start of a sentence is still a filler,
+    /// and a single capital letter is not enough evidence of anything.
+    /// </summary>
+    private static string DropUnlessShouting(Match match)
+    {
+        var word = match.Value.TrimEnd(',');
+        var shouting = word.Length > 1 && word.All(c => !char.IsLetter(c) || char.IsUpper(c));
+        return shouting ? match.Value : string.Empty;
     }
 
     // "um", "uh", "er", "erm", "hmm", "ah" as whole words, with any directly following comma.

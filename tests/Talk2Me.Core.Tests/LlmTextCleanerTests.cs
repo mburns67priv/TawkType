@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Talk2Me.Core.Settings;
 using Talk2Me.Core.Tests.Fakes;
 using Talk2Me.Core.Text;
@@ -20,6 +20,67 @@ public sealed class LlmTextCleanerTests
         _settings.Current.Cleanup.UseLlm = true;
         _settings.Current.Cleanup.TimeoutMs = 2000;
         configure?.Invoke(_settings.Current.Cleanup);
+    }
+
+    /// <summary>
+    /// The invariant the whole mode feature rests on. Choosing how a dictation should read must never
+    /// be what authorises text leaving the machine — a mode can only ever narrow that permission.
+    /// </summary>
+    [Fact]
+    public async Task A_mode_that_may_not_use_the_model_never_reaches_it()
+    {
+        EnableLlm();
+        _llm.ReplyToReturn = "a rewrite nobody should see";
+        _settings.Current.ActiveMode = "Literal";
+
+        var result = await CreateCleaner().CleanAsync(Raw);
+
+        Assert.Empty(_llm.Received);
+        Assert.DoesNotContain("rewrite", result);
+    }
+
+    /// <summary>Ticking a mode's permission is not the same as switching AI cleanup on.</summary>
+    [Fact]
+    public async Task A_mode_that_may_use_the_model_still_does_not_turn_it_on()
+    {
+        _settings.Current.Cleanup.UseLlm = false;
+        _settings.Current.ActiveMode = DictationModes.CleanProse;
+
+        await CreateCleaner().CleanAsync(Raw);
+
+        Assert.Empty(_llm.Received);
+    }
+
+    [Fact]
+    public async Task The_modes_tone_is_what_reaches_the_prompt()
+    {
+        EnableLlm(c => c.Style = CleanupStyle.Formal);
+        _llm.ReplyToReturn = "The deadline is Tuesday.";
+        _settings.Current.ActiveMode = "Chat";
+
+        await CreateCleaner().CleanAsync(Raw);
+
+        // The mode says Casual, the settings page says Formal. The mode wins: picking "Chat" is a
+        // statement about this dictation, and it would be strange for it not to reach the one step
+        // that can act on it.
+        var prompt = Assert.Single(_llm.Received).SystemPrompt;
+        Assert.Contains("relaxed and conversational", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("no contractions", prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>A mode's own words have to reach the prompt too, or the model spells them back wrong.</summary>
+    [Fact]
+    public async Task A_modes_own_spellings_reach_the_prompt()
+    {
+        EnableLlm();
+        _llm.ReplyToReturn = "fine";
+        var technical = _settings.Current.Modes.First(m => m.Name == "Technical");
+        technical.Vocabulary.Spellings = ["getUserById"];
+        _settings.Current.ActiveMode = "Technical";
+
+        await CreateCleaner().CleanAsync(Raw);
+
+        Assert.Contains("getUserById", Assert.Single(_llm.Received).SystemPrompt);
     }
 
     [Fact]

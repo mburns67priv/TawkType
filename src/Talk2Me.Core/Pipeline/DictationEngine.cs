@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Models;
+using Talk2Me.Core.Settings;
 using Talk2Me.Core.Text;
 
 namespace Talk2Me.Core.Pipeline;
@@ -340,12 +341,14 @@ public sealed class DictationEngine : IDisposable
                 // Only when typing: spacing and capitals are about the place the text is landing, and
                 // mean nothing on the clipboard. Kept off `clean` so a fallback copy does not carry
                 // them, and so the history records the words rather than their punctuation.
+                var mode = _settings.Current.ActiveModeOrDefault();
                 var caret = await ReadCaretAsync(token).ConfigureAwait(false);
                 var typed = CaretFit.Fit(
                     clean,
                     caret,
-                    _settings.Current.AppendTrailingSpace,
-                    CaretFit.WasCapitalisedByCleanup(transcript.Text, clean));
+                    mode.AppendTrailingSpace,
+                    // Only ever undoing a capital cleanup added, and only in a mode that adds one.
+                    mode.Capitalise && CaretFit.WasCapitalisedByCleanup(transcript.Text, clean));
 
                 SetState(DictationState.Injecting);
 
@@ -470,7 +473,7 @@ public sealed class DictationEngine : IDisposable
     /// </summary>
     private async Task<CaretContext> ReadCaretAsync(CancellationToken token)
     {
-        if (!_settings.Current.FitToCaret)
+        if (!_settings.Current.ActiveModeOrDefault().FitToCaret)
         {
             return CaretContext.Unknown;
         }

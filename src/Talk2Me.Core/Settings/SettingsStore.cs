@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
@@ -81,7 +81,7 @@ public sealed class SettingsStore : ISettingsProvider
     /// only thing that read it; it applies locally now, so it belongs to the app rather than to the
     /// model. The old list is left in place, so downgrading does not lose it.
     /// </summary>
-    private static Talk2MeSettings Migrate(Talk2MeSettings loaded)
+    public static Talk2MeSettings Migrate(Talk2MeSettings loaded)
     {
         loaded.Vocabulary ??= new VocabularySettings();
         loaded.Cleanup ??= new CleanupSettings();
@@ -89,6 +89,27 @@ public sealed class SettingsStore : ISettingsProvider
         if (loaded.Vocabulary.Spellings.Length == 0 && loaded.Cleanup.Vocabulary.Length > 0)
         {
             loaded.Vocabulary.Spellings = (string[])loaded.Cleanup.Vocabulary.Clone();
+        }
+
+        // Filler removal, the trailing space and caret fitting used to be single settings for the
+        // whole app. They belong to a mode now, so a file written before modes existed hands its
+        // three answers to every mode rather than losing them — a user who had turned the trailing
+        // space off must not find it back on because this version reorganised where it lives.
+        if (loaded.Modes is null || loaded.Modes.Length == 0)
+        {
+            loaded.Modes = DictationModes.BuiltIn();
+
+            foreach (var mode in loaded.Modes)
+            {
+                mode.RemoveFillerWords &= loaded.RemoveFillerWords;
+                mode.AppendTrailingSpace &= loaded.AppendTrailingSpace;
+                mode.FitToCaret &= loaded.FitToCaret;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(loaded.ActiveMode))
+        {
+            loaded.ActiveMode = DictationModes.CleanProse;
         }
 
         return loaded;

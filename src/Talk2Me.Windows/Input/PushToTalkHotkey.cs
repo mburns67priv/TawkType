@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Input;
 
@@ -33,6 +33,8 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
     public event EventHandler? Released;
 
     public event EventHandler? CancelRequested;
+
+    public event EventHandler? NextModeRequested;
 
     public bool DictationInProgress
     {
@@ -89,11 +91,25 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
             }
         }
 
+        Hotkey? mode = null;
+        var modeText = _settings.Current.ModeHotkey;
+        if (!string.IsNullOrWhiteSpace(modeText))
+        {
+            if (Hotkey.TryParse(modeText, out var parsedMode))
+            {
+                mode = parsedMode;
+            }
+            else
+            {
+                _logger.LogWarning("Unknown mode hotkey '{Hotkey}'; leaving mode switching off", modeText);
+            }
+        }
+
         var suppress = _settings.Current.SuppressHotkey && !hold.IsBareModifier;
 
         // Changing the keys while one is held strands the dictation: the release we are waiting for
         // belongs to a combination we are no longer watching.
-        if (_activation.Rebind(hold, suppress, toggle))
+        if (_activation.Rebind(hold, suppress, toggle, mode))
         {
             Released?.Invoke(this, EventArgs.Empty);
         }
@@ -109,7 +125,11 @@ public sealed class PushToTalkHotkey : IPushToTalkHotkey
         var decision = _activation.Handle(e.VirtualKey, e.IsDown);
         e.Handled = decision.Swallow;
 
-        if (decision.Cancel)
+        if (decision.NextMode)
+        {
+            NextModeRequested?.Invoke(this, EventArgs.Empty);
+        }
+        else if (decision.Cancel)
         {
             CancelRequested?.Invoke(this, EventArgs.Empty);
         }

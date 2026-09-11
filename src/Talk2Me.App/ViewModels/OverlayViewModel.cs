@@ -230,6 +230,16 @@ public sealed partial class OverlayViewModel : ObservableObject
 
     public void SetRecoverable(bool recoverable) => IsRecoverable = recoverable;
 
+    /// <summary>
+    /// The mode in charge, shown on the bar. It is the one setting that changes between one dictation
+    /// and the next, so it is the one worth a permanent place there — a mode you cannot see is a mode
+    /// you will be surprised by.
+    /// </summary>
+    [ObservableProperty]
+    private string _modeName = string.Empty;
+
+    public void SetMode(string name) => ModeName = name;
+
     [RelayCommand]
     private void OpenDictationBox() => DictationBoxRequested?.Invoke(this, EventArgs.Empty);
 

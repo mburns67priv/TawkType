@@ -37,6 +37,7 @@
             <SolidColorBrush x:Key="Overlay.Surface" Color="#F4171925" />
             <SolidColorBrush x:Key="Overlay.Border" Color="#2A2D3E" />
             <SolidColorBrush x:Key="Overlay.Text" Color="#F5F6FA" />
+            <SolidColorBrush x:Key="Overlay.TextMuted" Color="#8C90A8" />
 
             <SolidColorBrush x:Key="State.Listening" Color="{StaticResource Brand.CoralColor}" />
             <SolidColorBrush x:Key="State.Transcribing" Color="{StaticResource Brand.VioletColor}" />

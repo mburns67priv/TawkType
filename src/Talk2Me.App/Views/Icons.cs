@@ -37,6 +37,11 @@ public static class Icons
     public static Geometry Clipboard { get; } =
         Parse("M9,4.5 H15 V7 H9 Z M8,5.5 H6.5 V20 H17.5 V5.5 H16 M9.5,11 H14.5 M9.5,14.5 H14.5");
 
+    /// <summary>Three sliders: a bundle of settings chosen together, which is what a mode is.</summary>
+    public static Geometry Modes { get; } =
+        Parse("M4,7 H10 M14,7 H20 M4,12 H14 M18,12 H20 M4,17 H8 M12,17 H20 "
+            + "M12,7 A2,2 0 1 0 12.01,7 M16,12 A2,2 0 1 0 16.01,12 M10,17 A2,2 0 1 0 10.01,17");
+
     /// <summary>A tray with the text lifting out of it: the dictation that did not arrive, recovered.</summary>
     public static Geometry Rescue { get; } =
         Parse("M5,13.5 V19 H19 V13.5 M12,4 V14 M8.5,7.5 L12,4 L15.5,7.5");

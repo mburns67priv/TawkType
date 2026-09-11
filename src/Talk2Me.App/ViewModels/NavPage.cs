@@ -1,4 +1,4 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using Talk2Me.Desktop.Views;
 
 namespace Talk2Me.Desktop.ViewModels;
@@ -14,6 +14,7 @@ public sealed record NavPage(SettingsPage Page, string Title, string Blurb, Geom
         new(SettingsPage.General, "General", "Overview and your stats", Icons.Home),
         new(SettingsPage.Transcription, "Transcription", "Engine, language and models", Icons.Microphone),
         new(SettingsPage.Activation, "Activation", "Hotkey and how text is inserted", Icons.Keyboard),
+        new(SettingsPage.Modes, "Modes", "How the next dictation should behave", Icons.Modes),
         new(SettingsPage.Appearance, "Appearance", "Theme and the status pill", Icons.Palette),
         new(SettingsPage.Vocabulary, "Vocabulary", "Spellings, replacements and snippets", Icons.Clipboard),
         new(SettingsPage.Cleanup, "AI cleanup", "Rewrite dictations with Claude", Icons.Sparkle),

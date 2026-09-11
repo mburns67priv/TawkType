@@ -1,4 +1,4 @@
-using Talk2Me.Core.Abstractions;
+﻿using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Models;
 using Talk2Me.Core.Pipeline;
 
@@ -73,7 +73,7 @@ public class RecoveryTests
     {
         var offer = Recovery.For(Completed(DictationDelivery.Failed));
 
-        Assert.False(offer.Explanation.Contains("  "));
+        Assert.DoesNotContain("  ", offer.Explanation);
         Assert.EndsWith(".", offer.Explanation);
         Assert.DoesNotContain("null", offer.Explanation);
     }

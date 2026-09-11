@@ -1,11 +1,17 @@
-namespace Talk2Me.Core.Input;
+﻿namespace Talk2Me.Core.Input;
 
 /// <summary>What one key event means for dictation.</summary>
 /// <param name="Swallow">Keep the key from reaching the application underneath.</param>
 /// <param name="Pressed">A dictation should start.</param>
 /// <param name="Released">The dictation should finish and be delivered.</param>
 /// <param name="Cancel">The dictation should be abandoned: nothing typed, nothing recorded.</param>
-public readonly record struct ActivationDecision(bool Swallow, bool Pressed, bool Released, bool Cancel)
+/// <param name="NextMode">The user wants the next mode along.</param>
+public readonly record struct ActivationDecision(
+    bool Swallow,
+    bool Pressed,
+    bool Released,
+    bool Cancel,
+    bool NextMode = false)
 {
     public static ActivationDecision Nothing { get; }
 }
@@ -31,13 +37,17 @@ public sealed class Activation
     /// <summary>Null when no toggle combination is configured, which is the default.</summary>
     private HotkeyGesture? _toggle;
 
+    /// <summary>Null when no mode-cycling combination is configured, which is the default.</summary>
+    private HotkeyGesture? _mode;
+
     /// <summary>True between the two presses of a toggled dictation.</summary>
     private bool _toggled;
 
-    public Activation(Hotkey hold, bool suppress = false, Hotkey? toggle = null)
+    public Activation(Hotkey hold, bool suppress = false, Hotkey? toggle = null, Hotkey? mode = null)
     {
         _hold = new HotkeyGesture(hold, suppress);
-        _toggle = ToggleFor(hold, toggle);
+        _toggle = Secondary(hold, toggle);
+        _mode = Secondary(hold, mode);
     }
 
     /// <summary>Set by the engine while there is something Escape could abandon.</summary>
@@ -51,11 +61,12 @@ public sealed class Activation
     /// therefore ended: the keys being held are no longer the ones being watched, so the release that
     /// would have finished it will never be recognised.
     /// </summary>
-    public bool Rebind(Hotkey hold, bool suppress, Hotkey? toggle)
+    public bool Rebind(Hotkey hold, bool suppress, Hotkey? toggle, Hotkey? mode = null)
     {
         var ended = _hold.Rebind(hold, suppress);
+        _mode = Secondary(hold, mode);
 
-        var next = ToggleFor(hold, toggle);
+        var next = Secondary(hold, toggle);
         if (_toggled && (next is null || _toggle is null))
         {
             ended = true;
@@ -98,7 +109,16 @@ public sealed class Activation
 
         var hold = _hold.Handle(virtualKey, isDown);
         var toggle = _toggle?.Handle(virtualKey, isDown) ?? KeyDecision.Nothing;
-        var swallow = hold.Swallow || toggle.Swallow;
+        var mode = _mode?.Handle(virtualKey, isDown) ?? KeyDecision.Nothing;
+        var swallow = hold.Swallow || toggle.Swallow || mode.Swallow;
+
+        // Cycling the mode is about the dictation that has not started yet, so it deliberately does
+        // nothing to one already running: changing how the words will be treated halfway through
+        // saying them is not something anyone means.
+        if (mode.Pressed)
+        {
+            return new ActivationDecision(swallow, Pressed: false, Released: false, Cancel: false, NextMode: true);
+        }
 
         // The toggle key going down flips the dictation; its release means nothing.
         if (toggle.Pressed)
@@ -111,9 +131,9 @@ public sealed class Activation
     }
 
     /// <summary>
-    /// The toggle gesture, or null when there is not one to have. One key cannot mean both "hold this"
-    /// and "press this to start": the hold combination wins, because it is the one always configured.
+    /// A secondary gesture, or null when there is not one to have. One key cannot mean both "hold
+    /// this" and something else: the hold combination wins, because it is the one always configured.
     /// </summary>
-    private static HotkeyGesture? ToggleFor(Hotkey hold, Hotkey? toggle)
-        => toggle is null || toggle.Equals(hold) ? null : new HotkeyGesture(toggle, suppress: true);
+    private static HotkeyGesture? Secondary(Hotkey hold, Hotkey? other)
+        => other is null || other.Equals(hold) ? null : new HotkeyGesture(other, suppress: true);
 }

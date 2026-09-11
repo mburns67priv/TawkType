@@ -8,7 +8,7 @@ I researched current official documentation for Wispr Flow, Superwhisper, Aqua V
 
 ## Status as of 2026-09-11 (added as sections landed)
 
-This research is kept as written. **§1, §2, §3, §4, §6 and §7 are built**:
+This research is kept as written. **§1 through §7 are built**, except the per-application half of §5:
 
 - **§1** — `PhraseBook` applies spellings and replacements locally, with or without a key, and is
   re-applied after a rewrite so the model cannot undo a correction. Its one unbuilt piece is the
@@ -37,8 +37,15 @@ This research is kept as written. **§1, §2, §3, §4, §6 and §7 are built**:
   caution was followed too: no screenshots, no broad application text extraction, no clipboard
   collection — the read is 64 characters either side of the caret and never leaves the machine.
 
-**§5, §8 and §9 are untouched.** Modes (§5), first-run (§8) and visible privacy (§9) are still open,
-and the ordering at the foot of this document still holds for them.
+- **§5** — modes. All four, built entirely from local settings: `DictationMode` bundles filler
+  removal, capitalisation, spacing, caret fitting and a vocabulary of its own; a key cycles them and
+  the bar shows which is in charge. The section's warning is enforced rather than merely observed — a
+  mode can only ever *narrow* the permission to use Claude, never grant it, and there is a test for
+  each direction. Its **per-application defaults are deliberately left out**, as the section itself
+  puts them later; `FocusTarget.ProcessName` is already captured, so that is a map and nothing else.
+
+**§8 and §9 are untouched.** First-run (§8) and visible privacy (§9) are still open, and the ordering
+at the foot of this document still holds for them.
 
 ## What the established apps offer
 

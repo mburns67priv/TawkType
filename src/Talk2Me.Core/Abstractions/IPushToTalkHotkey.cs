@@ -1,4 +1,4 @@
-namespace Talk2Me.Core.Abstractions;
+﻿namespace Talk2Me.Core.Abstractions;
 
 /// <summary>
 /// Global push-to-talk key. Raises <see cref="Pressed"/> once on key-down (auto-repeat filtered)
@@ -16,6 +16,12 @@ public interface IPushToTalkHotkey : IDisposable
     /// application the rest of the time.
     /// </summary>
     event EventHandler? CancelRequested;
+
+    /// <summary>
+    /// The user asked for the next dictation mode. Raised whether or not a dictation is running; the
+    /// reducer already declines to fire it during one.
+    /// </summary>
+    event EventHandler? NextModeRequested;
 
     /// <summary>
     /// Set by the engine while there is something to cancel. It is the hotkey layer that sees Escape
