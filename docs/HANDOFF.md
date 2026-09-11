@@ -186,13 +186,11 @@ Both transcripts were otherwise identical and correctly punctuated.
       Velopack's own `velopack.Talk2MeApp` — which is what matching the process ID gives you, and what
       looks obviously correct — and the shell serves the icon registered for that app instead, i.e.
       the generic one. It ignores the property entirely.
-    - The icon must live somewhere the shell will read. It refuses files under `%LOCALAPPDATA%` and
-      `%APPDATA%` — including the install directory and Talk2Me's own data folder — while reading the
-      identical bytes from `%TEMP%`, from the repo, or from anywhere outside those trees. No Defender
-      ASR or Controlled Folder Access is enabled on the machine where this was measured, and the ACLs
-      are permissive, so the reason is unknown; the behaviour is repeatable. `TaskbarWindow.StageIcon`
-      therefore writes a copy of the icon to `%TEMP%\Talk2Me\taskbar.ico` at every start and points
-      the property there.
+    - `TaskbarWindow.StageIcon` copies the icon to `%TEMP%\Talk2Me\taskbar.ico` at every start and
+      points the property there rather than at the executable. **That was justified by a measurement
+      that turned out to be an artefact** — see gotcha 28 — and pointing the property straight at the
+      installed executable may well work. It stays as it is pending a re-test against an install the
+      user performed themselves; staging costs nothing and works either way.
 
     Also measured, so nobody re-derives it:
     - Cause confirmed by isolation: a build skipping only the Velopack call shows the correct icon.
@@ -227,6 +225,21 @@ Both transcripts were otherwise identical and correctly punctuated.
 27. **`Overlay.WindowLeft/Top` and `History.WindowLeft/Top` are physical pixels, not WPF units.**
     `History.WindowWidth/Height` are still WPF units. Values saved before this change were WPF units;
     they differ only under DPI scaling, and a wrong one is clamped on the next launch rather than lost.
+28. **Nothing an agent session installs is real.** Claude Code's sandbox redirects writes under
+    `%LOCALAPPDATA%`, `%APPDATA%` and `HKCU` into a per-session overlay, and serves reads back out of
+    it — including under `dangerouslyDisableSandbox`, which does *not* escape the redirection. So an
+    installer run from inside a session produces a Talk2Me that looks perfectly installed from in
+    there and does not exist at all from outside: no install directory, no data folder, no `Uninstall`
+    registry entry, and so no row in Programs and Features or in Settings. `%TEMP%`, `C:\` and the
+    repo are not redirected, which is the only reason anything written there behaved normally.
+
+    Two things follow, and both cost hours to learn:
+    - **Only the user can install it**, and verifying the result needs a process the session did not
+      start. Have the Task Scheduler spawn one: write a `.cmd`, then `schtasks /create /tn X /tr
+      <file> /sc once /st 23:59 /f`, `schtasks /run /tn X`, read the file it leaves behind. That
+      process sees the real machine.
+    - This is what made `%LOCALAPPDATA%` look like a tree the shell refused to read icons out of
+      (gotcha 20). The files were simply not there for Explorer.
 
 ## Roadmap, in the order I would do it
 

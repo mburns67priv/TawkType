@@ -247,16 +247,15 @@ public sealed partial class OverlayViewModel : ObservableObject
     }
 
     /// <summary>
-    /// The close button. Stops the bar resting on screen; it still appears while you dictate, and
-    /// Appearance → "Keep the pill on screen" brings it back for good.
+    /// The close button. It closes Talk2Me — a close button that only hid the bar read as broken, and
+    /// the button beside it already hides it. Dictation stops with the app, so this is the one control
+    /// on the bar that ends the session.
     /// </summary>
     [RelayCommand]
-    private void HideBetweenDictations()
-    {
-        var next = _settings.Current.Clone();
-        next.Overlay.AlwaysVisible = false;
-        _settings.Save(next);
-    }
+    private void Quit() => QuitRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>The close button was pressed; the app should shut down.</summary>
+    public event EventHandler? QuitRequested;
 
     /// <summary>
     /// Brings the bar back from the tray, whichever way it went away. It undoes both the minimise

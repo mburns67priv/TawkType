@@ -92,8 +92,8 @@
                                     Command="{Binding HideCommand}"
                                     ToolTip="Hide the bar. Click the Talk2Me tray icon to bring it back." />
                             <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Close}"
-                                    Command="{Binding HideBetweenDictationsCommand}"
-                                    ToolTip="Hide between dictations. It still appears while you speak; turn it back on under Settings → Appearance." />
+                                    Command="{Binding QuitCommand}"
+                                    ToolTip="Quit Talk2Me. To keep it running but off screen, use the button to the left." />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal">

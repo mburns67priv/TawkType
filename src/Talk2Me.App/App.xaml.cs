@@ -113,6 +113,7 @@ public partial class App : Application
         var overlayVm = Services.GetRequiredService<OverlayViewModel>();
         overlayVm.SettingsRequested += (_, _) => OnSettingsClick(this, new RoutedEventArgs());
         overlayVm.HistoryRequested += (_, _) => ShowHistoryWindow();
+        overlayVm.QuitRequested += (_, _) => Shutdown();
         _overlay = new OverlayWindow(overlayVm, Services.GetRequiredService<ISettingsProvider>());
 
         _engine = Services.GetRequiredService<DictationEngine>();
