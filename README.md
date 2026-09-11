@@ -64,11 +64,6 @@ Download **TawkType-win-Setup.exe** from the
 [latest release](https://github.com/JupitorStudioDev/TawkType/releases/latest) and run it. It installs
 per-user, needs no administrator rights, and updates itself from that same release feed.
 
-> **Upgrading from Talk2Me?** Install this, then uninstall Talk2Me from Apps & features. The package
-> was renamed along with the app, so an old copy will not update itself and the two would otherwise
-> sit side by side. Your settings, API key, history and downloaded models move across on first launch
-> — nothing is re-downloaded and nothing needs re-entering.
-
 > **Windows will warn you the first time.** TawkType is not code-signed yet, so SmartScreen shows
 > *"Windows protected your PC"*. Choose **More info** → **Run anyway**. That warning is about the
 > absence of a paid certificate, not about anything found in the file.

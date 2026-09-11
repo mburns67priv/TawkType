@@ -212,13 +212,18 @@ rename cannot quietly undo it.
 
 ### The packId is the one thing that does not carry across
 
-Changing it makes this a different application to Velopack. Copies installed as `Talk2MeApp` poll the
-old channel and **will never update to TawkType**; they have to be replaced by hand. That is a real
-cost, accepted deliberately, and it is bounded: v0.3.0 was the only release under the old name that
-anyone had, and the release notes tell people to install the new one and uninstall the old.
+Changing it makes this a different application to Velopack: anything installed as `Talk2MeApp` polls
+the old channel and **will never update to TawkType**. It has to be replaced by hand.
 
-Nothing is lost when they do. The data folder is outside both install directories, so uninstalling
-TawkType does not touch it, and the new copy migrates it on first launch.
+**In practice that is one machine.** Nothing has been released to anybody — v0.3.0 exists, but the
+only installation of it is the owner's own test copy. There is no user base to strand, which is why
+this was worth doing now rather than never: the cost of renaming the package identity only ever goes
+up.
+
+Nothing is lost in the replacement either. The data folder is outside both install directories, so
+uninstalling the old copy does not touch it and the new one migrates it on first launch — which is the
+half that still matters, because those gigabytes of models are tedious to fetch again even for one
+person.
 
 ### What is still called Talk2Me, and must be
 
@@ -427,15 +432,26 @@ build that performed it.
     uploaded the whole folder — so the history compounded. v0.3.0 shipped **364 MB of assets and 17
     packages** for a 37 MB application, and v0.4.0 would have been larger again. It fetches only the
     previous *full* package now, which is all a delta needs; a simulated v0.4.0 produces three feed
-    entries and 135 MB. **The packages already attached to v0.3.0 and earlier must not be deleted** —
-    their feeds name them, and an installed copy resolves updates through those names.
+    entries and 135 MB.
+
+    The old releases still carry their inherited packages. Normally those could not be deleted — the
+    published feeds name them, and an installed copy resolves updates through those names — but
+    nothing is installed anywhere except the owner's test machine, so they are safe to clean up while
+    that is still true. After the first real user, they are not.
 
 ## Roadmap, in the order I would do it
 
-1. **Install v0.3.0 yourself and check the upgrade.** The release is cut and published; what nobody
-   has verified is the thing the rename risked. Install over an existing copy and confirm it still
-   finds its settings, its API key, its history and its downloaded models, and that the Start Menu
-   entry now reads TawkType. An agent session cannot do this (gotcha 28) — the owner has to.
+1. **Cut v0.4.0 and install it yourself.** It is the first build under the new package identity, so
+   it arrives as a fresh install rather than an update, and it is the only way to find out whether the
+   four rename migrations survive outside a sandbox. Confirm the new copy finds the settings, the API
+   key, the history and — the expensive one — the downloaded models, and that the Start Menu entry
+   reads TawkType. Then uninstall the old Talk2Me copy, which will not update itself.
+
+   An agent session cannot do any of this: its writes under `%LOCALAPPDATA%` and `HKCU` go into a
+   per-session overlay (gotcha 28), so the migrations were verified there and only there. Nothing is
+   at stake but the owner's own test machine, which is exactly why it is worth doing before that
+   stops being true.
+
 2. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste and only
    text is put back, so an image or formatted content is destroyed by a dictation — more likely now
    that multiline results always paste. Finding 10 is the filler regex: it still removes German "um"
