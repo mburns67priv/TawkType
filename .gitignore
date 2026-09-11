@@ -18,3 +18,6 @@ docs/tawktype-brand/
 
 # TawkType website prototype — keep local while the design is in progress.
 /website/
+
+# WPF's build writes a temporary project beside the real one and does not always clean it up.
+*_wpftmp.csproj
