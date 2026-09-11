@@ -35,7 +35,7 @@ public partial class TaskbarWindow : Window
         // Velopack gives the process an AppUserModelID, and from then on Windows resolves this
         // button's icon through identity rather than Window.Icon. See TaskbarIdentity for what brings
         // the real icon back — including why the icon it reads cannot live with the installed app.
-        if (Environment.GetEnvironmentVariable("TALK2ME_TEST_SKIPPROP") is not null)
+        if (Environment.GetEnvironmentVariable("TAWKTYPE_TEST_SKIPPROP") is not null)
         {
             IconDiagnostics = "skipped by probe";
             return;

@@ -540,7 +540,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            FileName = "talk2me-vocabulary.json",
+            FileName = "tawktype-vocabulary.json",
             Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
         };
 

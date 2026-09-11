@@ -7,7 +7,7 @@
          This is only what a build with neither of those falls back to. -->
     <FallbackVersion>0.0.0</FallbackVersion>
     <Version>$(FallbackVersion)</Version>
-    <Product>Talk2Me</Product>
+    <Product>TawkType</Product>
     <Company>Jupitor Studio</Company>
     <Copyright>Copyright © Jupitor Studio</Copyright>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

@@ -58,10 +58,10 @@ public static class TaskbarIdentity
 
         // Overridable so the two halves of this — which icon, which identity — can be varied against a
         // running taskbar without a rebuild. It took a lot of trials to find the pair that works.
-        var icon = Environment.GetEnvironmentVariable("TALK2ME_TEST_ICONRES") is { Length: > 0 } probe
+        var icon = Environment.GetEnvironmentVariable("TAWKTYPE_TEST_ICONRES") is { Length: > 0 } probe
             ? probe
             : $"{iconFile},0";
-        var identity = Environment.GetEnvironmentVariable("TALK2ME_TEST_WINDOWID") is { Length: > 0 } probeId
+        var identity = Environment.GetEnvironmentVariable("TAWKTYPE_TEST_WINDOWID") is { Length: > 0 } probeId
             ? probeId
             : WindowAppUserModelId;
 

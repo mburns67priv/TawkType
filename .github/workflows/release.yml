@@ -78,7 +78,7 @@ jobs:
             # The package id is in the pattern, not a wildcard. A delta can only be built against the
             # same application, and everything in this folder gets uploaded to the new release — so a
             # wildcard would attach the previous *identity's* package to it. That is not hypothetical:
-            # the id changed from Talk2MeApp to TawkType at v0.4.0.
+            # the packId has changed twice, most recently to TawkTypeApp at v0.5.0.
             $previousVersion = $previous.TrimStart('v')
             Write-Host "previous release: $previous (fetching its full package for the delta)"
             gh release download $previous --dir build/releases --pattern "$packId-$previousVersion-full.nupkg" --clobber
