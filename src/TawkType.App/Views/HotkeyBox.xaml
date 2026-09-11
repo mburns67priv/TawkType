@@ -1,0 +1,14 @@
+﻿<UserControl x:Class="TawkType.Desktop.Views.HotkeyBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="True" IsTabStop="True">
+    <!-- Looks like the other inputs, behaves like a key recorder: click it, hold the combination you
+         want, let go. The border lights up while it is listening so it is obvious which state it is in. -->
+    <Border x:Name="Chrome" MinHeight="38" CornerRadius="{StaticResource Ui.CornerRadius}"
+            Background="{DynamicResource Ui.Input}"
+            BorderBrush="{DynamicResource Ui.Border}" BorderThickness="1"
+            Padding="12,0" Cursor="Hand">
+        <TextBlock x:Name="Display" VerticalAlignment="Center"
+                   Foreground="{DynamicResource Ui.Text}" TextTrimming="CharacterEllipsis" />
+    </Border>
+</UserControl>

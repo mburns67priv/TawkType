@@ -1,0 +1,73 @@
+﻿<Window x:Class="TawkType.Desktop.Views.DictationBoxWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:TawkType.Desktop.ViewModels"
+        xmlns:views="clr-namespace:TawkType.Desktop.Views"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:DictationBoxViewModel}"
+        Title="TawkType Dictation Box"
+        Icon="pack://application:,,,/Assets/tawktype.ico"
+        Width="460"
+        Height="330"
+        MinWidth="360"
+        MinHeight="240"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Ui.Window}"
+        Foreground="{DynamicResource Ui.Text}"
+        FontFamily="{StaticResource Brand.Font}"
+        FontSize="13">
+
+    <!-- One band of explanation, the text, and the actions. The text box is the point of the window,
+         so it takes every pixel the other two do not need. -->
+    <Grid Margin="16,14,16,14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- 0 title -->
+            <RowDefinition Height="Auto" /> <!-- 1 what went wrong -->
+            <RowDefinition Height="*" />    <!-- 2 the words -->
+            <RowDefinition Height="Auto" /> <!-- 3 actions -->
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+            <Border Width="26" Height="26" CornerRadius="6"
+                    Background="{StaticResource Brand.VoiceGradient}" Margin="0,0,10,0">
+                <views:BrandMark Width="19" Height="19" Margin="0,1,0,0"
+                                 BarsBrush="{StaticResource Brand.Accent}" />
+            </Border>
+            <TextBlock Text="Dictation box" FontFamily="{StaticResource Brand.DisplayFont}" FontSize="17"
+                       VerticalAlignment="Center" />
+        </StackPanel>
+
+        <Border Grid.Row="1" Margin="0,0,0,12" Padding="12,10" CornerRadius="8"
+                Background="{DynamicResource Ui.Card}"
+                Visibility="{Binding HasProblem, Converter={StaticResource BoolToVisible}}">
+            <StackPanel>
+                <TextBlock Text="{Binding Headline}" FontWeight="SemiBold" Margin="0,0,0,3" />
+                <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap"
+                           Foreground="{DynamicResource Ui.TextMuted}" />
+            </StackPanel>
+        </Border>
+
+        <TextBox Grid.Row="2" Style="{StaticResource Ui.MultilineTextBox}"
+                 Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                 AcceptsReturn="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" />
+
+        <DockPanel Grid.Row="3" Margin="0,12,0,0">
+            <TextBlock DockPanel.Dock="Left" Text="{Binding Status}" VerticalAlignment="Center"
+                       FontSize="11.5" Foreground="{DynamicResource Ui.Accent}"
+                       TextTrimming="CharacterEllipsis" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Close" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                        IsCancel="True" Click="OnCloseClick" />
+                <Button Content="Copy" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                        Command="{Binding CopyCommand}" />
+                <Button Content="Send it back" Style="{StaticResource Ui.PrimaryButton}" IsDefault="True"
+                        Command="{Binding SendBackCommand}"
+                        ToolTip="Bring that window back to the front and type the text into it"
+                        Visibility="{Binding CanSendBack, Converter={StaticResource BoolToVisible}}" />
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>

@@ -60,14 +60,14 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 
 ## Install it
 
-Download **Talk2MeApp-win-Setup.exe** from the
+Download **TawkType-win-Setup.exe** from the
 [latest release](https://github.com/JupitorStudioDev/TawkType/releases/latest) and run it. It installs
 per-user, needs no administrator rights, and updates itself from that same release feed.
 
-> **The installer, the repository and the data folder still say Talk2Me.** That is the app's update
-> and storage identity, not its name. Renaming those would clear the install folder, orphan the
-> update channel, and put settings, an encrypted API key, history and gigabytes of models at risk —
-> so an existing installation keeps working, and the rename is the part you can see.
+> **Upgrading from Talk2Me?** Install this, then uninstall Talk2Me from Apps & features. The package
+> was renamed along with the app, so an old copy will not update itself and the two would otherwise
+> sit side by side. Your settings, API key, history and downloaded models move across on first launch
+> — nothing is re-downloaded and nothing needs re-entering.
 
 > **Windows will warn you the first time.** TawkType is not code-signed yet, so SmartScreen shows
 > *"Windows protected your PC"*. Choose **More info** → **Run anyway**. That warning is about the
@@ -97,12 +97,12 @@ installer needs only the .NET 8 Desktop Runtime, and offers to fetch it.
 ```bash
 git clone https://github.com/JupitorStudioDev/TawkType.git
 cd TawkType
-dotnet run --project src/Talk2Me.App
+dotnet run --project src/TawkType.App
 ```
 
 TawkType lives in the system tray and on the taskbar. On first run it downloads the active engine's model
 — Parakeet is 640 MB, Whisper `large-v3-turbo` is 1.6 GB — into
-`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\models`. The
+`%LOCALAPPDATA%\Jupitor Studio\TawkType\models`. The
 status bar shows the download progress.
 
 Then hold Right Ctrl and talk.
@@ -159,8 +159,8 @@ me a poem about the sea"* and you get that sentence, not a poem.
 
 ## Where your data lives
 
-Everything is under `%LOCALAPPDATA%\Jupitor Studio\Talk2Me\` — deliberately separate from the
-application itself, which the installer puts in `%LOCALAPPDATA%\Talk2MeApp\`, so uninstalling TawkType
+Everything is under `%LOCALAPPDATA%\Jupitor Studio\TawkType\` — deliberately separate from the
+application itself, which the installer puts in `%LOCALAPPDATA%\TawkType\`, so uninstalling TawkType
 never takes your models and history with it:
 
 | File | What |
@@ -187,10 +187,10 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 
 ```bash
 dotnet test                                              # 326 unit tests, ~2 s
-dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
-dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
-dotnet run --project tools/Talk2Me.Focus -- 15           # what the focus probe sees
-dotnet run --project tools/Talk2Me.Brand                 # regenerate the icon and logos
+dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
+dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
+dotnet run --project tools/TawkType.Focus -- 15           # what the focus probe sees
+dotnet run --project tools/TawkType.Brand                 # regenerate the icon and logos
 ```
 
 Launch flags: `--settings`, `--history`, `--dictation-box`, `--overlay-demo`.

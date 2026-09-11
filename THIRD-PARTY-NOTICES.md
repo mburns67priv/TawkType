@@ -1,11 +1,11 @@
 # Third-party notices
 
-Talk2Me is built on the work below. Licence details were taken from each package's own metadata.
+TawkType is built on the work below. Licence details were taken from each package's own metadata.
 
 ## Speech recognition models
 
-Talk2Me does **not** redistribute either model. Both are downloaded from Hugging Face on first use and
-stored in `%LOCALAPPDATA%\Talk2Me\models`. Neither is modified.
+TawkType does **not** redistribute either model. Both are downloaded from Hugging Face on first use and
+stored in `%LOCALAPPDATA%\Jupitor Studio\TawkType\models`. Neither is modified.
 
 ### NVIDIA Parakeet TDT 0.6B v3
 
@@ -17,10 +17,10 @@ stored in `%LOCALAPPDATA%\Talk2Me\models`. Neither is modified.
   <https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8>
 
 CC BY 4.0 permits commercial use, redistribution and modification provided NVIDIA is credited, the
-licence is linked, and any changes are stated. Talk2Me credits NVIDIA here, in the README and in the
+licence is linked, and any changes are stated. TawkType credits NVIDIA here, in the README and in the
 application itself (Settings → General → About).
 
-> If you fork Talk2Me and bundle the model weights with an installer, you are then *sharing* the
+> If you fork TawkType and bundle the model weights with an installer, you are then *sharing* the
 > material, and CC BY 4.0's attribution terms apply to your distribution as well — carry this notice
 > with it.
 
@@ -54,8 +54,8 @@ Whisper.net bundles builds of **whisper.cpp** (MIT, © 2023 Georgi Gerganov), an
 | xunit, xunit.runner.visualstudio | Apache-2.0 |
 | Microsoft.NET.Test.Sdk | MIT |
 
-## Talk2Me itself
+## TawkType itself
 
-Talk2Me carries no licence at this time, which means all rights are reserved by Jupitor Studio. You may
+TawkType carries no licence at this time, which means all rights are reserved by Jupitor Studio. You may
 read the source; you do not have permission to use, copy, modify or distribute it. If you want to do any
 of those things, open an issue and ask.

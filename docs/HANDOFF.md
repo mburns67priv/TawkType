@@ -13,8 +13,8 @@ machine. There is no account and no telemetry, and the only thing that ever leav
 optional Claude rewrite, which is off until someone turns it on and supplies a key.
 
 Owner: Jupitor Studio. Home: [tawktype.com](https://tawktype.com). Working name was **Murmur**, then
-**Talk2Me**; it is now **TawkType**, because Talk2Me turned out to be another dictation product. The
-rename is display-only — see "The rename" below for the six identifiers that still say Talk2Me on
+**TawkType**; it is now **TawkType**, because TawkType turned out to be another dictation product. The
+rename is display-only — see "The rename" below for the six identifiers that still say TawkType on
 purpose.
 
 Windows only. `docs/MACOS.md` works out what a Mac version would cost and why the answer is "not
@@ -28,7 +28,7 @@ before the Windows one has shipped something".
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
 - **Renamed to TawkType**, display-only — see "The rename" below for the six identifiers that
-  deliberately still say Talk2Me and what each costs if you change one.
+  deliberately still say TawkType and what each costs if you change one.
 - **The whole pipeline is session-scoped**: a dictation can be cancelled with Esc, cannot be stamped
   on by a later one, and shutdown drains rather than tearing up mid-write.
 - **Post-processing is local first.** `PhraseBook` applies the user's spellings, replacements and
@@ -55,34 +55,34 @@ before the Windows one has shipped something".
 
 ## Repo map
 
-The project and namespace names still say Talk2Me. That is deliberate — see "The rename" below.
+The project and namespace names still say TawkType. That is deliberate — see "The rename" below.
 
 ```
-Talk2Me.sln
-src/Talk2Me.Core            pipeline state machine, interfaces, settings, regex cleaner, and the pure
+TawkType.sln
+src/TawkType.Core            pipeline state machine, interfaces, settings, regex cleaner, and the pure
                             reducers that make the awkward parts testable, all free of Windows deps:
                               Input/     Hotkey, HotkeyGesture, Activation (hold / toggle / Esc / mode)
                               Text/      PhraseBook, CaretFit, CorrectionGuess, Delivery, BasicTextCleaner
                               Settings/  DictationMode, VocabularyEdit, VocabularyFormat, NumberField
                               History/   DictationHistoryStore, HistoryQuery, LastDictation
                               Pipeline/  DictationEngine, Recovery
-src/Talk2Me.Windows         WH_KEYBOARD_LL hook, WaveIn mic capture, SendInput + clipboard injection,
+src/TawkType.Windows         WH_KEYBOARD_LL hook, WaveIn mic capture, SendInput + clipboard injection,
                             UiaFocusProbe (can text land here, and what is either side of the caret),
                             Win32WindowActivator, DPAPI key store, Run-key startup, taskbar identity
-src/Talk2Me.Transcription   ParakeetTranscriber (sherpa-onnx), WhisperTranscriber (Whisper.net),
+src/TawkType.Transcription   ParakeetTranscriber (sherpa-onnx), WhisperTranscriber (Whisper.net),
                             TranscriberRouter, model downloaders, ModelStorage
-src/Talk2Me.Llm             ClaudeLlmClient — the only project that references the Anthropic SDK
-src/Talk2Me.App             WPF tray app (namespace Talk2Me.Desktop): App.xaml has the palette + mark
+src/TawkType.Llm             ClaudeLlmClient — the only project that references the Anthropic SDK
+src/TawkType.App             WPF tray app (namespace TawkType.Desktop): App.xaml has the palette + mark
                             geometry; Views/ has OverlayWindow, SettingsWindow, HistoryWindow,
                             DictationBoxWindow, RememberWindow, TaskbarWindow, HotkeyBox, BrandMark;
                             Themes/ has Light.xaml, Dark.xaml and the templated Controls.xaml;
                             Services/ has ModelMaintenance, ThemeManager, UpdateService, SoundCues,
                             LegacyMigration; Logging/ has the file logger
-tools/Talk2Me.Bench         transcribes a WAV with one or both engines, prints latency side by side
-tools/Talk2Me.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
-tools/Talk2Me.Focus         what the focus probe makes of the front window, and the text around its caret
-tools/Talk2Me.Brand         renders talk2me.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/Talk2Me.Core.Tests    xUnit, 326 tests. One file per behaviour; the names are the specification.
+tools/TawkType.Bench         transcribes a WAV with one or both engines, prints latency side by side
+tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
+tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
+tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
+tests/TawkType.Core.Tests    xUnit, 326 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -91,11 +91,11 @@ docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessmen
 ## Run, build, test
 
 ```bash
-dotnet run --project src/Talk2Me.App          # tray app; first run downloads the active engine's model
+dotnet run --project src/TawkType.App          # tray app; first run downloads the active engine's model
 dotnet test                                   # 326 tests, ~2 s
-dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
-dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
-dotnet run --project tools/Talk2Me.Brand      # regenerate icon + exports after brand changes
+dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
+dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
+dotnet run --project tools/TawkType.Brand      # regenerate icon + exports after brand changes
 ```
 
 Dev launch flags: `--settings` opens Settings at start; `--history` opens the history window;
@@ -106,11 +106,12 @@ Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust,
 
 ## Where things live at runtime
 
-`%LOCALAPPDATA%\Talk2Me\`
+`%LOCALAPPDATA%\TawkType\`
 
-> **The data folder moved.** It is `%LOCALAPPDATA%\Jupitor Studio\Talk2Me` now, not
-> `%LOCALAPPDATA%\Talk2Me`. `LegacyMigration` brings forward both the old Murmur folder and the old
-> Talk2Me one.
+> **The data folder has moved three times.** It is `%LOCALAPPDATA%\Jupitor Studio\TawkType` now.
+> `LegacyMigration` brings forward each of the places it used to be — `%LOCALAPPDATA%\Murmur`,
+> `%LOCALAPPDATA%\Talk2Me`, and `%LOCALAPPDATA%\Jupitor Studio\Talk2Me` — oldest first, so someone
+> who skipped several versions still gets everything in one step.
 
 - `settings.json` — all user settings; saved from the Settings window, hot-reloaded by every consumer.
 - `models\ggml-large-v3-turbo.bin` (1.6 GB) and `models\parakeet-tdt-0.6b-v3-int8\` (640 MB).
@@ -147,7 +148,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | The history list expands rows in place | A list plus a detail pane makes two scroll regions compete for a 560px window: the list collapsed to a sliver and clipped rows mid-line, and the capped detail boxes scrolled short text to a fragment. Expanding in place leaves one scroll region and no truncation at any length. |
 | History is append-only JSONL, not a database | A dictation must never be lost or slowed by the log. The hot path is one `File.AppendAllText`, failures are swallowed (the text is already typed), and the file is only rewritten when trimming or clearing. A torn line is skipped at load. |
 | Cleanup is regex **then** optionally Claude | The regex pass always runs and is the fallback, so dictation degrades rather than breaks when the network, the key, or the timeout fails. Rewrite quality is the whole point of the LLM step, so it gets the raw transcript, not the regex output. |
-| `ILlmClient` seam, Claude first | Core stays free of any provider SDK; `Talk2Me.Llm` holds the Anthropic dependency. A local model (llama.cpp / ONNX) implements the same two-method interface without touching the pipeline. Claude first because rewrite quality is what makes the feature worth having. |
+| `ILlmClient` seam, Claude first | Core stays free of any provider SDK; `TawkType.Llm` holds the Anthropic dependency. A local model (llama.cpp / ONNX) implements the same two-method interface without touching the pipeline. Claude first because rewrite quality is what makes the feature worth having. |
 | Cleanup off by default, key in DPAPI | It is the only thing that leaves the machine, so it must be a deliberate choice. `settings.json` is plain text, so the key lives in `apikey.dat` encrypted under the Windows account instead. |
 | Effort `low`, adaptive thinking, no retries | The call has ~2 s. Low effort keeps it inside that; retries only delay the fallback. Thinking stays adaptive because disabling it on Opus can leak reasoning markup, which here would be typed into the user's window. |
 | The awkward input logic lives in pure Core reducers | Auto-repeat, a release with no press, the hotkey changing mid-hold, toggle-vs-hold, Esc only while dictating — every one of those was a real bug and none is reachable from a test with Win32 in the way. `HotkeyGesture` and `Activation` take events and return decisions, so all of it is covered. |
@@ -184,44 +185,55 @@ Same 13 s clip, best of 5:
 
 Both transcripts were otherwise identical and correctly punctuated.
 
-## The rename: what changed and what deliberately did not
+## The rename
 
-The app is **TawkType**, at [tawktype.com](https://tawktype.com). Talk2Me was already another
-dictation product, so the name had to go. The design package is `docs/tawktype-brand/BRAND-PACKAGE.md`;
-the implementer's half is `branding/BRAND.md`.
+The app is **TawkType**, at [tawktype.com](https://tawktype.com). Talk2Me was already another dictation
+product. The design package is `docs/tawktype-brand/BRAND-PACKAGE.md`; the implementer's half is
+`branding/BRAND.md`.
 
-The **GitHub repository is renamed** to `JupitorStudioDev/TawkType`. GitHub redirects the old URL, which
-is the only reason already-installed copies can still reach a release — their update feed URL was
-compiled in before the rename. `UpdateService.RepositoryUrl` points at the new one for everything built
-from here. The **local working folder and the solution file are still named Talk2Me**; nothing depends
-on the folder name, and `tools/Talk2Me.Brand` finds the repo root by looking for `Talk2Me.sln`.
+**It is now a complete rename.** The first pass changed only what a user reads and left six identifiers
+alone because changing them risked real data. The owner asked for all of them, so each one was changed
+*with a migration*, and every migration was exercised against a seeded old installation before being
+believed:
 
-**Changed**: every string a user reads — window titles, the tray tooltip and menu, dialog captions,
-update status, overlay wording, the log's startup line — plus the mark, the palette, and the
-executable's Product/Description metadata.
+| Identifier | Now | How an existing install survives |
+|---|---|---|
+| Data folder | `%LOCALAPPDATA%\Jupitor Studio\TawkType` | `LegacyMigration` moves the old folder wholesale on first run. **Verified**: settings, history and models all came across and the old folder was gone. |
+| DPAPI entropy | `TawkType.ApiKey.v1` | A failed decrypt retries with the old entropy and re-encrypts under the new one, once. **Verified**: a key written with the old value was readable and afterwards decrypted only with the new one. |
+| Run-key value | `TawkType` | The old name still counts as "enabled" when read, and is deleted whenever startup is written. **Verified**: the checkbox read On from a legacy value, and toggling left only the new name. |
+| Window AUMID | `JupitorStudio.TawkType` | It only has to be an identity no shortcut claims, which this is. Re-check gotcha 20 on a real install. |
+| Velopack packId | `TawkType` | **Does not migrate.** See below. |
+| Assembly, namespaces, projects, solution | `TawkType.*` | Internal; nothing outside the repo refers to them. |
 
-**Not changed**, and each one costs a user something if you "finish the job":
+The data folder is still *inside* `Jupitor Studio\` rather than `%LOCALAPPDATA%\TawkType`, because the
+installer clears `%LOCALAPPDATA%\<packId>` before extracting and packId is now `TawkType`. That
+separation is the whole of gotcha 19 and it still matters — `DataFolderTests` asserts it so a future
+rename cannot quietly undo it.
 
-| Stays | Why |
-|---|---|
-| `%LOCALAPPDATA%\Jupitor Studio\Talk2Me` | Settings, the encrypted API key, history, and gigabytes of models. Nobody sees the path. |
-| `"Talk2Me.ApiKey.v1"` (DPAPI entropy) | Part of the key `apikey.dat` was encrypted with. A new value makes every existing key undecryptable, silently. |
-| `"Talk2Me"` (Run key value name) | A new name leaves the old entry behind: the app starts twice and the orphan cannot be turned off from the UI. |
-| `JupitorStudio.Talk2Me` (window AUMID) | Shell identity. Changing it re-opens gotcha 20, which cost days. |
-| `Talk2MeApp` (Velopack packId) | The update channel installed copies poll, **and** the folder Velopack clears on install — gotcha 19. |
-| `Talk2Me` (assembly name), namespaces, project and solution names | Internal. Renaming them is churn plus a packaging change, with nothing visible in return. |
-| `talk2me.ico`, `%TEMP%\Talk2Me\` | Referenced by the csproj and the taskbar identity work. |
+### The packId is the one thing that does not carry across
 
-If the package identity is ever changed, **test an upgrade from an existing installation first**. The
-package says so and so does gotcha 19.
+Changing it makes this a different application to Velopack. Copies installed as `Talk2MeApp` poll the
+old channel and **will never update to TawkType**; they have to be replaced by hand. That is a real
+cost, accepted deliberately, and it is bounded: v0.3.0 was the only release under the old name that
+anyone had, and the release notes tell people to install the new one and uninstall the old.
 
-Still to do from the package's asset checklist: high-contrast tray variants, outlined SVG wordmarks,
-and screenshots of current behaviour. The generated `.ico` does carry separately rendered 16/20/24/32/48
-px frames, and the mark drops its text cursor below 24 px rather than shrinking into a smudge.
+Nothing is lost when they do. The data folder is outside both install directories, so uninstalling
+TawkType does not touch it, and the new copy migrates it on first launch.
+
+### What is still called Talk2Me, and must be
+
+Three values, all read-only and all with a comment saying why:
+
+- `LegacyMigration`'s source paths — the folders being migrated *from*.
+- `DpapiApiKeyStore.Legacy` — the entropy old keys were encrypted with.
+- `WindowsStartup.LegacyValueName` — the Run value to recognise and delete.
+
+Delete any of them and the corresponding migration stops working for anyone who has not yet run a
+build that performed it.
 
 ## Gotchas the next person will hit
 
-1. ~~Repo folder is still named `Murmur`.~~ Done — it is `~/source/repos/Talk2Me` now.
+1. ~~Repo folder is still named `Murmur`.~~ Done — it is `~/source/repos/TawkType` now.
 2. **Synthetic key presses do not trigger the hotkey.** The hook ignores `LLKHF_INJECTED` events on
    purpose (so our own SendInput cannot retrigger it). To test without a physical key use the tray item
    "Test dictation (records 3 s)" or `DictationEngine.BeginDictation()/EndDictation()`.
@@ -239,10 +251,10 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
 9. **The cleanup pass has never made a successful API call.** No key was available in the session that
    built it. It was verified as far as the API rejecting an invalid key in ~600 ms and the fallback
    typing the regex text — so the request shape is accepted and the failure path works, but nobody has
-   seen a real rewrite or its latency yet. Run `tools/Talk2Me.Clean` with a real key first thing.
+   seen a real rewrite or its latency yet. Run `tools/TawkType.Clean` with a real key first thing.
 10. **`ModelStorage.Delete` only ever removes something `List()` reported**, so a caller cannot compose
     a path out of the models folder. Keep that property if you add another delete path.
-11. **`Talk2MeSettings.Clone` is no longer a plain `MemberwiseClone`.** `Cleanup`, `History`, `Overlay` and `Appearance` are
+11. **`TawkTypeSettings.Clone` is no longer a plain `MemberwiseClone`.** `Cleanup`, `History`, `Overlay` and `Appearance` are
     nested objects, deep-copied by hand. Any future nested settings section needs the same treatment or
     the Settings window will edit live settings in place.
 12. **The history window saves settings when it moves or closes**, via clone-modify-save on
@@ -267,12 +279,17 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     including during dictation, and deliberately *not* persisted, so a restart brings it back. While
     minimised the only ways back are the tray icon (left click, or "Show" on the menu) and
     turning Appearance → "Keep the pill on screen" from off to on.
-19. **Never let the installer's packId be `Talk2Me`.** Velopack installs to `%LOCALAPPDATA%\<packId>`
-    and *clears that folder first*. Builds before the installer kept user data in
-    `%LOCALAPPDATA%\Talk2Me`, so packing with that id destroys settings, history and gigabytes of
-    downloaded models before the app can migrate them. It happened once during development. The packId
-    is `Talk2MeApp` and the data folder is `%LOCALAPPDATA%\Jupitor Studio\Talk2Me`; both halves of
-    that separation matter.
+19. **The packId must never name a folder that holds user data.** Velopack installs to
+    `%LOCALAPPDATA%\<packId>` and *clears that folder first*. Early builds kept user data in
+    `%LOCALAPPDATA%\Talk2Me`, so packing with `Talk2Me` as the id destroyed settings, history and
+    gigabytes of downloaded models before the app could migrate them. It happened once during
+    development, which is why the id was `Talk2MeApp` for a long time.
+
+    The id is `TawkType` now, and that is safe only because data lives in
+    `%LOCALAPPDATA%\Jupitor Studio\TawkType` — inside a vendor folder, a different path from the
+    install directory. `DataFolderTests` asserts both halves so a future rename cannot quietly collide
+    them again.
+
 20. **Velopack's init takes over the taskbar button's icon.** `VelopackApp.Build().Run()` sets a
     process-wide AppUserModelID, and from then on Windows resolves the button's icon through that
     identity rather than `Window.Icon`, falling back to a generic one. Everything else still looks
@@ -282,11 +299,11 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     Fixed, but only by getting **both** of these right at once, which is why it took so long:
     - The window needs `PKEY_AppUserModel_RelaunchIconResource` **and** a
       `PKEY_AppUserModel_ID` of its own. Neither alone does anything.
-    - That ID must be one **no installed shortcut claims** (`JupitorStudio.Talk2Me`). Set it to
-      Velopack's own `velopack.Talk2MeApp` — which is what matching the process ID gives you, and what
+    - That ID must be one **no installed shortcut claims** (`JupitorStudio.TawkType`). Set it to
+      Velopack's own (`velopack.<packId>`) — which is what matching the process ID gives you, and what
       looks obviously correct — and the shell serves the icon registered for that app instead, i.e.
       the generic one. It ignores the property entirely.
-    - `TaskbarWindow.StageIcon` copies the icon to `%TEMP%\Talk2Me\taskbar.ico` at every start and
+    - `TaskbarWindow.StageIcon` copies the icon to `%TEMP%\TawkType\taskbar.ico` at every start and
       points the property there rather than at the executable. **That was justified by a measurement
       that turned out to be an artefact** — see gotcha 28 — and pointing the property straight at the
       installed executable may well work. It stays as it is pending a re-test against an install the
@@ -294,7 +311,7 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
 
     Also measured, so nobody re-derives it:
     - Cause confirmed by isolation: a build skipping only the Velopack call shows the correct icon.
-    - `binary,-resourceId` (e.g. `Talk2Me.exe,-32512`) and `icon.ico,0` are both accepted forms. The
+    - `binary,-resourceId` (e.g. `TawkType.exe,-32512`) and `icon.ico,0` are both accepted forms. The
       `exe,0` index form that works in a shortcut resolves to nothing here.
     - `WM_SETICON` with `ExtractIconEx`, restarting Explorer, and a fresh uninstall/reinstall all
       change nothing. Neither does an unregistered *process* AUMID with no window property.
@@ -316,7 +333,7 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     which only applies to a window shown with `ShowDialog`. Settings is shown with `Show`, so its Cancel
     button needs a real `Click` handler and Escape needs wiring by hand — via bubbling `OnKeyDown`, not
     `OnPreviewKeyDown`, so an open combo box dropdown still gets Escape first.
-25. **`Talk2Me.Windows` sets `UseWPF` only for the UI Automation client assemblies.** It draws no UI.
+25. **`TawkType.Windows` sets `UseWPF` only for the UI Automation client assemblies.** It draws no UI.
     Turning it on also changed the implicit usings, which is why `DpapiApiKeyStore` now imports
     `System.IO` explicitly.
 26. **Chromium reports its page body as a read-only Document and a focused input as an Edit.** That is
@@ -361,7 +378,7 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     Quit from the tray first (gotcha 5). To verify a build without disturbing a running instance, build
     to a different output directory with `-o`; the compile is what you are checking, and the copy step
     is the only thing that fails.
-35. **Only one Talk2Me can run per session** — a `Local\Talk2Me.SingleInstance` mutex. A second copy
+35. **Only one TawkType can run per session** — a `Local\TawkType.SingleInstance` mutex. A second copy
     exits silently, so a scripted launch aimed at testing a new build will quietly drive the *old* one
     that is already up. Check for a running process before believing a screenshot.
 
@@ -370,11 +387,11 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     `GetForegroundWindow` until it matches, and gives up after 600 ms. Also: a process can only *give
     away* the foreground, never take it, so this works from a button in a window that is already in
     front and cannot be made to work from the background.
-37. **Merging `App.xaml` into another `Application` throws.** Loading it constructs `Talk2Me.Desktop.App`,
+37. **Merging `App.xaml` into another `Application` throws.** Loading it constructs `TawkType.Desktop.App`,
     and WPF allows one `Application` per AppDomain — so a test harness that wants the app's windows has
     to supply the brand keys itself rather than merging the dictionary that defines them. Window
     `Icon` pack URIs resolve against the *entry* assembly too, so the harness needs its own copy of
-    `talk2me.ico` as a `Resource`.
+    `tawktype.ico` as a `Resource`.
 
 38. **An owned WPF dialog is a UIA *descendant* of its owner, not a child of the root.** A
     `ShowDialog` with `Owner` set does not appear in `RootElement`'s children, so a script looking for
@@ -395,7 +412,7 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     as `Trigger`, so a test helper that presses every modifier and then the trigger sends it twice —
     and the second one reads as auto-repeat, not a press. Press `Required` then `Trigger`.
 42. **UI Automation reads an item's `ToString()`, not its `DisplayMemberPath`.** A combo box showed
-    the right names on screen while exposing `Talk2Me.Core.Settings.DictationMode` to every screen
+    the right names on screen while exposing `TawkType.Core.Settings.DictationMode` to every screen
     reader and every test script. `DictationMode` overrides `ToString()`; do the same for anything
     else that ends up in a list.
 
@@ -448,11 +465,11 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
 3. Built the WPF app: tray, overlay, settings, file logging. Verified with screenshots from the running app.
 4. Added Parakeet via sherpa-onnx, the engine router and selection tests, and a two-engine benchmark.
 5. Added model deletion (Settings + tray) with engine unload first. Committed.
-6. Renamed everything to Talk2Me; designed the mark, palette, and wordmark; built the brand render tool;
+6. Renamed everything to TawkType; designed the mark, palette, and wordmark; built the brand render tool;
    restyled the overlay and settings; added the legacy data migration. Committed.
 7. Added the LLM cleanup pass: `ILlmClient` + `IApiKeyStore` in Core, `LlmTextCleaner` with its timeout
-   and fallbacks, `CleanupPrompt`, the `Talk2Me.Llm` project with `ClaudeLlmClient`, DPAPI key storage,
-   a `Polishing` pipeline state, the Settings expander, `tools/Talk2Me.Clean`, and 20 more tests.
+   and fallbacks, `CleanupPrompt`, the `TawkType.Llm` project with `ClaudeLlmClient`, DPAPI key storage,
+   a `Polishing` pipeline state, the Settings expander, `tools/TawkType.Clean`, and 20 more tests.
 8. Made model deletion selective: `ModelStorage.Delete(name)` per entry, `ModelMaintenance.List()` with
    friendly labels and an "in use" flag, a tick list in Settings with **Delete selected** / **Delete
    all**. The tray item still deletes everything.

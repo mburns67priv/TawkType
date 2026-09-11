@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Produces build/releases/, which contains everything a GitHub Release needs:
-      Talk2MeApp-win-Setup.exe  the installer people download - named from packId, not the app
+      TawkType-win-Setup.exe  the installer people download
       *-full.nupkg            the payload the installer and the updater read
       *-delta.nupkg           the small diff, when a previous release is present
       RELEASES-win            the feed the app checks for updates
@@ -36,7 +36,7 @@ if (Test-Path $publish) { Remove-Item -Recurse -Force $publish }
 
 # Framework-dependent: the .NET 8 Desktop Runtime is a prerequisite, which keeps the download ~90 MB
 # rather than ~230 MB self-contained. Velopack's installer prompts for the runtime if it is missing.
-dotnet publish (Join-Path $root 'src/Talk2Me.App/Talk2Me.App.csproj') `
+dotnet publish (Join-Path $root 'src/TawkType.App/TawkType.App.csproj') `
     -c Release `
     -r win-x64 `
     --self-contained false `
@@ -68,22 +68,22 @@ if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
 
 New-Item -ItemType Directory -Force -Path $releases | Out-Null
 
-# packId is the install folder name: %LOCALAPPDATA%\<packId>. It must NOT be "Talk2Me", because
-# builds before the installer kept user data in %LOCALAPPDATA%\Talk2Me, and the installer clears its
-# target directory before extracting. Installing over it destroys settings, history and gigabytes of
-# downloaded models before the app ever runs to migrate them.
+# packId is the install folder name: %LOCALAPPDATA%\<packId>, and the installer CLEARS that folder
+# before extracting. It must never collide with where user data lives, which is why it was not
+# "Talk2Me" back when data lived in %LOCALAPPDATA%\Talk2Me.
 #
-# It is also not renamed to match TawkType, for the same reason plus one more: packId is the update
-# channel every installed copy already polls. packTitle is the half users actually see - the Start
-# Menu shortcut and the Programs and Features entry - so that is the half that carries the new name.
+# "TawkType" is safe for the same reason the old id was: data is under
+# %LOCALAPPDATA%\Jupitor Studio\TawkType, a different path, so clearing the install folder cannot touch
+# it. Renaming the id does mean copies installed as Talk2MeApp will not update to this - they poll the
+# old channel - so an existing install has to be replaced once by hand. See docs/HANDOFF.md.
 vpk pack `
-    --packId Talk2MeApp `
+    --packId TawkType `
     --packVersion $Version `
     --packDir $publish `
-    --mainExe Talk2Me.exe `
+    --mainExe TawkType.exe `
     --packTitle 'TawkType' `
     --packAuthors 'Jupitor Studio' `
-    --icon (Join-Path $root 'src/Talk2Me.App/Assets/talk2me.ico') `
+    --icon (Join-Path $root 'src/TawkType.App/Assets/tawktype.ico') `
     --channel $Channel `
     --outputDir $releases
 

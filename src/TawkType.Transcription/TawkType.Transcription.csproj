@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net8.0-windows, not net8.0: Whisper.net's runtime targets copy *every* platform's native
+         binaries when the TFM has no platform suffix, which is 600 MB of Linux and macOS payload. -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Description>Local speech-to-text via Whisper.net (whisper.cpp) with GPU runtimes and model management.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Whisper.net" Version="1.9.1" />
+    <!-- Runtime order is configured in WhisperTranscriber: Vulkan -> CPU. Vulkan works with the stock
+         NVIDIA/AMD/Intel driver. The CUDA 12 backend is deliberately not shipped: it is a 538 MB DLL,
+         five times the rest of the application, and it only does anything for users who have installed
+         the CUDA Toolkit. -->
+    <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
+    <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.1" />
+    <!-- NVIDIA Parakeet TDT 0.6B v3 via sherpa-onnx (ONNX Runtime, CPU int8). Native win-x64 DLLs are bundled. -->
+    <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TawkType.Core\TawkType.Core.csproj" />
+  </ItemGroup>
+
+</Project>

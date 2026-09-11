@@ -1,8 +1,8 @@
-# Talk2Me: competitor feature research and recommendations
+# TawkType: competitor feature research and recommendations
 
 Research date: September 11, 2026.
 
-The strongest opportunity is to make Talk2Me **dependable local dictation that remembers how its user writes**. Better vocabulary, reusable phrases, safe delivery, and easy correction would improve it more than adding another transcription engine.
+The strongest opportunity is to make TawkType **dependable local dictation that remembers how its user writes**. Better vocabulary, reusable phrases, safe delivery, and easy correction would improve it more than adding another transcription engine.
 
 I researched current official documentation for Wispr Flow, Superwhisper, Aqua Voice, Dragon Professional, and Windows Voice Access. This is a feature comparison, not a hands-on accuracy benchmark; vendor performance claims are not evidence that their recognition is better.
 
@@ -49,26 +49,26 @@ at the foot of this document still holds for them.
 
 ## What the established apps offer
 
-| App | Features worth studying | Lesson for Talk2Me |
+| App | Features worth studying | Lesson for TawkType |
 |---|---|---|
 | **Wispr Flow** | Spoken snippets, hands-free recording, contextual formatting, selected-text commands. [Snippets](https://docs.wisprflow.ai/articles/5784437944-create-and-use-snippets), [hands-free](https://docs.wisprflow.ai/articles/6391241694-use-flow-hands-free), [context](https://docs.wisprflow.ai/articles/4678293671-Context-Awareness) | Reduce repetitive work and adapt insertion to where the user is typing. |
 | **Superwhisper** | Built-in and custom modes, vocabulary, local/cloud models, and history reprocessing. Its Windows documentation explicitly confirms modes and vocabulary availability. [Windows features](https://superwhisper.com/docs/get-started/windows), [reprocessing](https://superwhisper.com/docs/get-started/transcribe-history) | Let one recording serve different writing tasks, and make failed attempts recoverable. |
-| **Aqua Voice** | Custom dictionary, standing instructions, and optional screen context. Its FAQ says transcription requires an internet connection. [Official FAQ](https://aquavoice.com/info/faq) | Personalization matters, but Talk2Me can implement useful personalization locally. |
+| **Aqua Voice** | Custom dictionary, standing instructions, and optional screen context. Its FAQ says transcription requires an internet connection. [Official FAQ](https://aquavoice.com/info/faq) | Personalization matters, but TawkType can implement useful personalization locally. |
 | **Dragon Professional** | Vocabulary correction, reusable text, and a Dictation Box for applications without full text control. [Official training](https://support.microsoft.com/en-us/dragon-professional/learn-dragon-professional) | Recognition is only part of the job. Correction and compatibility deserve first-class workflows. |
 | **Windows Voice Access** | Offline dictation, correction, spelling, vocabulary, and editing commands. [Official documentation](https://support.microsoft.com/en-us/accessibility/windows/voice-access/dictate-text-with-voice) | Offline operation alone is insufficient differentiation. Everyday control and correction are established expectations. |
 
-These are the improvements I would prioritize for Talk2Me.
+These are the improvements I would prioritize for TawkType.
 
 ## 1. Make vocabulary useful with Claude turned off
 
-This is the biggest personalization gap. Talk2Me’s vocabulary currently influences the optional rewrite prompt; a local-only user does not get the corresponding benefit.
+This is the biggest personalization gap. TawkType’s vocabulary currently influences the optional rewrite prompt; a local-only user does not get the corresponding benefit.
 
 Build two separate concepts:
 
 - **Preferred spellings:** names, products, acronyms, and technical terms.
 - **Explicit replacements:** “when recognition produces this phrase, replace it with this exact text.”
 
-For example, a user could teach it that “talk to me” should become `Talk2Me` in a particular vocabulary profile. Matching needs phrase boundaries, language awareness, and controlled casing—not unrestricted substring replacement.
+For example, a user could teach it that “talk to me” should become `TawkType` in a particular vocabulary profile. Matching needs phrase boundaries, language awareness, and controlled casing—not unrestricted substring replacement.
 
 Add a simple correction workflow in history: edit a result, select the mistaken phrase, and choose **Remember this replacement**. Require that explicit choice; silently learning every edit would accumulate bad rules.
 
@@ -91,7 +91,7 @@ Examples:
 | “Insert bug template” | A multiline issue template |
 | “Insert support reply” | A frequently used response |
 
-For Talk2Me:
+For TawkType:
 
 - Start with an explicit “insert…” trigger convention to reduce accidental expansion.
 - Warn about duplicate and overlapping triggers.
@@ -106,7 +106,7 @@ I would postpone variables, scripting, and conditional templates. Static snippet
 
 Wispr supports recording without continuously holding a shortcut. [Hands-free documentation](https://docs.wisprflow.ai/articles/6391241694-use-flow-hands-free)
 
-Talk2Me should offer:
+TawkType should offer:
 
 - Hold-to-talk as today.
 - A separate toggle shortcut: press to start, press to finish.
@@ -122,7 +122,7 @@ The prerequisite is explicit session ownership and cancellation in the pipeline.
 
 Dragon’s Dictation Box is a useful precedent: provide an editing surface when the destination application cannot reliably support dictation. [Dragon training](https://support.microsoft.com/en-us/dragon-professional/learn-dragon-professional)
 
-For Talk2Me, I would implement a small scratchpad with:
+For TawkType, I would implement a small scratchpad with:
 
 - The completed transcript.
 - Edit, copy, and explicit paste actions.
@@ -139,7 +139,7 @@ Do not automatically steal focus to show the scratchpad. Notify through the over
 
 Superwhisper organizes behavior into modes, including plain transcription and writing-oriented modes. [Mode overview](https://superwhisper.com/docs/get-started/introduction)
 
-Talk2Me already has some underlying settings, but changing settings is not the same as quickly choosing how the next dictation should behave.
+TawkType already has some underlying settings, but changing settings is not the same as quickly choosing how the next dictation should behave.
 
 I would start with four modes:
 
@@ -160,7 +160,7 @@ Keep **mode** and **cloud processing** separate. Choosing “Email” should not
 
 Wispr documents contextual behavior such as avoiding unnecessary capitalization in the middle of a sentence. [Context awareness](https://docs.wisprflow.ai/articles/4678293671-Context-Awareness)
 
-Talk2Me could improve substantially with modest local context:
+TawkType could improve substantially with modest local context:
 
 - Avoid doubled spaces.
 - Add a separating space when appropriate.
@@ -176,7 +176,7 @@ I would not start with screenshots, broad application text extraction, or automa
 
 Superwhisper lets users reprocess past recordings under current mode settings. [History reprocessing](https://superwhisper.com/docs/get-started/transcribe-history)
 
-For Talk2Me, start with the less expensive, more private version:
+For TawkType, start with the less expensive, more private version:
 
 - Search history.
 - Edit a transcript.
@@ -194,7 +194,7 @@ I would also avoid “correct last insertion” implemented as blind backspaces.
 
 Wispr’s setup guide walks through microphone, shortcut, language, and a first dictation. [Setup guide](https://docs.wisprflow.ai/articles/3152211871-setup-guide)
 
-Talk2Me should guide a new user through:
+TawkType should guide a new user through:
 
 1. Select a microphone and see its level.
 2. Choose a language and understand the required download.
@@ -241,4 +241,4 @@ Next add **toggle/cancel, guided setup, and the Dictation Box**. Follow with **q
 
 Judge progress using repeated real tasks: names and jargon, short chat replies, long paragraphs, multiline snippets, focus changes, and unsupported controls. Measure correction effort, lost or misdirected results, and release-to-text latency—not just transcription accuracy.
 
-My first feature investment would be **local vocabulary plus snippets**. My first reliability investment would be **never losing or misdirecting a finished transcript**. Together, those would make Talk2Me substantially more useful without abandoning its local-first design.
+My first feature investment would be **local vocabulary plus snippets**. My first reliability investment would be **never losing or misdirecting a finished transcript**. Together, those would make TawkType substantially more useful without abandoning its local-first design.

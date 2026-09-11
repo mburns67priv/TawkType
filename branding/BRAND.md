@@ -32,7 +32,7 @@ There is deliberately no microphone in it.
 
 - Drawn on a 24-unit grid. Bubble body 2.63…21.38 × 2.63…19.13, corner radius 4.5, tail down to y 22.5.
   Voice bars 1.5 wide at x = 6.75, 9.38, 12. I-beam at x = 15…19.5: two serifs and a stem.
-- Source of truth for geometry: `tools/Talk2Me.Brand/Program.cs` and `src/Talk2Me.App/App.xaml`
+- Source of truth for geometry: `tools/TawkType.Brand/Program.cs` and `src/TawkType.App/App.xaml`
   (`Brand.BubbleGeometry`, `Brand.BarsGeometry`). `mark.svg` mirrors it for design tools.
 - App icon: the mark in white with violet bars on a rounded tile (radius 22.5 %) filled with the Voice
   gradient. Never put the tile on another gradient. Clear space around the tile: 25 % of its width.
@@ -102,9 +102,9 @@ machine. Do not animate an idle waveform.
 
 ## Assets
 
-Run `dotnet run --project tools/Talk2Me.Brand` to regenerate:
+Run `dotnet run --project tools/TawkType.Brand` to regenerate:
 
-- `src/Talk2Me.App/Assets/talk2me.ico` — 16…256 px, used for the exe, windows, and tray. The filename
+- `src/TawkType.App/Assets/tawktype.ico` — 16…256 px, used for the exe, windows, and tray. The filename
   keeps the old name; it is referenced by the csproj and by the taskbar identity work.
 - `branding/exports/icon-{256,512,1024}.png` — store listings, README.
 - `branding/exports/mark-white-512.png`, `mark-violet-512.png` — the glyph alone.

@@ -52,7 +52,7 @@ are delivered**, so a dictation that fails to type is still in the history rathe
 exception. And **the phrase book runs again after the rewrite**, because the model is given the raw
 transcript and would otherwise quietly undo every correction the user has written down.
 
-`DictationEngine` (in `Talk2Me.Core`) owns the state machine:
+`DictationEngine` (in `TawkType.Core`) owns the state machine:
 
 ```
 Idle ──press──► Listening ──release──► Transcribing ──► [Polishing] ──► Injecting ──► Idle
@@ -96,11 +96,11 @@ The last two points are the injection guard. Dictated speech is untrusted input 
 whose entire output is typed into the user's focused window, so the prompt fences the transcript and
 states that it is never an instruction, and the length check catches a model that complied anyway.
 
-`Talk2Me.Core` has no provider SDK reference: `ILlmClient` is a two-method interface and
-`ClaudeLlmClient` lives in `Talk2Me.Llm`. A local-model client implements the same interface.
+`TawkType.Core` has no provider SDK reference: `ILlmClient` is a two-method interface and
+`ClaudeLlmClient` lives in `TawkType.Llm`. A local-model client implements the same interface.
 
 The API key never enters `settings.json`, which is plain text. `IApiKeyStore` keeps it in
-`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\apikey.dat`, encrypted by `DpapiApiKeyStore` with DPAPI under the current user
+`%LOCALAPPDATA%\Jupitor Studio\TawkType\apikey.dat`, encrypted by `DpapiApiKeyStore` with DPAPI under the current user
 (`ANTHROPIC_API_KEY` is the fallback). That protects the file at rest against other accounts on the
 machine — not against anything running as this user.
 
@@ -244,7 +244,7 @@ Two properties make it safe:
 When it does stop, the text goes to the clipboard through `IClipboard` and the bar says *Copied — ready to paste*
 with the reason. Nothing is lost, and the history records it with `CopiedNotTyped`.
 
-`tools/Talk2Me.Focus` prints the verdict once a second so the behaviour can be checked against real
+`tools/TawkType.Focus` prints the verdict once a second so the behaviour can be checked against real
 applications; that part cannot be unit tested, because it depends on what each application chooses to
 expose.
 
@@ -323,7 +323,7 @@ and no `TextPattern`, meaning they can say what they hold but not where the care
 produces exactly the behaviour TawkType had before any of this existed — the configured trailing space
 and nothing else — and `Activation → Fit the text to where it lands` turns the whole thing off.
 
-`tools/Talk2Me.Focus` prints the caret context beside the verdict, because which applications answer
+`tools/TawkType.Focus` prints the caret context beside the verdict, because which applications answer
 this is not something that can be unit tested. Measured: Chromium edit controls and WPF text boxes
 both answer in under 10 ms.
 
@@ -353,7 +353,7 @@ monitor behind them. Restore a window into one of those and it is invisible and 
 So `WindowPlacement` (Core, pure, unit tested) works against the real monitor rectangles: find the work
 area the window overlaps most, clamp it fully inside, and return null when it overlaps none so the caller
 falls back to a default that always exists — the configured corner of the primary screen for the bar,
-centred on the primary for the history window. `MonitorLayout` (Talk2Me.Windows) supplies the work areas
+centred on the primary for the history window. `MonitorLayout` (TawkType.Windows) supplies the work areas
 from `EnumDisplayMonitors`.
 
 Positions are stored and applied in **physical pixels**, captured with `GetWindowRect` and applied with
@@ -425,7 +425,7 @@ restores the old hide-when-idle behaviour.
 ## History
 
 `DictationHistoryStore` (Core) appends one JSON object per dictation to
-`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\history.jsonl`. Append-only is the point: a dictation must never be lost or
+`%LOCALAPPDATA%\Jupitor Studio\TawkType\history.jsonl`. Append-only is the point: a dictation must never be lost or
 delayed by the log, so the common path is one `File.AppendAllText`, and any failure there is logged and
 swallowed — the text has already been typed by then.
 
@@ -492,7 +492,7 @@ trade for recoverability, and `History.Enabled` turns it off.
 
 ## Settings
 
-`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\settings.json` — under the old name on purpose; see the rename
+`%LOCALAPPDATA%\Jupitor Studio\TawkType\settings.json` — under the old name on purpose; see the rename
 notes in `docs/HANDOFF.md`. Loaded once at startup by `SettingsStore` and re-read by consumers through
 `ISettingsProvider.Current`, so a save takes effect without a restart: the hotkey re-resolves on
 `Changed`, the transcriber reloads when model or language differ from what is loaded, and the audio

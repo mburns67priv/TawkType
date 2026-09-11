@@ -15,3 +15,6 @@ build/releases/
 # An agent session swept this into a commit with `git add -A`; ignoring it is cheaper than
 # remembering not to.
 docs/tawktype-brand/
+
+# TawkType website prototype — keep local while the design is in progress.
+/website/

@@ -5,12 +5,12 @@ what *exists* was checked against the packages in this repository; every claim a
 marked as unverified.
 
 **Short answer: yes, and the architecture already did most of the hard part — but not the expensive
-part.** The whole of `Talk2Me.Core` ports untouched. The platform layer is seven small interfaces. The
+part.** The whole of `TawkType.Core` ports untouched. The platform layer is seven small interfaces. The
 WPF app has to be rewritten, and the permissions and notarization story is bigger than it looks.
 
 ## What ports for free
 
-**`src/Talk2Me.Core`, about 4,100 lines.** It targets plain `net8.0`, references only
+**`src/TawkType.Core`, about 4,100 lines.** It targets plain `net8.0`, references only
 `Microsoft.Extensions.Logging.Abstractions`, and contains no `DllImport`, no `System.Windows`, no
 `Microsoft.Win32` and no registry access — verified by grep, not by intention. That is the actual
 behaviour of the application:
@@ -26,19 +26,19 @@ behaviour of the application:
 whisper.cpp has a Metal backend, so Apple Silicon has a plausible GPU path where Windows uses Vulkan.
 Neither has been run here.
 
-> `Talk2Me.App.csproj`'s `TrimForeignNatives` target deletes `*.dylib`, `*.metal` and every `osx-*`
+> `TawkType.App.csproj`'s `TrimForeignNatives` target deletes `*.dylib`, `*.metal` and every `osx-*`
 > runtime folder after publish. It exists because Whisper.net copies every platform's binaries into a
 > Windows build. On a Mac build it would delete exactly the files the app needs, so it has to become
 > conditional on the runtime identifier before anything else is attempted.
 
-**The tests, almost.** `tests/Talk2Me.Core.Tests` targets `net8.0-windows` only because it references
-`Talk2Me.Transcription`, which is itself `net8.0-windows` to stop Whisper.net dragging in 600 MB of
+**The tests, almost.** `tests/TawkType.Core.Tests` targets `net8.0-windows` only because it references
+`TawkType.Transcription`, which is itself `net8.0-windows` to stop Whisper.net dragging in 600 MB of
 other platforms. Exactly **one** test file, `ModelStorageTests.cs`, uses that reference. Split it out
-or multi-target `Talk2Me.Transcription`, and the other 24 files run on macOS unchanged.
+or multi-target `TawkType.Transcription`, and the other 24 files run on macOS unchanged.
 
 ## What has to be reimplemented
 
-`src/Talk2Me.Windows`, about 1,650 lines. The seams in `Talk2Me.Core/Abstractions` are already the
+`src/TawkType.Windows`, about 1,650 lines. The seams in `TawkType.Core/Abstractions` are already the
 porting boundary — this is what that design was for.
 
 | Interface | Windows today | macOS equivalent | Risk |
@@ -125,12 +125,12 @@ in two days than after rewriting the UI.
 ## What this repository would look like afterwards
 
 ```
-src/Talk2Me.Core          unchanged, shared
-src/Talk2Me.Windows       unchanged
-src/Talk2Me.Mac           the seven interfaces, against CoreGraphics / AppKit / AVFoundation
-src/Talk2Me.App           unchanged (WPF, Windows)
-src/Talk2Me.App.Mac       Avalonia, or a Swift shell
-src/Talk2Me.Transcription multi-targeted, or RID-conditional native trimming
+src/TawkType.Core          unchanged, shared
+src/TawkType.Windows       unchanged
+src/TawkType.Mac           the seven interfaces, against CoreGraphics / AppKit / AVFoundation
+src/TawkType.App           unchanged (WPF, Windows)
+src/TawkType.App.Mac       Avalonia, or a Swift shell
+src/TawkType.Transcription multi-targeted, or RID-conditional native trimming
 ```
 
-Nothing above requires changing `Talk2Me.Core`, which is the point of having written it that way.
+Nothing above requires changing `TawkType.Core`, which is the point of having written it that way.

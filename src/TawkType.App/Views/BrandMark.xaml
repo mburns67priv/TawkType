@@ -1,0 +1,16 @@
+﻿<UserControl x:Class="TawkType.Desktop.Views.BrandMark"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:TawkType.Desktop.Views"
+             IsHitTestVisible="False"
+             Focusable="False">
+    <!-- The TawkType mark as vector XAML. Size it with Width/Height; colours via BubbleBrush / BarsBrush. -->
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="24" Height="24">
+            <Path Data="{StaticResource Brand.BubbleGeometry}"
+                  Fill="{Binding BubbleBrush, RelativeSource={RelativeSource AncestorType=local:BrandMark}}" />
+            <Path Data="{StaticResource Brand.BarsGeometry}"
+                  Fill="{Binding BarsBrush, RelativeSource={RelativeSource AncestorType=local:BrandMark}}" />
+        </Canvas>
+    </Viewbox>
+</UserControl>

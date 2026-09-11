@@ -90,12 +90,13 @@ jobs:
         run: |
           $tag = 'v${{ steps.version.outputs.value }}'
           $notes = @"
-          Install TawkType by downloading **Talk2MeApp-win-Setup.exe** below and running it.
+          Install TawkType by downloading **TawkType-win-Setup.exe** below and running it.
 
-          The installer is named after the package id, which deliberately still says Talk2Me: it is the
-          update channel installed copies already poll and the folder the installer clears, so renaming
-          it would break updates and risk your settings and downloaded models. The app itself is
-          TawkType.
+          **Upgrading from Talk2Me 0.3.0 or earlier:** install this one, then uninstall Talk2Me from
+          Apps & features. The package was renamed with the app, so an old copy will not update itself
+          and the two would otherwise sit side by side. Your settings, API key, history and downloaded
+          models move across on first launch — nothing needs re-downloading and nothing needs
+          re-entering.
 
           TawkType is not code-signed yet, so Windows SmartScreen will warn you the first time. Choose
           **More info** then **Run anyway**. Installed copies update themselves from this feed.
