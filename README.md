@@ -84,6 +84,7 @@ Or [run from source](#running-from-source).
 | CPU | 2 cores | 4+ cores |
 | RAM | 4 GB | 8 GB |
 | Free disk | ~1 GB | ~3 GB if you keep both models |
+| GPU | none needed | 2 GB VRAM, for Whisper |
 
 **A GPU is optional.** Whisper uses Vulkan when a current graphics driver is present and falls back to
 the CPU. Parakeet is CPU-only and fast enough there. **No CUDA Toolkit, no Python, no Rust.**
@@ -103,8 +104,20 @@ Those timings are one desktop. A two-core laptop has fewer threads, slower ones,
 bandwidth, so expect several seconds to load and something nearer real time to transcribe — an
 estimate, not a measurement.
 
-Whisper `large-v3-turbo` is the alternative: a 1.6 GB model that uses the GPU when there is one. Better
-for the ~75 languages Parakeet does not cover, heavier everywhere else.
+### What Whisper costs
+
+The alternative, for the ~75 languages Parakeet does not cover. It behaves quite differently.
+
+- **1.5 GB on disk**, and with a GPU the weights live in **video memory**, not system RAM: measured at
+  **~1.5 GB of VRAM**, while the application itself sits at about 330 MB resident.
+- **~2.9 s to load** on Vulkan — close to Parakeet's, despite the model being more than twice the size,
+  because the GPU is doing the work.
+- **Needs roughly 2 GB of free VRAM.** On a machine with no usable GPU it falls back to the CPU, where
+  those weights move into system RAM instead — expect around 2 GB, and slower. That fallback is
+  reasoned rather than measured.
+
+So the two engines cost different things: Parakeet spends system RAM and CPU, Whisper spends VRAM and
+very little else. If you have a graphics card, Whisper is cheaper on the machine than it looks.
 
 Running from source needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0); the
 installer needs only the .NET 8 Desktop Runtime, and offers to fetch it.
@@ -119,7 +132,7 @@ dotnet run --project src/TawkType.App
 
 TawkType lives in the system tray and on the taskbar. On first run it has no speech model, says so on
 the status bar, and waits: open **Settings → Transcription** and download one. Parakeet is about
-640 MB, Whisper `large-v3-turbo` about 1.6 GB, and they go into
+640 MB, Whisper `large-v3-turbo` about 1.5 GB, and they go into
 `%LOCALAPPDATA%\Jupitor Studio\TawkType\models`. The bar shows the progress.
 
 Then hold Right Ctrl and talk.
