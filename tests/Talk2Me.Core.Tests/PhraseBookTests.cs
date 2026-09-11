@@ -1,4 +1,4 @@
-using Talk2Me.Core.Settings;
+﻿using Talk2Me.Core.Settings;
 using Talk2Me.Core.Text;
 
 namespace Talk2Me.Core.Tests;
@@ -105,11 +105,11 @@ public class PhraseBookTests
     [Fact]
     public void A_snippet_can_be_inserted_mid_sentence()
     {
-        var vocabulary = Vocabulary(snippets: [new Snippet("project link", "https://github.com/JupitorStudioDev/Talk2Me")]);
+        var vocabulary = Vocabulary(snippets: [new Snippet("project link", "https://github.com/JupitorStudioDev/TawkType")]);
 
         var result = PhraseBook.Apply("see insert project link for details", vocabulary);
 
-        Assert.Equal("see https://github.com/JupitorStudioDev/Talk2Me for details", result.Text);
+        Assert.Equal("see https://github.com/JupitorStudioDev/TawkType for details", result.Text);
         Assert.True(result.ExpandedSnippet);
     }
 

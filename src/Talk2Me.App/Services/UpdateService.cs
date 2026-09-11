@@ -27,7 +27,12 @@ public enum UpdateState
 /// </summary>
 public sealed class UpdateService
 {
-    public const string RepositoryUrl = "https://github.com/JupitorStudioDev/Talk2Me";
+    /// <summary>
+    /// Where installed copies look for updates. Builds made before the repository was renamed have
+    /// the old URL compiled in; GitHub redirects it, which is the only reason those copies can still
+    /// reach a release. Do not rely on that for anything new.
+    /// </summary>
+    public const string RepositoryUrl = "https://github.com/JupitorStudioDev/TawkType";
 
     /// <summary>Long enough after launch that the model warm-up has the machine to itself.</summary>
     private static readonly TimeSpan StartupDelay = TimeSpan.FromMinutes(1);

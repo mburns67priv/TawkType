@@ -7,6 +7,8 @@
 **You talk. It types.** Local voice typing for Windows: hold a key, speak, release, and the text
 appears in the app you are already using.
 
+[**tawktype.com**](https://tawktype.com)
+
 <img src="docs/images/bar-listening.png" width="433" alt="The TawkType status bar while listening">
 
 </div>
@@ -55,7 +57,7 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 ## Install it
 
 Download **Talk2MeApp-win-Setup.exe** from the
-[latest release](https://github.com/JupitorStudioDev/Talk2Me/releases/latest) and run it. It installs
+[latest release](https://github.com/JupitorStudioDev/TawkType/releases/latest) and run it. It installs
 per-user, needs no administrator rights, and updates itself from that same release feed.
 
 > **The installer, the repository and the data folder still say Talk2Me.** That is the app's update
@@ -86,8 +88,8 @@ installer needs only the .NET 8 Desktop Runtime, and offers to fetch it.
 ## Running from source
 
 ```bash
-git clone https://github.com/JupitorStudioDev/Talk2Me.git
-cd Talk2Me
+git clone https://github.com/JupitorStudioDev/TawkType.git
+cd TawkType
 dotnet run --project src/Talk2Me.App
 ```
 
@@ -221,4 +223,4 @@ Full list, with licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 **None yet — all rights reserved.** You're welcome to read the source. You do not currently have
 permission to use, copy, modify or distribute it. If you'd like to, open an issue and ask.
 
-Built by [Jupitor Studio](https://github.com/JupitorStudioDev).
+[tawktype.com](https://tawktype.com) · built by [Jupitor Studio](https://github.com/JupitorStudioDev).

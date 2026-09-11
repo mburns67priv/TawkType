@@ -6,6 +6,9 @@ The full design package — positioning, voice, launch copy, production checklis
 `docs/tawktype-brand/BRAND-PACKAGE.md`. This file is the implementer's half: what the app actually
 uses, and where it comes from.
 
+Home: **[tawktype.com](https://tawktype.com)**. Repository:
+[JupitorStudioDev/TawkType](https://github.com/JupitorStudioDev/TawkType).
+
 ## Name and voice
 
 - **TawkType**. One word, capital T twice. Pronounced "talk type". Never "Tawk Type", "Tawktype",

@@ -160,8 +160,15 @@ Both transcripts were otherwise identical and correctly punctuated.
 
 ## The rename: what changed and what deliberately did not
 
-The app is **TawkType**. Talk2Me was already another dictation product, so the name had to go. The
-design package is `docs/tawktype-brand/BRAND-PACKAGE.md`; the implementer's half is `branding/BRAND.md`.
+The app is **TawkType**, at [tawktype.com](https://tawktype.com). Talk2Me was already another
+dictation product, so the name had to go. The design package is `docs/tawktype-brand/BRAND-PACKAGE.md`;
+the implementer's half is `branding/BRAND.md`.
+
+The **GitHub repository is renamed** to `JupitorStudioDev/TawkType`. GitHub redirects the old URL, which
+is the only reason already-installed copies can still reach a release — their update feed URL was
+compiled in before the rename. `UpdateService.RepositoryUrl` points at the new one for everything built
+from here. The **local working folder and the solution file are still named Talk2Me**; nothing depends
+on the folder name, and `tools/Talk2Me.Brand` finds the repo root by looking for `Talk2Me.sln`.
 
 **Changed**: every string a user reads — window titles, the tray tooltip and menu, dialog captions,
 update status, overlay wording, the log's startup line — plus the mark, the palette, and the

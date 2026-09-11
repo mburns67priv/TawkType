@@ -274,7 +274,7 @@
                              The repository is not enough on its own: this is where users actually are. -->
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="About" />
                         <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,10"
-                                   Text="{Binding Version, StringFormat='Talk2Me {0} — Jupitor Studio. Speech recognition runs on this machine.'}" />
+                                   Text="{Binding Version, StringFormat='TawkType {0} — Jupitor Studio. You talk. It types. Speech recognition runs on this machine.'}" />
 
                         <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,2" TextWrapping="Wrap">
                             <Run Text="Speech recognition by NVIDIA Parakeet TDT 0.6B v3, © NVIDIA Corporation, used unmodified under" />
@@ -288,9 +288,12 @@
                             <Button Content="Parakeet model" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
                                     Command="{Binding OpenLinkCommand}"
                                     CommandParameter="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3" />
-                            <Button Content="All credits" Style="{StaticResource Ui.Button}"
+                            <Button Content="All credits" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
                                     Command="{Binding OpenLinkCommand}"
-                                    CommandParameter="https://github.com/JupitorStudioDev/Talk2Me/blob/main/THIRD-PARTY-NOTICES.md" />
+                                    CommandParameter="https://github.com/JupitorStudioDev/TawkType/blob/main/THIRD-PARTY-NOTICES.md" />
+                            <Button Content="tawktype.com" Style="{StaticResource Ui.Button}"
+                                    Command="{Binding OpenLinkCommand}"
+                                    CommandParameter="https://tawktype.com" />
                         </StackPanel>
                     </StackPanel>
 
