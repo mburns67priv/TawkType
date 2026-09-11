@@ -1,8 +1,8 @@
 ﻿namespace TawkType.Core.Settings;
 
 /// <summary>A phrase the recogniser produces, and the exact text it should become.</summary>
-/// <param name="From">What was heard, e.g. "talk to me".</param>
-/// <param name="To">What to type instead, e.g. "TawkType". Used verbatim, casing and all.</param>
+/// <param name="From">What was heard, e.g. "see sharp".</param>
+/// <param name="To">What to type instead, e.g. "C#". Used verbatim, casing and all.</param>
 public sealed record TextReplacement(string From = "", string To = "");
 
 /// <summary>Saved text, inserted by saying "insert" and the trigger.</summary>

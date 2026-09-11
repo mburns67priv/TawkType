@@ -8,8 +8,12 @@ I researched current official documentation for Wispr Flow, Superwhisper, Aqua V
 
 ## Status — updated 2026-09-11
 
-The research below is kept exactly as written. This section records what has since been built, so
-nobody re-plans something that is finished or assumes something is finished because the rest is.
+The research below is kept as written, with one exception: project paths and the product name were
+carried across the TawkType rename so its citations still resolve. It was written when the app was
+called Talk2Me, which is why its vocabulary example still is.
+
+This section records what has since been built, so nobody re-plans something that is finished or
+assumes something is finished because the rest is.
 
 | § | Subject | State |
 |---|---|---|
@@ -92,7 +96,7 @@ Build two separate concepts:
 - **Preferred spellings:** names, products, acronyms, and technical terms.
 - **Explicit replacements:** “when recognition produces this phrase, replace it with this exact text.”
 
-For example, a user could teach it that “talk to me” should become `TawkType` in a particular vocabulary profile. Matching needs phrase boundaries, language awareness, and controlled casing—not unrestricted substring replacement.
+For example, a user could teach it that “talk to me” should become `Talk2Me` in a particular vocabulary profile. Matching needs phrase boundaries, language awareness, and controlled casing—not unrestricted substring replacement.
 
 Add a simple correction workflow in history: edit a result, select the mistaken phrase, and choose **Remember this replacement**. Require that explicit choice; silently learning every edit would accumulate bad rules.
 

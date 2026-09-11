@@ -579,7 +579,7 @@
                             <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="86"
                                      Text="{Binding ReplacementsText, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
-                                       Text="One per line, as heard =&gt; typed. For the mishearings a spelling cannot fix: talk to me =&gt; TawkType" />
+                                       Text="One per line, as heard =&gt; typed. For the mishearings a spelling cannot fix, where what you say and what you want are different words: see sharp =&gt; C#" />
                         </StackPanel>
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Snippets" />
@@ -587,8 +587,7 @@
                             <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="86"
                                      Text="{Binding SnippetsText, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
-                                       Text="Saved text you insert by saying insert and the trigger: my signature =&gt; Michael Burns. Say &quot;insert my signature&quot;. Use 
- for a line break. Snippets are typed exactly as written and are never sent for rewriting." />
+                                       Text="Saved text you insert by saying insert and the trigger: my signature =&gt; Michael Burns. Say &quot;insert my signature&quot;. Use \n for a line break. Snippets are typed exactly as written and are never sent for rewriting." />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
