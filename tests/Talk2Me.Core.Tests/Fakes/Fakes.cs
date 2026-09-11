@@ -68,15 +68,26 @@ public sealed class FakeTranscriber : ITranscriber
     public Task WarmUpAsync(IProgress<ModelProgress>? progress = null, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
 
-    public Task<TranscriptResult> TranscribeAsync(AudioClip clip, CancellationToken cancellationToken = default)
+    /// <summary>Blocks transcription until released, so a dictation can be caught mid-flight.</summary>
+    public TaskCompletionSource Gate { get; } = new();
+
+    public bool UseGate { get; set; }
+
+    public async Task<TranscriptResult> TranscribeAsync(AudioClip clip, CancellationToken cancellationToken = default)
     {
         Received.Add(clip);
+
+        if (UseGate)
+        {
+            await Gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         if (ExceptionToThrow is not null)
         {
             throw ExceptionToThrow;
         }
 
-        return Task.FromResult(new TranscriptResult(TextToReturn, TimeSpan.FromMilliseconds(5)));
+        return new TranscriptResult(TextToReturn, TimeSpan.FromMilliseconds(5));
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -115,6 +126,11 @@ public sealed class FakeSettings : ISettingsProvider
 public sealed class FakeFocusProbe : IFocusProbe
 {
     public FocusTarget TargetToReturn { get; set; } = FocusTarget.Unknown;
+
+    /// <summary>What is in front now. Set it to something else to simulate the user moving away.</summary>
+    public long? Window { get; set; }
+
+    public long? CurrentWindow() => Window;
 
     /// <summary>Delay before answering, so the engine's grace period can be exercised.</summary>
     public TimeSpan Delay { get; set; } = TimeSpan.Zero;

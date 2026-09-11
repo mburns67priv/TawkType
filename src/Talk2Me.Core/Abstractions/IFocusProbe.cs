@@ -22,7 +22,17 @@ public enum FocusVerdict
 /// <param name="Verdict">Whether text can be typed there.</param>
 /// <param name="ProcessName">The owning process, for the log and for explaining what happened.</param>
 /// <param name="Description">Control type or role, for the log. Free-form.</param>
-public sealed record FocusTarget(FocusVerdict Verdict, string? ProcessName = null, string? Description = null)
+/// <param name="Window">
+/// An opaque identifier for the window that was in front, or null when it could not be determined.
+/// Compared before delivery so text is not typed into a window the user has since moved away from.
+/// It identifies a window and nothing finer: two fields in the same form, or two tabs in the same
+/// browser, are the same window and cannot be told apart this way.
+/// </param>
+public sealed record FocusTarget(
+    FocusVerdict Verdict,
+    string? ProcessName = null,
+    string? Description = null,
+    long? Window = null)
 {
     public static FocusTarget Unknown { get; } = new(FocusVerdict.Unknown);
 
@@ -53,4 +63,11 @@ public sealed record FocusTarget(FocusVerdict Verdict, string? ProcessName = nul
 public interface IFocusProbe
 {
     FocusTarget Probe(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Which window is in front right now, cheaply — no accessibility tree, no cross-process calls that
+    /// can block. Used to check the target has not changed while transcription was running. Null when
+    /// the platform cannot say.
+    /// </summary>
+    long? CurrentWindow() => null;
 }

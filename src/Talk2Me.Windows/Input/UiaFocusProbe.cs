@@ -31,7 +31,21 @@ public sealed class UiaFocusProbe : IFocusProbe
         _logger = logger;
     }
 
+    /// <summary>The foreground window handle, as an opaque identifier. Cheap: one Win32 call.</summary>
+    public long? CurrentWindow()
+    {
+        var window = GetForegroundWindow();
+        return window == 0 ? null : window;
+    }
+
+    /// <summary>
+    /// Notes which window the verdict is about, so the engine can tell before delivery whether the
+    /// user has moved somewhere else since they started speaking.
+    /// </summary>
     public FocusTarget Probe(CancellationToken cancellationToken = default)
+        => ProbeCore(cancellationToken) with { Window = CurrentWindow() };
+
+    private FocusTarget ProbeCore(CancellationToken cancellationToken)
     {
         // The elevation check is cheap, local, and explains a failure that has no other symptom:
         // synthetic input to a higher-privilege window is discarded by Windows without an error.

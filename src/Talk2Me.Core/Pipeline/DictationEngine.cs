@@ -9,6 +9,11 @@ namespace Talk2Me.Core.Pipeline;
 /// The push-to-talk state machine:
 /// Idle --press--> Listening --release--> Transcribing --> Injecting --> Idle.
 /// Presses while busy are ignored; failures surface through <see cref="Failed"/> and return to Idle.
+///
+/// Each dictation owns a session: an id, a cancellation source, and the task doing the work. That is
+/// what makes stopping mean something. Without it, Stop unsubscribed from the hotkey and returned
+/// while a dictation carried on transcribing, rewriting and typing into whatever was in front —
+/// through a shutdown that was busy disposing the very services it was using.
 /// </summary>
 public sealed class DictationEngine : IDisposable
 {
@@ -26,9 +31,17 @@ public sealed class DictationEngine : IDisposable
     /// <summary>How long the probe may still be running once there is text ready to deliver.</summary>
     private static readonly TimeSpan FocusProbeGrace = TimeSpan.FromMilliseconds(400);
 
+    /// <summary>Long enough for a rewrite and an injection to finish; short enough to close the app.</summary>
+    private static readonly TimeSpan ShutdownGrace = TimeSpan.FromSeconds(3);
+
     private DictationState _state = DictationState.Idle;
     private long _pressedAtTicks;
     private bool _started;
+
+    /// <summary>The dictation in flight, or null. Guarded by <see cref="_gate"/>.</summary>
+    private Session? _session;
+
+    private long _nextSessionId;
 
     /// <summary>Started when the key goes down and read when it comes up, so the probe is free.</summary>
     private Task<FocusTarget>? _focusProbe;
@@ -97,6 +110,11 @@ public sealed class DictationEngine : IDisposable
         _logger.LogInformation("Dictation engine started; hotkey = {Hotkey}", _settings.Current.Hotkey);
     }
 
+    /// <summary>
+    /// Refuses new dictations, ends any in flight, and waits a moment for it to unwind before
+    /// returning. The wait is the point: the caller is about to dispose the transcriber, the injector
+    /// and the settings this work is still holding.
+    /// </summary>
     public void Stop()
     {
         if (!_started)
@@ -104,11 +122,51 @@ public sealed class DictationEngine : IDisposable
             return;
         }
 
+        // Nothing new, from this line on.
         _started = false;
         _hotkey.Stop();
         _hotkey.Pressed -= OnPressed;
         _hotkey.Released -= OnReleased;
         _audio.LevelChanged -= OnLevelChanged;
+
+        CancelDictation();
+
+        Task? work;
+        lock (_gate)
+        {
+            work = _session?.Work;
+        }
+
+        if (work is not null && !work.Wait(ShutdownGrace))
+        {
+            _logger.LogWarning("A dictation was still running after {Seconds}s; leaving it", ShutdownGrace.TotalSeconds);
+        }
+
+        StopCapture();
+        DiscardSession();
+    }
+
+    /// <summary>
+    /// Abandons the dictation in flight, if any. Nothing is typed, nothing is recorded. The hook stays
+    /// installed, so the next press starts a new one.
+    /// </summary>
+    public void CancelDictation()
+    {
+        Session? session;
+        lock (_gate)
+        {
+            session = _session;
+        }
+
+        if (session is null || session.Cancelled)
+        {
+            return;
+        }
+
+        _logger.LogInformation("Dictation {Id} cancelled", session.Id);
+        session.Cancel();
+        StopCapture();
+        SetState(DictationState.Idle);
     }
 
     public void Dispose() => Stop();
@@ -123,17 +181,28 @@ public sealed class DictationEngine : IDisposable
 
     private void OnPressed(object? sender, EventArgs e)
     {
+        DictationState? started;
+
         lock (_gate)
         {
+            if (!_started)
+            {
+                return; // shutting down
+            }
+
             if (_state != DictationState.Idle)
             {
                 _logger.LogDebug("Hotkey pressed while {State}; ignoring", _state);
                 return;
             }
 
+            _session?.Dispose();
+            _session = new Session(Interlocked.Increment(ref _nextSessionId));
             _pressedAtTicks = Stopwatch.GetTimestamp();
-            SetStateLocked(DictationState.Listening);
+            started = SetStateLocked(DictationState.Listening);
         }
+
+        Announce(started);
 
         // Off the hook thread immediately: hooks have a tight time budget, and the probe talks to
         // another process. It has the whole utterance to answer in, so nothing waits on it here.
@@ -162,25 +231,37 @@ public sealed class DictationEngine : IDisposable
 
     private void OnReleased(object? sender, EventArgs e)
     {
+        Session session;
+        TimeSpan heldFor;
+        DictationState? transcribing;
+
         lock (_gate)
         {
-            if (_state != DictationState.Listening)
+            if (_state != DictationState.Listening || _session is null)
             {
                 return;
             }
 
-            SetStateLocked(DictationState.Transcribing);
+            session = _session;
+
+            // Measured here rather than in the worker: a busy machine can delay the worker by longer
+            // than the minimum hold, which turned an accidental tap into an accepted recording.
+            heldFor = Stopwatch.GetElapsedTime(_pressedAtTicks);
+            transcribing = SetStateLocked(DictationState.Transcribing);
         }
 
+        Announce(transcribing);
+
         // Leave the caller's thread (the keyboard hook) immediately; hooks have a tight time budget.
-        _ = Task.Run(ProcessAsync);
+        session.Work = Task.Run(() => ProcessAsync(session, heldFor));
     }
 
-    private async Task ProcessAsync()
+    private async Task ProcessAsync(Session session, TimeSpan heldFor)
     {
+        var token = session.Token;
+
         try
         {
-            var heldFor = Stopwatch.GetElapsedTime(_pressedAtTicks);
             var clip = _audio.Stop();
 
             if (heldFor.TotalMilliseconds < _settings.Current.MinimumHoldMs || clip.Samples.Length == 0)
@@ -190,14 +271,14 @@ public sealed class DictationEngine : IDisposable
                 return;
             }
 
-            var transcript = await _transcriber.TranscribeAsync(clip).ConfigureAwait(false);
+            var transcript = await _transcriber.TranscribeAsync(clip, token).ConfigureAwait(false);
 
             if (_cleaner.MayTakeAWhile)
             {
                 SetState(DictationState.Polishing);
             }
 
-            var clean = await _cleaner.CleanAsync(transcript.Text).ConfigureAwait(false);
+            var clean = await _cleaner.CleanAsync(transcript.Text, token).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(clean))
             {
@@ -205,6 +286,8 @@ public sealed class DictationEngine : IDisposable
                 SetState(DictationState.Idle);
                 return;
             }
+
+            token.ThrowIfCancellationRequested();
 
             var target = await ResolveFocusAsync().ConfigureAwait(false);
 
@@ -221,7 +304,13 @@ public sealed class DictationEngine : IDisposable
             var delivery = DictationDelivery.Typed;
             var reason = string.Empty;
 
-            if (target.CanType)
+            if (MovedAway(target) is { } movedReason)
+            {
+                delivery = DictationDelivery.CopiedToClipboard;
+                reason = movedReason;
+                _clipboard.SetText(clean);
+            }
+            else if (target.CanType)
             {
                 // Only when typing: a trailing space runs consecutive dictations together, and means
                 // nothing on the clipboard. Kept off `clean` so a fallback copy does not carry it.
@@ -231,7 +320,7 @@ public sealed class DictationEngine : IDisposable
 
                 try
                 {
-                    await _injector.InjectAsync(typed).ConfigureAwait(false);
+                    await _injector.InjectAsync(typed, token).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -259,10 +348,44 @@ public sealed class DictationEngine : IDisposable
 
             SetState(DictationState.Idle);
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            _logger.LogInformation("Dictation {Id} abandoned", session.Id);
+        }
         catch (Exception ex)
         {
             Fail(ex);
         }
+        finally
+        {
+            DiscardSession(session);
+        }
+    }
+
+    /// <summary>
+    /// Null when the window the user was speaking into is still in front; otherwise why it is no longer
+    /// safe to type. The probe answers for the moment the key went down, and transcription can take
+    /// seconds — long enough to alt-tab into a chat window and have the last sentence sent to someone.
+    ///
+    /// Conservative on purpose: an unknown identity counts as unchanged, because refusing to type into
+    /// a window that would have been fine is its own kind of failure. It compares windows, not fields,
+    /// so moving between two boxes in the same form still looks unchanged.
+    /// </summary>
+    private string? MovedAway(FocusTarget target)
+    {
+        if (target.Window is not { } probed)
+        {
+            return null;
+        }
+
+        var now = _focus.CurrentWindow();
+        if (now is null || now == probed)
+        {
+            return null;
+        }
+
+        _logger.LogInformation("Focus moved while transcribing; copying rather than typing elsewhere");
+        return "You moved window — it is on the clipboard";
     }
 
     /// <summary>
@@ -306,10 +429,8 @@ public sealed class DictationEngine : IDisposable
         return await probe.ConfigureAwait(false);
     }
 
-    private void Fail(Exception ex)
+    private void StopCapture()
     {
-        _logger.LogError(ex, "Dictation failed");
-
         try
         {
             if (_audio.IsCapturing)
@@ -317,11 +438,31 @@ public sealed class DictationEngine : IDisposable
                 _audio.Stop();
             }
         }
-        catch (Exception stopEx)
+        catch (Exception ex)
         {
-            _logger.LogWarning(stopEx, "Could not stop audio capture after failure");
+            _logger.LogWarning(ex, "Could not stop audio capture");
         }
+    }
 
+    /// <summary>Forgets the session, if it is still the current one. Idempotent.</summary>
+    private void DiscardSession(Session? only = null)
+    {
+        lock (_gate)
+        {
+            if (_session is null || (only is not null && !ReferenceEquals(_session, only)))
+            {
+                return;
+            }
+
+            _session.Dispose();
+            _session = null;
+        }
+    }
+
+    private void Fail(Exception ex)
+    {
+        _logger.LogError(ex, "Dictation failed");
+        StopCapture();
         SetState(DictationState.Error);
         Failed?.Invoke(this, ex);
         SetState(DictationState.Idle);
@@ -329,20 +470,70 @@ public sealed class DictationEngine : IDisposable
 
     private void SetState(DictationState next)
     {
+        DictationState? changed;
+
         lock (_gate)
         {
-            SetStateLocked(next);
+            changed = SetStateLocked(next);
         }
+
+        Announce(changed);
     }
 
-    private void SetStateLocked(DictationState next)
+    /// <summary>
+    /// Records the new state and returns it if it changed, for the caller to announce once the lock is
+    /// released. Subscribers draw windows and touch the clipboard; running them inside the lock meant
+    /// an unrelated hotkey press could block on somebody's UI thread.
+    /// </summary>
+    private DictationState? SetStateLocked(DictationState next)
     {
         if (_state == next)
         {
-            return;
+            return null;
         }
 
         _state = next;
-        StateChanged?.Invoke(this, next);
+        return next;
+    }
+
+    private void Announce(DictationState? changed)
+    {
+        if (changed is { } state)
+        {
+            StateChanged?.Invoke(this, state);
+        }
+    }
+
+    /// <summary>
+    /// One dictation, from key-down to delivery. Owning the cancellation source and the task here is
+    /// what lets anyone else — a shutdown, a cancel — end this particular piece of work and know when
+    /// it has actually stopped.
+    /// </summary>
+    private sealed class Session(long id) : IDisposable
+    {
+        private readonly CancellationTokenSource _cancellation = new();
+
+        public long Id => id;
+
+        public CancellationToken Token => _cancellation.Token;
+
+        public bool Cancelled => _cancellation.IsCancellationRequested;
+
+        /// <summary>The processing task, once the key has come up. Null while still listening.</summary>
+        public Task? Work { get; set; }
+
+        public void Cancel()
+        {
+            try
+            {
+                _cancellation.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already finished and cleaned up; there is nothing left to cancel.
+            }
+        }
+
+        public void Dispose() => _cancellation.Dispose();
     }
 }
