@@ -115,6 +115,11 @@ public sealed class SettingsStore : ISettingsProvider
             loaded.ActiveMode = DictationModes.CleanProse;
         }
 
+        // A settings file that exists at all means TawkType has run here before and has been set up
+        // one way or another. First run is for the machine that has never seen it, so an older file
+        // with no answer to this counts as done rather than being walked through onboarding.
+        loaded.SetupCompleted ??= true;
+
         return loaded;
     }
 }

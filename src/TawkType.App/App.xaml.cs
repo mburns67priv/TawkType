@@ -40,6 +40,7 @@ public partial class App : Application
     private SettingsWindow? _settingsWindow;
     private HistoryWindow? _historyWindow;
     private DictationBoxWindow? _dictationBox;
+    private SetupWindow? _setupWindow;
 
     /// <summary>
     /// The last dictation that did not reach where it was aimed, kept so the box can explain itself
@@ -63,7 +64,7 @@ public partial class App : Application
         // Reproduces an installed copy's process identity from a plain build, which is the only
         // difference that matters for how the taskbar resolves this app's icon. Without it the two
         // cases can only be compared by packing and installing.
-        var testIdentity = Environment.GetEnvironmentVariable("TALK2ME_TEST_AUMID");
+        var testIdentity = Environment.GetEnvironmentVariable("TAWKTYPE_TEST_AUMID");
         if (!string.IsNullOrWhiteSpace(testIdentity))
         {
             TaskbarIdentity.SetProcessAppUserModelId(testIdentity);
@@ -177,6 +178,14 @@ public partial class App : Application
             ShowDictationBox();
         }
 
+        // After the engine is started, because the last thing first run asks the user to do is hold the
+        // hotkey and dictate — through the running pipeline, not a demonstration of it.
+        if (Services.GetRequiredService<SettingsStore>().Current.NeedsSetup
+            || e.Args.Contains("--setup", StringComparer.OrdinalIgnoreCase))
+        {
+            ShowSetup();
+        }
+
         if (e.Args.Contains("--overlay-demo", StringComparer.OrdinalIgnoreCase))
         {
             _ = RunOverlayDemoAsync(overlayVm);
@@ -228,6 +237,12 @@ public partial class App : Application
         {
             _dictationBox.AllowClose = true;
             _dictationBox.Close();
+        }
+
+        if (_setupWindow is not null)
+        {
+            _setupWindow.AllowClose = true;
+            _setupWindow.Close();
         }
 
         if (_taskbarWindow is not null)
@@ -284,6 +299,7 @@ public partial class App : Application
         services.AddSingleton<OverlayViewModel>();
         services.AddSingleton<HistoryViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<SetupViewModel>();
     }
 
     /// <summary>
@@ -411,6 +427,37 @@ public partial class App : Application
         Services.GetRequiredService<DictationBoxViewModel>().Load(_undelivered);
         _dictationBox.Show();
         _dictationBox.Activate();
+    }
+
+    private void OnSetupClick(object sender, RoutedEventArgs e) => ShowSetup();
+
+    /// <summary>
+    /// First run, and the walkthrough anyone can ask for again from the tray. It saves as it goes and
+    /// drives the real pipeline, so the only thing the app has to do here is notice when a model has
+    /// arrived — the bar is sitting there saying there is none.
+    /// </summary>
+    private void ShowSetup()
+    {
+        if (_setupWindow is { IsLoaded: true })
+        {
+            _setupWindow.Show();
+            _setupWindow.Activate();
+            return;
+        }
+
+        var viewModel = Services.GetRequiredService<SetupViewModel>();
+        viewModel.ModelInstalled += (_, _) =>
+            Dispatcher.BeginInvoke(() => _ = WarmUpAsync(Services.GetRequiredService<OverlayViewModel>()));
+
+        _setupWindow = new SetupWindow(viewModel);
+        _setupWindow.Closed += (_, _) =>
+        {
+            viewModel.Dispose(); // transient, and it holds the microphone and the engine's events
+            _setupWindow = null;
+        };
+
+        _setupWindow.Show();
+        _setupWindow.Activate();
     }
 
     private void OnSettingsClick(object sender, RoutedEventArgs e)

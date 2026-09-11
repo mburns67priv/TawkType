@@ -83,7 +83,8 @@ Every stage is an interface so each can be swapped independently:
 | `IDictationHistory` | JSONL under the profile: append, search, edit, delete | pinning, re-inject a past dictation |
 | `IFocusProbe` | UI Automation: can text land here, and what is either side of the caret | a cheaper native path for the common controls |
 | `IWindowActivator` | `SetForegroundWindow` + settle poll | nothing planned; it exists for the dictation box |
-| Settings UI | nav rail + eight pages, themed, per-field validation | an onboarding flow on first run |
+| Settings UI | nav rail + eight pages, themed, per-field validation | nothing planned |
+| First run | seven steps ending in a real dictation; `SetupPlan` holds the gates | the same checks offered as a health screen later |
 
 ## LLM cleanup
 
@@ -509,6 +510,49 @@ each of the three hands its old value to every mode rather than being lost. `ISe
 read-only by design — saving belongs to the app layer, which is why the mode-cycling key is wired in
 `App` rather than in the engine.
 
+## First run
+
+`SetupWindow` and `SetupViewModel`, over seven steps: welcome, microphone, model, hotkey, practice,
+privacy, done. It opens when `settings.json` says so — `TawkTypeSettings.NeedsSetup` — and from the
+tray menu or `--setup` any time after that.
+
+Two things make it different from a wizard that collects settings.
+
+**It saves each answer as it is given.** The steps that follow use them for real: the meter opens the
+device just chosen, the engine loads the language's model, and the hook binds the key just recorded.
+A draft held back until the end would mean practising against the old settings. That is why there is
+no Cancel button — there is nothing to roll back.
+
+**Nothing is taken on trust.** `SetupPlan.Check` is a pure function from `SetupState` to a gate, and
+every field of that state is an observation rather than an agreement:
+
+| Step | Satisfied by |
+|---|---|
+| Microphone | a level above the noise floor, judged by `MicrophoneCheck` |
+| Model | the files on disk **and** `ITranscriber.WarmUpAsync` returning |
+| Hotkey | `HotkeyCheck` finding the combination bindable and not already ours |
+| Practice | `DictationEngine.Completed` carrying text |
+
+The model gate wants both halves because a download is not an engine: the file can be there and still
+fail to initialise, and calling that "ready" would be a lie told at the exact moment a new user is
+deciding whether this works. Warming up here is also why the practice dictation is not the one that
+waits for a runtime to start for the first time.
+
+The practice step is an ordinary `TextBox`. The words arrive through the same injector that types into
+any other window — nothing puts them on screen by hand — so a broken delivery shows up here rather
+than being counted as a success. The step reports what became of the text: typed, copied to the
+clipboard, or not delivered, with the reason.
+
+`HotkeyCheck` deliberately does not claim a combination is free. Windows has no way to ask what a key
+is already bound to, so it names the shortcuts nearly everyone has (Ctrl + C, Alt + Tab, the Windows
+key, Caps Lock), refuses the two keys TawkType already binds and Esc, and warns about a plain key that
+is not being swallowed. Anything else comes back usable, never proven clear.
+
+The last step reports readiness from `SetupState` rather than from the settings, so a user who skipped
+past something is told what is missing instead of being congratulated. **Skip setup** exists for the
+person who cannot finish today; it marks setup done rather than letting the window reappear at every
+launch, and the tray menu is the way back.
+
 ## Roadmap
 
 Done since this document was first written, and kept here only because the sections above describe how
@@ -533,8 +577,8 @@ Open, roughly in the order worth doing:
 5. **Streaming**: transcribe in one-second windows while the key is held, so text appears as it is
    spoken. Parakeet is a transducer, which suits this.
 6. **Command mode**: select text, hold a second key, speak an instruction, replace the selection.
-7. **First run**: an onboarding flow that ends in a successful dictation, and a visible privacy panel.
-   (`docs/FEATURE-RESEARCH-2026-09-11.md`, §8 and §9.)
+7. **Visible privacy**: a panel that shows what is actually kept during use, rather than what the
+   settings imply. (`docs/FEATURE-RESEARCH-2026-09-11.md`, §9; §8, first run, is built.)
 8. **Overlay polish**: an animated waveform in place of the level meter, respecting reduced motion.
 9. **Seed the recogniser with the vocabulary** — Whisper's `initial_prompt` takes a word list, so the
    names the user has taught TawkType could be got right before cleanup rather than after.

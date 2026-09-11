@@ -1,0 +1,307 @@
+﻿<Window x:Class="TawkType.Desktop.Views.SetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:TawkType.Desktop.ViewModels"
+        xmlns:views="clr-namespace:TawkType.Desktop.Views"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:SetupViewModel}"
+        Title="Set up TawkType"
+        Icon="pack://application:,,,/Assets/tawktype.ico"
+        Width="720" Height="600"
+        MinWidth="640" MinHeight="540"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Ui.Window}"
+        Foreground="{DynamicResource Ui.Text}"
+        FontFamily="{StaticResource Brand.Font}"
+        FontSize="13">
+    <Window.Resources>
+        <views:EqualsToVisibilityConverter x:Key="StepVisible" />
+
+        <Style x:Key="Body" TargetType="TextBlock" BasedOn="{StaticResource Ui.Hint}">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="MaxWidth" Value="520" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+
+        <Style x:Key="Card" TargetType="Border" BasedOn="{StaticResource Ui.CardSurface}">
+            <Setter Property="Margin" Value="0,4,0,14" />
+            <Setter Property="MaxWidth" Value="520" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+
+        <!-- ===================== Header: who this is, and how far in ===================== -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource Ui.Sidebar}"
+                BorderBrush="{DynamicResource Ui.Border}" BorderThickness="0,0,0,1" Padding="28,18,28,14">
+            <DockPanel>
+                <Border DockPanel.Dock="Left" Width="32" Height="32" CornerRadius="8" VerticalAlignment="Center"
+                        Background="{StaticResource Brand.VoiceGradient}" Margin="0,0,12,0">
+                    <views:BrandMark Width="23" Height="23" Margin="0,1,0,0"
+                                     BarsBrush="{StaticResource Brand.Accent}" />
+                </Border>
+
+                <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+                           Foreground="{DynamicResource Ui.TextMuted}" FontSize="11.5">
+                    <Run Text="Step" /><Run Text=" " /><Run Text="{Binding StepNumber, Mode=OneWay}" /><Run Text=" of " /><Run Text="{Binding StepCount, Mode=OneWay}" />
+                </TextBlock>
+
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock FontFamily="{StaticResource Brand.DisplayFont}" FontSize="17" FontWeight="Bold"
+                               Foreground="{DynamicResource Ui.Text}">
+                        <Run Text="Set up " /><Run Text="Tawk" /><Run Text="Type" Foreground="{StaticResource Brand.AccentTint}" />
+                    </TextBlock>
+                    <ProgressBar Height="3" Margin="0,8,0,0" Minimum="0" Maximum="1"
+                                 Foreground="{DynamicResource Ui.Accent}"
+                                 Value="{Binding Progress, Mode=OneWay}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ===================== Footer: the way on, back, and out ===================== -->
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Ui.Border}" BorderThickness="0,1,0,0"
+                Padding="28,12">
+            <DockPanel>
+                <Button DockPanel.Dock="Left" Content="Skip setup" Style="{StaticResource Ui.Button}"
+                        Command="{Binding SkipCommand}"
+                        ToolTip="Leave this for now. The tray menu brings it back." />
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Back" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                            Command="{Binding BackCommand}"
+                            IsEnabled="{Binding CanGoBack}" />
+                    <Button Content="{Binding ContinueText}" Style="{StaticResource Ui.PrimaryButton}"
+                            Command="{Binding ContinueCommand}" MinWidth="120" />
+                </StackPanel>
+
+                <!-- Why Continue is grey. Without it the button simply refuses, and nothing on screen
+                     says what is missing. -->
+                <TextBlock Margin="14,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           FontSize="11.5" Foreground="{DynamicResource Ui.TextMuted}"
+                           Text="{Binding Blocker}" />
+            </DockPanel>
+        </Border>
+
+        <!-- ===================== The steps ===================== -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,22,28,22">
+            <Grid>
+
+                <!-- ===== Welcome ===== -->
+                <StackPanel Visibility="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Welcome}">
+                    <TextBlock Style="{StaticResource Ui.PageTitle}" Text="You talk, it types." />
+                    <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                               Text="A few minutes now, and the last step is you dictating a sentence." />
+
+                    <Border Style="{StaticResource Card}" Padding="16,14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Body}" Margin="0,0,0,8" TextWrapping="Wrap"
+                                       Text="Hold a key, speak, and let go. What you said is typed into whatever you were already working in — a chat box, an email, your editor." />
+                            <TextBlock Style="{StaticResource Body}" Margin="0,0,0,8" TextWrapping="Wrap"
+                                       Text="The speech recognition runs on this machine. There is no account, no telemetry, and nothing leaves the computer unless you later turn on the optional Claude rewrite." />
+                            <TextBlock Style="{StaticResource Body}" Margin="0" TextWrapping="Wrap"
+                                       Text="Setup checks your microphone, downloads the speech model, records the key you want to hold, and then has you dictate once so you can see it work." />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ===== Microphone ===== -->
+                <StackPanel Visibility="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Microphone}">
+                    <TextBlock Style="{StaticResource Ui.PageTitle}" Text="Can TawkType hear you?" />
+                    <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                               Text="Pick the microphone you speak into, then say something and watch the meter." />
+
+                    <TextBlock Style="{StaticResource Ui.Label}" Text="Microphone" />
+                    <ComboBox Style="{StaticResource Ui.ComboBox}" Width="420" HorizontalAlignment="Left"
+                              ItemsSource="{Binding InputDevices}"
+                              SelectedItem="{Binding SelectedInputDevice}" />
+
+                    <Border Style="{StaticResource Card}" Padding="16,14" Margin="0,16,0,14">
+                        <StackPanel>
+                            <ProgressBar Height="12" Minimum="0" Maximum="1"
+                                         Foreground="{DynamicResource Ui.Accent}"
+                                         Value="{Binding Level, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource Body}" Margin="0,12,0,0" TextWrapping="Wrap"
+                                       Text="{Binding MicrophoneMessage}" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                               HorizontalAlignment="Left"
+                               Text="Nothing is being recorded or kept — this only watches the level. If the meter stays flat, the wrong device is usually selected above." />
+                </StackPanel>
+
+                <!-- ===== Model ===== -->
+                <StackPanel Visibility="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Model}">
+                    <TextBlock Style="{StaticResource Ui.PageTitle}" Text="The speech model" />
+                    <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                               Text="Recognition happens here, on your machine, which means the model has to live here too." />
+
+                    <TextBlock Style="{StaticResource Ui.Label}" Text="Language" />
+                    <ComboBox Style="{StaticResource Ui.ComboBox}" Width="420" HorizontalAlignment="Left"
+                              ItemsSource="{Binding LanguageOptions}"
+                              SelectedItem="{Binding SelectedLanguage}" />
+
+                    <Border Style="{StaticResource Card}" Padding="16,14" Margin="0,16,0,14">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Body}" TextWrapping="Wrap" Margin="0,0,0,10"
+                                       Text="{Binding ModelSummary}" />
+
+                            <ProgressBar Height="4" Margin="0,0,0,10" Minimum="0" Maximum="1"
+                                         Foreground="{DynamicResource Ui.Accent}"
+                                         Value="{Binding ModelProgress, Mode=OneWay}"
+                                         IsIndeterminate="{Binding IsModelProgressIndeterminate}"
+                                         Visibility="{Binding IsWorkingOnModel, Converter={StaticResource BoolToVisible}}" />
+
+                            <TextBlock Style="{StaticResource Body}" Margin="0,0,0,12" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource Ui.Text}"
+                                       Text="{Binding ModelStatus}" />
+
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Gone once the model is loaded: nothing is left to do on this step, and a
+                                     second primary button beside Continue only asks to be pressed again. -->
+                                <Button Content="Download and load" Style="{StaticResource Ui.PrimaryButton}"
+                                        Margin="0,0,8,0" Command="{Binding GetModelCommand}"
+                                        IsEnabled="{Binding IsWorkingOnModel, Converter={StaticResource InverseBool}}"
+                                        Visibility="{Binding State.ModelReady, Converter={StaticResource InverseBoolToVisible}}" />
+                                <Button Content="Stop" Style="{StaticResource Ui.Button}"
+                                        Command="{Binding CancelModelCommand}"
+                                        Visibility="{Binding IsWorkingOnModel, Converter={StaticResource BoolToVisible}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                               HorizontalAlignment="Left"
+                               Text="It is downloaded once and kept. Loading it afterwards is the part that proves it will actually transcribe, which is why setup does both before moving on." />
+                </StackPanel>
+
+                <!-- ===== Hotkey ===== -->
+                <StackPanel Visibility="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Hotkey}">
+                    <TextBlock Style="{StaticResource Ui.PageTitle}" Text="The key you hold" />
+                    <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                               Text="Click the box below and hold the combination you want. Right Ctrl is the default because nothing else wants it." />
+
+                    <views:HotkeyBox Width="420" HorizontalAlignment="Left"
+                                     Hotkey="{Binding Hotkey, Mode=TwoWay}" />
+
+                    <!-- The one line that changes colour: a combination that will fight with something
+                         else should not read like reassurance. -->
+                    <TextBlock Margin="0,10,0,14" TextWrapping="Wrap"
+                               Text="{Binding HotkeyAdvice}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Body}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HotkeyAdviceIsWarning}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource Ui.Danger}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,14"
+                              IsChecked="{Binding SuppressHotkey}">
+                        <TextBlock Text="Hide the key from other apps (ignored for modifier keys)" TextWrapping="Wrap" />
+                    </CheckBox>
+
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                               HorizontalAlignment="Left"
+                               Text="Windows cannot say what a combination is already bound to, so TawkType only warns about the shortcuts nearly everyone has. Esc always abandons a dictation in progress." />
+                </StackPanel>
+
+                <!-- ===== Practice ===== -->
+                <StackPanel Visibility="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Practice}">
+                    <TextBlock Style="{StaticResource Ui.PageTitle}" Text="Try it" />
+                    <TextBlock Style="{StaticResource Ui.PageSubtitle}">
+                        <Run Text="Click in the box, hold" /><Run Text=" " /><Run Text="{Binding HoldKey, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=", say a sentence, and let go." />
+                    </TextBlock>
+
+                    <!-- An ordinary text box, typed into by the ordinary injector. Nothing here puts the
+                         words on screen by hand: if delivery is broken, this is where it shows. -->
+                    <!-- Width, not MaxWidth: an empty box aligned left sizes itself to the text it does
+                         not have yet, which is a box the user cannot see to click into. -->
+                    <TextBox x:Name="PracticeBox" Style="{StaticResource Ui.MultilineTextBox}"
+                             Width="520" HorizontalAlignment="Left" Height="120" Margin="0,4,0,12"
+                             Text="{Binding PracticeText, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <Button Content="Clear" Style="{StaticResource Ui.Button}"
+                                Command="{Binding ClearPracticeCommand}" />
+                    </StackPanel>
+
+                    <Border Style="{StaticResource Card}" Padding="16,14"
+                            Visibility="{Binding PracticeStatus, Converter={StaticResource EmptyToCollapsed}}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding PracticeStatus}" FontWeight="SemiBold" Margin="0,0,0,4"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Style="{StaticResource Body}" Margin="0" TextWrapping="Wrap"
+                                       Text="{Binding PracticeDetail}" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                               HorizontalAlignment="Left"
+                               Text="This is the real thing, not a demonstration: the same key, the same engine, and the same typing that will put words into any other window." />
+                </StackPanel>
+
+                <!-- ===== Privacy ===== -->
+                <StackPanel Visibility="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Privacy}">
+                    <TextBlock Style="{StaticResource Ui.PageTitle}" Text="What is kept, and what leaves" />
+                    <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                               Text="Both of these are yours to change at any time, in Settings." />
+
+                    <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,6,0,6"
+                              IsChecked="{Binding KeepHistory}">
+                        <TextBlock Text="Keep a history of what I dictate" TextWrapping="Wrap" />
+                    </CheckBox>
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520" Margin="0,0,0,6"
+                               HorizontalAlignment="Left"
+                               Text="Kept on this machine, in plain text. It is what lets you find a dictation that went astray, correct one, and teach TawkType a spelling from a mistake. Turn it off and nothing you say is written to disk." />
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520" Margin="0,0,0,18"
+                               HorizontalAlignment="Left" Text="{Binding HistoryPath}" />
+
+                    <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,6"
+                              IsChecked="{Binding UseClaude}">
+                        <TextBlock Text="Let Claude rewrite what I dictate" TextWrapping="Wrap" />
+                    </CheckBox>
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                               HorizontalAlignment="Left"
+                               Text="The only part of TawkType that leaves the machine: the finished transcript is sent to Anthropic and the tidier version is typed instead. It needs an API key, which you add in Settings under AI cleanup; until then dictation works exactly as it does now." />
+                </StackPanel>
+
+                <!-- ===== Done ===== -->
+                <StackPanel Visibility="{Binding Step, Converter={StaticResource StepVisible}, ConverterParameter=Done}">
+                    <TextBlock Style="{StaticResource Ui.PageTitle}" Text="That is it" />
+                    <TextBlock Style="{StaticResource Ui.PageSubtitle}"
+                               Text="Where things stand, from what actually happened rather than what was chosen." />
+
+                    <Border Style="{StaticResource Card}" Padding="16,14">
+                        <ItemsControl ItemsSource="{Binding ReadyLines}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,7"
+                                               Foreground="{DynamicResource Ui.Text}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+
+                    <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,4,0,14"
+                              IsChecked="{Binding StartWithWindows}">
+                        <TextBlock Text="Start TawkType when Windows starts" TextWrapping="Wrap" />
+                    </CheckBox>
+
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                               HorizontalAlignment="Left"
+                               Text="TawkType lives in the system tray and on the bar that floats on screen. Everything here can be changed from Settings, and this walkthrough is on the tray menu if you want it again." />
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

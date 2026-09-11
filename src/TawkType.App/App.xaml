@@ -22,6 +22,8 @@
             <views:BoolToVisibilityConverter x:Key="BoolToVisible" />
             <views:NullToCollapsedConverter x:Key="NullToCollapsed" />
             <views:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisible" />
+            <views:InverseBoolConverter x:Key="InverseBool" />
+            <views:EmptyToCollapsedConverter x:Key="EmptyToCollapsed" />
 
             <SolidColorBrush x:Key="Brand.Accent" Color="{StaticResource Brand.VioletColor}" />
             <SolidColorBrush x:Key="Brand.AccentTint" Color="#B4A9FF" />
@@ -78,6 +80,7 @@
                         <MenuItem Header="History…" Click="OnHistoryClick" />
                         <MenuItem Header="Dictation box…" Click="OnDictationBoxClick" />
                         <MenuItem Header="Settings…" Click="OnSettingsClick" />
+                        <MenuItem Header="Set up TawkType…" Click="OnSetupClick" />
                         <MenuItem Header="Test dictation (records 3 s)" Click="OnTestDictationClick" />
                         <MenuItem Header="Open data folder" Click="OnOpenDataFolderClick" />
                         <MenuItem Header="Delete all downloaded models…" Click="OnDeleteModelsClick" />

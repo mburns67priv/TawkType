@@ -2,8 +2,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using System.Windows.Automation;
-using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TawkType.Core.Abstractions;
@@ -235,7 +233,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     /// What the language picker shows: detect, then the five most spoken, a separator, then the rest
     /// A to Z. Mixed types because a WPF ComboBox takes a Separator as an item and draws it as one.
     /// </summary>
-    public IReadOnlyList<object> LanguageOptions { get; } = BuildLanguageOptions();
+    public IReadOnlyList<object> LanguageOptions { get; } = LanguagePicker.Options();
 
     /// <summary>
     /// The chosen language, as an item of <see cref="LanguageOptions"/>. Writing it back as a code
@@ -664,21 +662,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         SelectedHistoryEntry = HistoryEntries.FirstOrDefault(entry => entry.Record.Id == selectedId);
         Stats = DictationStats.From(_history.Recent);
         OnPropertyChanged(nameof(HistoryIsEmpty));
-    }
-
-    private static IReadOnlyList<object> BuildLanguageOptions()
-    {
-        var options = new List<object> { Languages.Auto };
-        options.AddRange(Languages.MostSpoken);
-
-        // Disabled so it cannot be landed on with the keyboard or picked by accident, and unnamed so a
-        // screen reader does not announce the type name of a decoration.
-        var divider = new Separator { IsEnabled = false };
-        AutomationProperties.SetName(divider, string.Empty);
-        options.Add(divider);
-
-        options.AddRange(Languages.Rest);
-        return options;
     }
 
     /// <summary>Rebuilds the download picker, keeping the user's choice if it is still on the list.</summary>

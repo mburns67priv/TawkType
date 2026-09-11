@@ -8,9 +8,10 @@ I researched current official documentation for Wispr Flow, Superwhisper, Aqua V
 
 ## Status — updated 2026-09-11
 
-The research below is kept as written, with one exception: project paths and the product name were
-carried across the TawkType rename so its citations still resolve. It was written when the app was
-called Talk2Me, which is why its vocabulary example still is.
+The research below is kept as written, with two exceptions: project paths and the product name were
+carried across the TawkType rename so its citations still resolve, and its vocabulary example — which
+used the app's short-lived previous name — has been changed, because that name belongs to somebody
+else and is not written down here any more.
 
 This section records what has since been built, so nobody re-plans something that is finished or
 assumes something is finished because the rest is.
@@ -24,7 +25,7 @@ assumes something is finished because the rest is.
 | 5 | Modes | **Done**, except per-application defaults |
 | 6 | Caret-aware insertion | **Done** |
 | 7 | History as a correction tool | **Done** |
-| 8 | First-run experience | Not started |
+| 8 | First-run experience | **Done** |
 | 9 | Visible privacy | Not started |
 
 **§1 — vocabulary without Claude.** `PhraseBook` applies preferred spellings and replacements locally,
@@ -63,9 +64,18 @@ cleanup on the raw transcript, compare before and after, delete single entries, 
 replacement from a correction. Both cautions were followed: cleanup is re-run over *text*, never by
 retranscribing audio, and there is no blind-backspace "correct last insertion" anywhere.
 
-**§8 and §9 are untouched.** A first run that ends in a successful dictation, and a privacy panel that
-shows what is actually kept rather than what the settings imply. The ordering at the foot of this
-document still holds for them.
+**§8 — a first run that ends in a successful dictation.** All six bullets, in a seven-step window:
+pick a microphone and watch its level; choose a language and see what its engine will cost to
+download; download it *and load it*; record the key and be told about the obvious conflicts; dictate
+into a box TawkType owns; and choose history retention and cloud rewriting. The section's real
+demand was the gates rather than the steps, and they are what `SetupPlan` is: no step is satisfied by
+the user agreeing to it. The microphone gate wants a level above the noise floor, the model gate wants
+an engine that initialised, and the last gate wants words back from a real dictation through the real
+pipeline. "Ready" means it worked.
+
+**§9 is untouched.** A privacy panel that shows what is actually kept rather than what the settings
+imply. First run now *states* it at the end — and states it from what happened — but that is a
+sentence at a moment, not the during-use indicator this section asks for.
 
 ### Small pieces still open
 
@@ -96,7 +106,7 @@ Build two separate concepts:
 - **Preferred spellings:** names, products, acronyms, and technical terms.
 - **Explicit replacements:** “when recognition produces this phrase, replace it with this exact text.”
 
-For example, a user could teach it that “talk to me” should become `Talk2Me` in a particular vocabulary profile. Matching needs phrase boundaries, language awareness, and controlled casing—not unrestricted substring replacement.
+For example, a user could teach it that “tawk type” should become `TawkType` in a particular vocabulary profile. Matching needs phrase boundaries, language awareness, and controlled casing—not unrestricted substring replacement.
 
 Add a simple correction workflow in history: edit a result, select the mistaken phrase, and choose **Remember this replacement**. Require that explicit choice; silently learning every edit would accumulate bad rules.
 

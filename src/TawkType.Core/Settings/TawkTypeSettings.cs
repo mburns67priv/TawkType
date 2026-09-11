@@ -1,4 +1,6 @@
-﻿namespace TawkType.Core.Settings;
+﻿using System.Text.Json.Serialization;
+
+namespace TawkType.Core.Settings;
 
 public enum TextInjectionMode
 {
@@ -102,6 +104,20 @@ public sealed class TawkTypeSettings
 
     /// <summary>Window theme.</summary>
     public AppearanceSettings Appearance { get; set; } = new();
+
+    /// <summary>
+    /// True once the first-run flow has been finished or skipped.
+    ///
+    /// Nullable so that a settings file written before this existed can be told apart from a fresh
+    /// one. A file that is already on disk means TawkType has been used and configured by hand, so
+    /// <see cref="SettingsStore.Migrate"/> reads null as "done" — onboarding is for a machine that has
+    /// never run it, not for everybody who updates.
+    /// </summary>
+    public bool? SetupCompleted { get; set; }
+
+    /// <summary>First run has not been through. Drives whether the setup window opens at start.</summary>
+    [JsonIgnore]
+    public bool NeedsSetup => SetupCompleted != true;
 
     /// <summary>
     /// The mode in charge. Never null, so no caller has to decide what to do about a settings file
