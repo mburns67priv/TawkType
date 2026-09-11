@@ -302,8 +302,8 @@
                              field that changes nothing is worse than one that says so. -->
                         <StackPanel Style="{StaticResource Field}" IsEnabled="{Binding LanguageApplies}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Language" />
-                            <TextBox Style="{StaticResource Ui.TextBox}"
-                                     Text="{Binding Draft.Language, UpdateSourceTrigger=PropertyChanged}" />
+                            <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding LanguageOptions}"
+                                      SelectedItem="{Binding SelectedLanguage}" MaxDropDownHeight="320" />
                             <TextBlock Style="{StaticResource Ui.Hint}" Text="{Binding LanguageHint}" TextWrapping="Wrap" />
                         </StackPanel>
 

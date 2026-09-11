@@ -511,4 +511,20 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Separators only appear inside our own drop-downs; menus get theirs from MenuItem.SeparatorStyleKey,
+         so this implicit style does not reach the tray menu. -->
+    <Style TargetType="Separator">
+        <Setter Property="Margin" Value="10,5" />
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource Ui.Border}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Background="{TemplateBinding Background}" SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>
