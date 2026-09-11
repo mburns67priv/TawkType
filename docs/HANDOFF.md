@@ -351,7 +351,15 @@ installed from a release, so there is nothing out there to rescue.
     registry entry, and so no row in Programs and Features or in Settings. `%TEMP%`, `C:\` and the
     repo are not redirected, which is the only reason anything written there behaved normally.
 
-    Two things follow, and both cost hours to learn:
+    **Reads are the dangerous half, not writes.** The overlay serves back whatever a session — or an
+    *earlier* session — wrote into it, and the result is indistinguishable from the real machine. A
+    phantom install from a previous session reported a 129 MB `%LOCALAPPDATA%\Talk2MeApp` folder
+    complete with `Update.exe`, and registry uninstall entries to match. Acting on that produced
+    confident, wrong advice about the user's own machine, twice in one session. The rule: **never
+    describe the user's `%LOCALAPPDATA%`, `%APPDATA%` or `HKCU` back to them.** Give them a script and
+    read its output.
+
+    Three things follow, and they cost hours to learn:
     - **Only the user can install it**, and verifying the result needs a process the session did not
       start. Have the Task Scheduler spawn one: write a `.cmd`, then `schtasks /create /tn X /tr
       <file> /sc once /st 23:59 /f`, `schtasks /run /tn X`, read the file it leaves behind. That
