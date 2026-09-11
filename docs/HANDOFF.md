@@ -434,10 +434,11 @@ build that performed it.
     previous *full* package now, which is all a delta needs; a simulated v0.4.0 produces three feed
     entries and 135 MB.
 
-    The old releases still carry their inherited packages. Normally those could not be deleted — the
-    published feeds name them, and an installed copy resolves updates through those names — but
-    nothing has ever been installed from any of them, so today they are safe to delete. That stops
-    being true the moment somebody installs a release and starts polling its feed.
+    **The inherited packages have since been deleted from v0.2.1 through v0.3.0**, taking the releases
+    from 1499 MB to 714 MB. That was only safe because nothing has ever been installed from any of
+    them: the published feeds still name the deleted files, so a copy polling one of those feeds would
+    now 404. Do not repeat this once anybody has installed a release. Each release keeps its own
+    installer, portable zip, its own full and delta packages, and its feed files.
 
 ## Roadmap, in the order I would do it
 
