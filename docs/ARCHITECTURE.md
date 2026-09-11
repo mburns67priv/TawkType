@@ -553,6 +553,40 @@ past something is told what is missing instead of being congratulated. **Skip se
 person who cannot finish today; it marks setup done rather than letting the window reappear at every
 launch, and the tray menu is the way back.
 
+## Deleting the data
+
+Everything TawkType keeps lives in one folder, so removing it is one recursive delete — which is
+exactly what makes it worth being careful about. `AppDataMaintenance` has two callers that want
+opposite things.
+
+**The button**, on Settings → General, names what is about to go (models, history entries, the stored
+key, the settings), shows the total size and the path, takes a yes, unloads both engines so the model
+files are not held open, and reports anything it could not delete. It is there for the majority who
+will never have thought about this in advance, and for anyone who wants a clean slate without
+uninstalling.
+
+**The uninstall hook** can do none of that. Velopack's documentation is explicit — a hook "may not
+show any UI to the user", and the process is killed if it has not exited within 30 seconds — so
+`OnBeforeUninstallFastCallback` reads one setting, `DeleteDataOnUninstall`, and either deletes
+silently or returns. That is why the question is asked in the application instead, with a checkbox
+next to the button: it is the only place it *can* be asked. The default is to keep everything, because
+up to 1.5 GB of models and every dictation ever made is not something to discard on an assumption.
+
+Both go through `DataRemoval.Check` first, which is pure and tested. It refuses a path that is
+relative, near the root of a drive, the install folder, or any folder containing the install folder.
+The last two are the point: the data folder and the install folder differ by three letters
+(`TawkType` against `TawkTypeApp`, gotcha 19), the hook runs while Velopack is clearing the second of
+them, and there is nobody watching. A prefix comparison alone would say the first contains the second,
+so the containment test appends a separator to both before comparing.
+
+The relative-path check runs before the path is normalised, which is not fussiness: `GetFullPath`
+resolves a relative path against the current directory, so checking afterwards would quietly accept
+`TawkType\models` as some real folder elsewhere. A test caught it.
+
+The hook writes a line to `%TEMP%\TawkType\uninstall.log` — not to the log folder, which is inside
+what it is deleting. That file is the only evidence this path ever ran, and it has never run: an agent
+session cannot install anything (gotcha 28), so the first real uninstall will be its first execution.
+
 ## Roadmap
 
 Done since this document was first written, and kept here only because the sections above describe how

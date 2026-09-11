@@ -106,6 +106,14 @@ public sealed class TawkTypeSettings
     public AppearanceSettings Appearance { get; set; } = new();
 
     /// <summary>
+    /// Delete the data folder when TawkType is uninstalled: models, history, settings and the
+    /// encrypted key. Off by default, because a gigabyte of models and everything the user has ever
+    /// dictated is not something to throw away on an assumption. Asked here rather than during the
+    /// uninstall itself: Velopack's hooks may show no UI and are killed after 30 seconds.
+    /// </summary>
+    public bool DeleteDataOnUninstall { get; set; }
+
+    /// <summary>
     /// True once the first-run flow has been finished or skipped.
     ///
     /// Nullable so that a settings file written before this existed can be told apart from a fresh

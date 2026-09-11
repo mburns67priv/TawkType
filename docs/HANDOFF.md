@@ -141,6 +141,11 @@ Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust,
 - `history.jsonl` — every dictation, one JSON object per line, trimmed to `History.MaxEntries` (200 by
   default) **on disk**, not merely in the view. **Plain text**: this is everything the user has ever
   dictated. `History.Enabled` turns it off.
+**Uninstalling leaves all of it alone**, unless the user ticked *Delete all of this if I uninstall
+TawkType* on Settings → General. Velopack's uninstall hook reads that one setting and deletes the
+folder silently; everything else about the question is asked in the application, because the hook is
+not allowed to ask anything. `docs/ARCHITECTURE.md` has the shape of it.
+
 - `logs\tawktype.log` — rolling 5 MB. Debug level. Every dictation logs how many characters, how
   many audio seconds and how many ms — **never the text**. That was false until `77adef3`; both
   transcribers logged the recognised words at Debug, so turning history off left a second plaintext
@@ -193,6 +198,9 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | A mode's vocabulary is added to the main one | A correction the user has taught TawkType should not stop applying because they picked a different mode. The mode's entries go first, so the more specific one wins where both name a phrase. |
 | Cycling the mode does nothing mid-dictation | Changing how the words will be treated halfway through saying them is not something anyone means, and it would silently reinterpret a recording already in progress. |
 | Switching mode saves | A mode nobody can see the state of after a restart is worse than one extra settings write. The bar carries its name for the same reason. |
+| The uninstall question is asked in the app, not during the uninstall | Velopack's hooks "may not show any UI" and are killed after 30 seconds. A prompt there would be against the contract and would hang on anyone who walked away mid-answer. So Settings carries the choice and the hook only obeys it. |
+| Uninstalling keeps the data by default | Up to 1.5 GB of models, the vocabulary, and every dictation ever made. Throwing that away on an assumption is worse than leaving a folder behind, and a reinstall then picks up where the user left off. |
+| A pure guard in front of every recursive delete | `DataRemoval.Check` refuses anything near the root of a drive, anything relative, the install folder, and any folder containing it. The data folder and the install folder differ by three letters (gotcha 19) and one caller runs during an uninstall with nobody watching, so the check is a tested function rather than an `if`. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
 | Source available, not open source | The source is published so the privacy claim can be checked rather than believed — that is most of the argument for a local dictation app. It is not published so somebody can ship a fork. Use is unrestricted and free, including commercially; distribution and derivative works are not granted. |
 | A bespoke licence rather than an off-the-shelf one | There is no well-known licence for "any use, no derivatives". PolyForm Strict looks like the fit and is **noncommercial** — its permitted purposes are personal use and noncommercial organisations. Noncommercial, Shield and Small-Business all permit derivative works; Internal-Use excludes personal use. Check the text before repeating any claim about which licence does what. |
@@ -660,6 +668,11 @@ site source and every snapshot from v2 on were already clean.
     the application, no redistribution, no derivative works, name and mark reserved, contributions
     assigned. README, `THIRD-PARTY-NOTICES.md` and the About panel say so and point at it. Written
     rather than adopted, because the obvious off-the-shelf candidate turned out to be noncommercial.
+35. Made it possible to take the data with the uninstall: a setting on Settings → General, a
+    *Delete my data…* button beside it, `AppDataMaintenance` doing the work, and Velopack's
+    `OnBeforeUninstallFastCallback` obeying the setting silently. `DataRemoval` guards both callers.
+    The button and its confirmation were driven in the running app; the hook cannot be tested from a
+    session that cannot install anything.
 
 ## Links
 

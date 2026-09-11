@@ -32,6 +32,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 {
     private readonly SettingsStore _store;
     private readonly ModelMaintenance _models;
+    private readonly AppDataMaintenance _appData;
     private readonly IApiKeyStore _apiKeys;
     private readonly IDictationHistory _history;
     private readonly UpdateService _updates;
@@ -78,6 +79,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _modelStorageText;
+
+    /// <summary>What is in the data folder, so the delete button is not an unlabelled cliff edge.</summary>
+    [ObservableProperty]
+    private string _appDataText;
 
     /// <summary>What the active engine needs, and whether it already has it.</summary>
     [ObservableProperty]
@@ -150,12 +155,14 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     public SettingsViewModel(
         SettingsStore store,
         ModelMaintenance models,
+        AppDataMaintenance appData,
         IApiKeyStore apiKeys,
         IDictationHistory history,
         UpdateService updates)
     {
         _store = store;
         _models = models;
+        _appData = appData;
         _apiKeys = apiKeys;
         _history = history;
         _updates = updates;
@@ -173,6 +180,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         InputDevices = new[] { "(system default)" }.Concat(WaveInAudioCapture.ListInputDevices()).ToArray();
         _selectedInputDevice = _draft.InputDeviceName ?? InputDevices[0];
         _modelStorageText = models.Describe();
+        _appDataText = DescribeAppData(appData);
         _cleanupTimeoutText = _draft.Cleanup.TimeoutMs.ToString();
         _vocabularyText = string.Join(Environment.NewLine, _draft.Vocabulary.Spellings);
         _replacementsText = VocabularyFormat.Format(_draft.Vocabulary.Replacements);
@@ -638,6 +646,30 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private static void OpenLink(string url)
         => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+
+    /// <summary>
+    /// Everything TawkType keeps, gone: models, history, settings, the key. Here rather than only at
+    /// uninstall time because Velopack's hooks may not show UI, so this is the only place the question
+    /// can actually be asked — and because someone may want a clean slate without uninstalling.
+    /// </summary>
+    [RelayCommand]
+    private async Task DeleteAppDataAsync(Window? owner)
+    {
+        if (await _appData.DeleteWithConfirmationAsync(owner))
+        {
+            AppDataText = DescribeAppData(_appData);
+            RefreshModels();
+            Flash("Deleted. TawkType is back to how it started.");
+        }
+    }
+
+    private static string DescribeAppData(AppDataMaintenance appData)
+    {
+        var contents = appData.Describe();
+        return contents.IsEmpty
+            ? "Nothing is stored yet."
+            : $"{contents.SizeText} in {AppDataMaintenance.DataDirectory}";
+    }
 
     [RelayCommand]
     private static void OpenDataFolder()

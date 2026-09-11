@@ -248,10 +248,26 @@
                                    Text="Time saved compares your speech against typing the same words at 40 wpm. Stats come from the dictation history, so clearing it resets them." />
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Files" />
-                        <Button Content="Open data folder" Style="{StaticResource Ui.Button}"
-                                HorizontalAlignment="Left" Command="{Binding OpenDataFolderCommand}" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Open data folder" Style="{StaticResource Ui.Button}"
+                                    Margin="0,0,8,0" Command="{Binding OpenDataFolderCommand}" />
+                            <Button Content="Delete my data…" Style="{StaticResource Ui.DangerButton}"
+                                    Command="{Binding DeleteAppDataCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
+                                    ToolTip="Models, history, settings and the stored key" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,8,0,0"
+                                   Text="{Binding AppDataText}" />
                         <TextBlock Style="{StaticResource Ui.Hint}"
                                    Text="{Binding SettingsPath, StringFormat='Settings: {0}'}" />
+
+                        <!-- Asked here because it cannot be asked during the uninstall: Velopack's
+                             hooks may show no UI and are killed after 30 seconds. -->
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,14,0,0"
+                                  IsChecked="{Binding Draft.DeleteDataOnUninstall}"
+                                  Content="Delete all of this if I uninstall TawkType" />
+                        <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                   Text="Off by default: uninstalling leaves your models, history and settings where they are, so reinstalling picks up where you left off. Tick it and an uninstall takes the lot." />
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Startup" />
                         <CheckBox Style="{StaticResource Ui.CheckBox}"

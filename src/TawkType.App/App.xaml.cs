@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using TawkType.Core.Abstractions;
 using TawkType.Core.History;
 using TawkType.Core.Models;
@@ -59,6 +60,7 @@ public partial class App : Application
         // uninstalls, and several of them exit the process rather than carrying on into the app.
         VelopackApp.Build()
             .SetAutoApplyOnStartup(true)
+            .OnBeforeUninstallFastCallback(_ => RemoveDataIfAsked())
             .Run();
 
         // Reproduces an installed copy's process identity from a plain build, which is the only
@@ -258,6 +260,60 @@ public partial class App : Application
         base.OnExit(e);
     }
 
+    /// <summary>
+    /// Velopack's uninstall hook. It deletes the data folder if the user said in Settings that it
+    /// should go, and does nothing at all otherwise.
+    ///
+    /// Everything about this method is shaped by the contract: Velopack's hooks may show no UI and are
+    /// killed after 30 seconds, so there is no prompt here, nothing to await, and no exception that
+    /// can escape. It also runs before the host exists, so the settings file is read directly rather
+    /// than through DI, and the note goes to %TEMP% — the folder it would otherwise be written to is
+    /// the one being deleted.
+    ///
+    /// Never verified against a real uninstall. An agent session cannot install anything (gotcha 28),
+    /// so the first person to uninstall an installed build is the first person to run this.
+    /// </summary>
+    private static void RemoveDataIfAsked()
+    {
+        try
+        {
+            var store = new SettingsStore(NullLogger<SettingsStore>.Instance);
+            if (!store.Current.DeleteDataOnUninstall)
+            {
+                return;
+            }
+
+            AppDataMaintenance.DeleteQuietly(
+                AppDataMaintenance.DataDirectory,
+                AppDataMaintenance.InstallDirectory,
+                NoteForUninstall);
+        }
+        catch (Exception ex)
+        {
+            NoteForUninstall("hook failed: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// The only trace this hook leaves. %TEMP% because the log folder is inside what is being deleted,
+    /// and because this is the one code path nobody can watch run.
+    /// </summary>
+    private static void NoteForUninstall(string message)
+    {
+        try
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "TawkType");
+            Directory.CreateDirectory(folder);
+            File.AppendAllText(
+                Path.Combine(folder, "uninstall.log"),
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Nothing left to do about it, and an uninstall must not fail over a log line.
+        }
+    }
+
     private static void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<SettingsStore>();
@@ -274,6 +330,7 @@ public partial class App : Application
         services.AddSingleton<ITranscriber>(sp => sp.GetRequiredService<TranscriberRouter>());
         services.AddSingleton<ModelStorage>();
         services.AddSingleton<ModelMaintenance>();
+        services.AddSingleton<AppDataMaintenance>();
 
         services.AddSingleton<IApiKeyStore, DpapiApiKeyStore>();
         services.AddSingleton<ILlmClient, ClaudeLlmClient>();
