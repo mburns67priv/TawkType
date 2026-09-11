@@ -1,0 +1,39 @@
+<Project>
+
+  <!--
+    Version numbers come from the release tags, so nobody has to remember to bump a file.
+
+    A release passes -p:Version explicitly (build/pack.ps1 does), and that wins: it is the number the
+    installer, the update feed and the assembly all have to agree on. Any other build derives it from
+    the newest tag, which is why Settings used to sit at 0.1.0 for ever - the number was written down
+    once and never touched again.
+
+    Everything here is best-effort. Building from a source archive, or without git on PATH, leaves the
+    fallback version in Directory.Build.props rather than failing the build.
+  -->
+  <Target Name="VersionFromGitTag"
+          BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo"
+          Condition="'$(Version)' == '$(FallbackVersion)'">
+
+    <Exec Command="git describe --tags --abbrev=0"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          ContinueOnError="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitTag" />
+      <Output TaskParameter="ExitCode" PropertyName="GitExitCode" />
+    </Exec>
+
+    <PropertyGroup Condition="'$(GitExitCode)' == '0' And '$(GitTag)' != ''">
+      <!-- Tags are written v0.2.9; assembly versions are not. -->
+      <TagVersion>$(GitTag.TrimStart('v').Trim())</TagVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TagVersion)' != ''">
+      <Version>$(TagVersion)</Version>
+      <!-- Says plainly that this is not the released build of that number. -->
+      <InformationalVersion>$(TagVersion)+local</InformationalVersion>
+    </PropertyGroup>
+  </Target>
+
+</Project>

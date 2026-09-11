@@ -3,7 +3,10 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.1.0</Version>
+    <!-- Overridden from the newest git tag by Directory.Build.targets, and by -p:Version for a release.
+         This is only what a build with neither of those falls back to. -->
+    <FallbackVersion>0.0.0</FallbackVersion>
+    <Version>$(FallbackVersion)</Version>
     <Product>Talk2Me</Product>
     <Company>Jupitor Studio</Company>
     <Copyright>Copyright © Jupitor Studio</Copyright>
