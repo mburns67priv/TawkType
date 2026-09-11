@@ -29,20 +29,31 @@ Both engines stay registered; only the one the router selects is loaded, and it 
 ## Pipeline
 
 ```
-IPushToTalkHotkey ──Pressed──► DictationEngine ──► IAudioCapture.Start()
+IPushToTalkHotkey ──Pressed──► DictationEngine ──► IFocusProbe (on a pool thread)
+                                               ──► IAudioCapture.Start()
                   ──Released─►                 ──► IAudioCapture.Stop() ──► AudioClip
+                  ──Cancel───►                 ──► session cancelled, nothing kept
                                                ──► ITranscriber.TranscribeAsync ──► TranscriptResult
+                                               ──► PhraseBook.Apply (local vocabulary)
                                                ──► ITextCleaner.CleanAsync ──► string
                                                      └─► ILlmClient.CompleteAsync (optional, timed out)
+                                               ──► PhraseBook.Apply again (a rewrite must not undo it)
+                                               ──► Recognised event  ← history is written here
+                                               ──► IFocusProbe revalidation
                                                ──► ITextInjector.InjectAsync
 ```
+
+Two orderings in there are deliberate and were both bugs once. **The words are announced before they
+are delivered**, so a dictation that fails to type is still in the history rather than lost with the
+exception. And **the phrase book runs again after the rewrite**, because the model is given the raw
+transcript and would otherwise quietly undo every correction the user has written down.
 
 `DictationEngine` (in `Talk2Me.Core`) owns the state machine:
 
 ```
 Idle ──press──► Listening ──release──► Transcribing ──► [Polishing] ──► Injecting ──► Idle
-                                            │
-                                         failure ──► Error ──► Idle
+                    │                       │
+                  Esc ──► Idle           failure ──► Error ──► Idle
 ```
 
 Rules: presses while busy are ignored; taps shorter than `MinimumHoldMs` are dropped; the release handler
@@ -83,9 +94,92 @@ states that it is never an instruction, and the length check catches a model tha
 `ClaudeLlmClient` lives in `Talk2Me.Llm`. A local-model client implements the same interface.
 
 The API key never enters `settings.json`, which is plain text. `IApiKeyStore` keeps it in
-`%LOCALAPPDATA%\Talk2Mepikey.dat`, encrypted by `DpapiApiKeyStore` with DPAPI under the current user
+`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\apikey.dat`, encrypted by `DpapiApiKeyStore` with DPAPI under the current user
 (`ANTHROPIC_API_KEY` is the fallback). That protects the file at rest against other accounts on the
 machine — not against anything running as this user.
+
+## Starting and stopping
+
+`Hotkey` (Core) parses `"Ctrl + Shift + D"` into modifiers plus a trigger, and is the one place that
+knows key names. No key it can name contains a `+`, because the parser splits on it — the numpad
+operators are "Numpad Plus", "Numpad Minus" and so on, with the old spellings kept as aliases, and a
+test walks every name asserting both halves of that.
+
+`HotkeyGesture` turns the raw hook stream into presses and releases, and `Activation` layers the three
+ways a dictation can begin or end on top of it. Both are pure reducers in Core with no Win32 anywhere
+near them, which is the only reason the awkward cases have tests at all:
+
+- **Auto-repeat.** Holding a suppressed trigger produces a stream of key-downs, not one. Only the first
+  is a press; the rest are swallowed and ignored, or a held letter types itself.
+- **A release with no press.** A key swallowed on the way down must have its release swallowed too,
+  and a release the gesture never saw the press for is not the end of anything.
+- **The hotkey changing mid-hold.** The gesture is reset rather than left waiting for a release nobody
+  is watching for.
+- **Toggle.** An optional second key where a press each starts and stops. Held keys and the toggle
+  coexist; the toggle is reset by a cancel, or the next press would stop a dictation that never began.
+- **Escape.** Only while a dictation is actually in progress, so Esc keeps its normal meaning the rest
+  of the time.
+
+The recording limit (`MaxRecordingSeconds`, five minutes, 0 for none) lives in `DictationEngine` as a
+timer that raises the same release the key would. Deliberately a *finish* rather than a cancel:
+whatever was said before the limit is worth more than the silence after it.
+
+## Sessions
+
+Every dictation is a `Session` with an id, a `CancellationTokenSource` and the task doing the work.
+Before it existed, a cancelled or superseded dictation had no way to stop the transcription already
+running, and shutdown could tear the process down mid-write.
+
+- Work checks the token at each stage, so Escape stops the pipeline rather than only hiding its result.
+- Only the session that owns the state machine may change it, so a late-finishing dictation cannot
+  stamp on the one that replaced it.
+- `Stop()` cancels and then waits up to `ShutdownGrace` (3 s) for the work to unwind, so history and
+  the clipboard are left in one piece.
+- State changes are raised outside the lock. Raising them inside it deadlocked against handlers that
+  called back in.
+
+The focus probe result is taken at key-down but **re-checked at delivery**, because a dictation can
+easily outlive the window the user was aiming at. If the target has changed, the text goes to the
+clipboard rather than into whatever happens to be in front now.
+
+## The phrase book
+
+`PhraseBook.Apply` is the local half of personalisation, and it runs whether or not there is an API
+key — the vocabulary used to be nothing but words in a prompt, so a local-only user got nothing from
+it at all.
+
+Three lists, applied in this order: **snippets**, then **replacements**, then **spellings**.
+
+- **Snippets** are saved text behind a trigger, and need the word "insert" in front of it. Explicit,
+  or a signature appears in the middle of an ordinary sentence. A dictation that expanded one
+  short-circuits the LLM pass entirely — a model asked to tidy up a signature would do exactly that —
+  and a multiline one reaches the clipboard path rather than being typed as Return presses.
+- **Replacements** are `heard => typed`, for the mishearings a spelling cannot fix.
+- **Spellings** are names that should come out as written however they are heard.
+
+Matching is whole phrases, case-insensitive, tolerant of the recogniser's spacing, and longest-first,
+so "Jupitor Studio" wins over "studio" and "restudio" is left alone. Boundaries are
+`(?<![\p{L}\p{N}])…(?![\p{L}\p{N}])` rather than `\b`, which gets punctuation and accented letters
+right where `\b` does not.
+
+Both lists are edited as plain text, one `heard => typed` per line, rather than a grid of rows with add
+and remove buttons: they are written in bursts, usually pasted from somewhere, and plain text can be
+selected, sorted, diffed and kept in a note. `VocabularyFile` exports and imports the whole vocabulary
+as JSON of its own, because it is the part of Talk2Me that is genuinely the user's own work and should
+not be trapped in a file full of window positions. A file carrying none of the three lists is refused
+rather than imported as an empty one over the top of theirs.
+
+## Settings validation
+
+`NumberField` (Core) carries what each numeric box will accept — a range, a unit, and whether a
+fraction makes sense — and turns a bad value into the sentence shown under the box. Save is disabled
+until every box is happy, and when the offending box is on a page the user has navigated away from,
+the footer names the page.
+
+Nothing is clamped or silently corrected. The window used to drop an unusable value on the floor: the
+box kept what was typed, the setting quietly stayed as it was, and Save closed looking like it had
+worked. Clamping would be worse still, since a value the user never chose would then be saved under
+their name.
 
 ## Knowing whether the text can land
 
@@ -212,13 +306,18 @@ restores the old hide-when-idle behaviour.
 ## History
 
 `DictationHistoryStore` (Core) appends one JSON object per dictation to
-`%LOCALAPPDATA%\Talk2Me\history.jsonl`. Append-only is the point: a dictation must never be lost or
+`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\history.jsonl`. Append-only is the point: a dictation must never be lost or
 delayed by the log, so the common path is one `File.AppendAllText`, and any failure there is logged and
 swallowed — the text has already been typed by then.
 
 The whole file is rewritten only when trimming past `History.MaxEntries` (plus slack, so a rewrite is not
-on every add) or clearing. `Recent` caps at the configured maximum regardless of what is still on disk.
-A line torn by a crash mid-write is skipped at load rather than failing the file.
+on every add) or clearing. A line torn by a crash mid-write is skipped at load rather than failing the
+file, and the next append terminates it rather than joining onto it.
+
+Retention means the file, not the view. Capping `Recent` while leaving everything on disk is the bug
+that made the setting untrue: "keep 50" has to delete the rest, not hide it. `Clear()` reports whether
+the file actually went, so the UI cannot claim a deletion that failed, and compaction writes a temp
+file and moves it over the original so an interrupted trim cannot lose the log.
 
 `HistoryWindow` subscribes through `IDictationHistory.Changed`, so it updates live while it sits on
 screen. Its list expands rows in place rather than pairing a list with a detail pane: in a 420x560 panel
@@ -242,7 +341,7 @@ trade for recoverability, and `History.Enabled` turns it off.
 
 ## Settings
 
-`%LOCALAPPDATA%\Talk2Me\settings.json`, loaded once at startup by `SettingsStore` and re-read by consumers
+`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\settings.json`, loaded once at startup by `SettingsStore` and re-read by consumers
 through `ISettingsProvider.Current`, so a save takes effect without a restart: the hotkey re-resolves on
 `Changed`, the transcriber reloads when model or language differ from what is loaded, audio device is
 resolved at each `Start()`.
@@ -254,11 +353,14 @@ resolved at each `Start()`.
    words are typed before the last ones arrive.
 2. **Per-app styles**: detect the foreground window's process name, pick a tone preset (chat vs email vs
    code editor).
-3. **Personal dictionary**: the cleanup prompt takes a word list today. Next: seed Whisper's
-   `initial_prompt` with it too, and learn new entries from what the user corrects by hand.
+3. ~~**Personal dictionary**~~ — done locally: spellings, replacements and snippets apply with or
+   without a model (`PhraseBook`), and the whole vocabulary imports and exports. Still open: seed
+   Whisper's `initial_prompt` with it, and a "remember this replacement" action in the history window
+   so a correction can be saved from the dictation that needed it.
 4. **Command mode**: select text, hold a second key, speak an instruction, replace selection.
 5. **Streaming**: transcribe in 1-second windows while the key is held so text appears as you speak.
 6. **Branding, continued**: identity, icon, palette and overlay restyle are done (see
    `branding/BRAND.md`). Still to do: overlay waveform animation, onboarding window, installer (MSIX or
    Velopack), auto-update.
-7. **Auto-start** with Windows, single-instance guard, crash recovery.
+7. **Auto-start** with Windows, crash recovery. The single-instance guard is in (a `Local\` mutex in
+   `App.OnStartup`).

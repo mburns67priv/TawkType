@@ -28,10 +28,17 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
   text, and whether the target window is running as administrator — synthetic keystrokes to an elevated
   window are discarded by Windows without any error. If it can't type, the text goes to your clipboard
   and the bar says *Copied instead*.
-- **Nothing is lost.** Every dictation is logged locally, so a dictation that went into the wrong window
-  is one click away.
+- **Nothing is lost.** Every dictation is kept locally, so one that went into the wrong window is a
+  click away. Turn the log off and it means it — nothing keeps a second copy of your words.
+- **Hold, or toggle.** Hold the key for a sentence; set an optional second key that starts and stops
+  with a press each, for long passages or when holding is awkward. **Esc** abandons either — nothing is
+  typed, nothing is recorded.
+- **Your own words.** Names Talk2Me should spell your way, corrections for what it keeps mishearing, and
+  saved text you insert by saying *"insert"* and a trigger. All of it works on this machine, with or
+  without a Claude key, and the whole vocabulary imports and exports as a file of its own.
 - **Optional AI cleanup.** With a Claude API key, dictations are rewritten before typing: spoken
-  corrections applied ("no, make that Tuesday"), lists formatted, your own vocabulary spelled right.
+  corrections applied ("no, make that Tuesday"), lists formatted. Your vocabulary is re-applied
+  afterwards, so a rewrite can never undo a correction you wrote down.
 
 ## Install it
 
@@ -89,16 +96,21 @@ activates it. Press a button or drag it and your caret stays exactly where it wa
 
 <img src="docs/images/settings-general.png" width="620" alt="The Talk2Me settings window">
 
-Six pages, light or dark or following Windows:
+Seven pages, light or dark or following Windows:
 
 | Page | What's there |
 |---|---|
 | **General** | Overview, your dictation stats, where the files live |
 | **Transcription** | Engine, language, microphone, and managing downloaded models |
-| **Activation** | Hotkey, tap threshold, how text gets inserted |
+| **Activation** | Push-to-talk key, optional toggle key, tap threshold, how text gets inserted, sounds, recording limit |
 | **Appearance** | Theme, and where the status bar sits |
+| **Vocabulary** | Spellings, replacements and snippets — with import and export |
 | **AI cleanup** | The optional Claude rewrite |
 | **History** | Everything you've dictated, and the log's settings |
+
+Pick a hotkey by clicking the box and **holding the keys you want**, rather than typing their names. A
+number that a box cannot use says so underneath, and Save waits until it is fixed — nothing is dropped
+silently or clamped to something you did not choose.
 
 ## AI cleanup (optional, off by default)
 
@@ -126,9 +138,9 @@ never takes your models and history with it:
 |---|---|
 | `settings.json` | All settings. Plain text |
 | `apikey.dat` | Your Anthropic key, DPAPI-encrypted for your Windows account |
-| `history.jsonl` | Every dictation. **Plain text** — turn it off in Settings → History if that's not for you |
+| `history.jsonl` | Every dictation. **Plain text** — turn it off in Settings → History if that's not for you, and the file is deleted rather than merely hidden |
 | `models\` | Downloaded speech models |
-| `logs\talk2me.log` | Rolling 5 MB debug log |
+| `logs\talk2me.log` | Rolling 5 MB debug log. Records how long and how many characters, **never the words themselves** |
 
 ## Performance
 
@@ -145,7 +157,7 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 98 unit tests, < 1 s
+dotnet test                                              # 240 unit tests, ~2 s
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Focus -- 15           # what the focus probe sees
@@ -154,18 +166,22 @@ dotnet run --project tools/Talk2Me.Brand                 # regenerate the icon a
 
 Launch flags: `--settings`, `--history`, `--overlay-demo`.
 
+The version comes from the last release tag — `git describe` — so a local build reports the release it
+descends from rather than a number someone forgot to bump. `-p:Version` still wins where it matters.
+
 To build an installer locally:
 
 ```bash
-./build/pack.ps1 -Version 0.2.0
+./build/pack.ps1 -Version 0.2.9
 ```
 
-Releases are cut by tagging: `git tag v0.2.0 && git push origin v0.2.0` runs
+Releases are cut by tagging: `git tag v0.2.9 && git push origin v0.2.9` runs
 `.github/workflows/release.yml`, which tests, packs and publishes the GitHub Release that installed
 copies update from.
 
-`docs/ARCHITECTURE.md` explains the design; `docs/HANDOFF.md` is the working notes, including the
-gotchas that cost the most time.
+`docs/ARCHITECTURE.md` explains the design and `docs/HANDOFF.md` is the working notes, including the
+gotchas that cost the most time. `docs/REVIEW-2026-09-11.md` and `docs/FEATURE-RESEARCH-2026-09-11.md`
+are point-in-time assessments, each carrying a note of what has been addressed since.
 
 ## Credits
 

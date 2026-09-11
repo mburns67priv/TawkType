@@ -1,8 +1,9 @@
 # Talk2Me — handoff
 
-Written 2026-09-10 at the end of the first build session, updated later the same day when the LLM
-cleanup pass landed. Read this first; then `README.md` for usage,
-`docs/ARCHITECTURE.md` for design, `branding/BRAND.md` for the identity.
+Written 2026-09-10 at the end of the first build session; updated 2026-09-11 after the review and
+feature passes. Read this first; then `README.md` for usage, `docs/ARCHITECTURE.md` for design,
+`branding/BRAND.md` for the identity. `docs/REVIEW-2026-09-11.md` and
+`docs/FEATURE-RESEARCH-2026-09-11.md` are the two assessments that drove most of what follows.
 
 ## What this is
 
@@ -13,9 +14,9 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
 
 ## State of the code
 
-- **Branch `main`, clean tree.** `9e84eea` skeleton + both engines; `6f61150` rename + brand;
-  `12d8117` this doc; then the LLM cleanup pass.
-- **Builds clean** with `dotnet build`, **76 unit tests pass** with `dotnet test`.
+- **Branch `main`, clean tree.** Last release tag `v0.2.9`; several commits past it, so the next pack
+  is overdue.
+- **Builds clean** with `dotnet build`, **240 unit tests pass** with `dotnet test`.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download, model deletion are all verified in the running
   app.
@@ -24,12 +25,21 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
   tested; the live path was verified only as far as a rejected key (see "Gotchas" 9).
 - **The installed build's taskbar icon is fixed** as of 0.2.8, after a long hunt. The answer is in
   "Gotchas" 20, and it is not what anyone would guess.
+- **The review in `docs/REVIEW-2026-09-11.md` is partly addressed**, findings 1–5 and 7 — transcript
+  logging, history retention and deletion, hotkey suppression and parsing, delivery ordering, session
+  lifetime, focus revalidation. That doc carries a status note listing what is left; **finding 6
+  (clipboard restore) and finding 10 (the filler regex eating "um" in German and "ER" in English) are
+  both still open**, and 6 matters more now that multiline results always paste.
+- **Personalisation landed locally**: `PhraseBook` (spellings, replacements, snippets), Esc to cancel,
+  an optional toggle key, optional sounds, and a recording limit.
 
 ## Repo map
 
 ```
 Talk2Me.sln
-src/Talk2Me.Core            pipeline state machine, interfaces, settings, regex cleaner  (no Windows deps)
+src/Talk2Me.Core            pipeline state machine, interfaces, settings, regex cleaner, and the pure
+                            reducers that make the awkward parts testable: Hotkey, HotkeyGesture,
+                            Activation, Delivery, PhraseBook, NumberField, WindowPlacement  (no Windows deps)
 src/Talk2Me.Windows         WH_KEYBOARD_LL hook, WaveIn mic capture, SendInput + clipboard injection
 src/Talk2Me.Transcription   ParakeetTranscriber (sherpa-onnx), WhisperTranscriber (Whisper.net),
                             TranscriberRouter, model downloaders, ModelStorage
@@ -43,8 +53,11 @@ tools/Talk2Me.Bench         transcribes a WAV with one or both engines, prints l
 tools/Talk2Me.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/Talk2Me.Focus         prints what the focus probe makes of whatever window is in front
 tools/Talk2Me.Brand         renders talk2me.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/Talk2Me.Core.Tests    xUnit: DictationEngine, BasicTextCleaner, EngineSelection, LlmTextCleaner,
-                            CleanupPrompt, ModelStorage, DictationHistoryStore, settings cloning
+tests/Talk2Me.Core.Tests    xUnit, 240 tests: DictationEngine + session lifetime, hotkey parsing and
+                            gesture, activation (hold / toggle / cancel), PhraseBook, VocabularyFormat,
+                            NumberField, Delivery, focus deflection, failed delivery, history store,
+                            BasicTextCleaner, EngineSelection, LlmTextCleaner, CleanupPrompt,
+                            ModelStorage, WindowPlacement, languages, stats, settings cloning
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md
 ```
@@ -53,7 +66,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md
 
 ```bash
 dotnet run --project src/Talk2Me.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 76 tests, < 1 s
+dotnet test                                   # 240 tests, ~2 s
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Brand      # regenerate icon + exports after brand changes
@@ -76,9 +89,13 @@ Requirements: Windows 10/11, .NET 8 SDK. GPU optional. No CUDA Toolkit, no Rust,
 - `models\ggml-large-v3-turbo.bin` (1.6 GB) and `models\parakeet-tdt-0.6b-v3-int8\` (640 MB).
 - `apikey.dat` — the Anthropic key for the cleanup pass, DPAPI-encrypted under the current user. Kept
   out of `settings.json`, which is plain text. `ANTHROPIC_API_KEY` is the fallback.
-- `history.jsonl` — every dictation, one JSON object per line, capped at 200. **Plain text**: this is
-  everything the user has ever dictated. `History.Enabled` turns it off.
-- `logs\talk2me.log` — rolling 5 MB. Debug level. Every dictation logs chars, audio seconds, and ms.
+- `history.jsonl` — every dictation, one JSON object per line, trimmed to `History.MaxEntries` (200 by
+  default) **on disk**, not merely in the view. **Plain text**: this is everything the user has ever
+  dictated. `History.Enabled` turns it off.
+- `logs\talk2me.log` — rolling 5 MB. Debug level. Every dictation logs how many characters, how
+  many audio seconds and how many ms — **never the text**. That was false until `77adef3`; both
+  transcribers logged the recognised words at Debug, so turning history off left a second plaintext
+  archive of everything the user had said.
 
 On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothing is re-downloaded.
 
@@ -92,7 +109,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Whisper runtime order CUDA12 → Vulkan → CPU | No CUDA Toolkit installed, so Vulkan is what runs. Installing the toolkit flips to CUDA automatically. |
 | H.NotifyIcon.Wpf pinned to **2.3.2** | 2.4.x dropped net8.0 and silently resolves to the .NET Framework asset, which fails XAML compile. |
 | WaveIn at 16 kHz mono, not WASAPI | The driver resamples for free to exactly what both engines want. Swap for WASAPI only if latency or loopback becomes a need. |
-| Settings is a nav rail + pages, not one form | It had grown past 1400px with the expanders open and was genuinely hard to read. Six pages (General / Transcription / Activation / Appearance / AI cleanup / History) modelled on WhisperTyping, which the owner asked for by screenshot. |
+| Settings is a nav rail + pages, not one form | It had grown past 1400px with the expanders open and was genuinely hard to read. Seven pages (General / Transcription / Activation / Appearance / Vocabulary / AI cleanup / History) modelled on WhisperTyping, which the owner asked for by screenshot. |
 | Light default with a dark toggle, pill always dark | The owner picked light with a toggle. The pill is the exception on purpose: it floats over other applications, so it has to read against *their* content, not ours. Its brushes are `Overlay.*` in App.xaml and never swap. |
 | Controls are fully templated | WPF's stock ComboBox/CheckBox/Button chrome comes from system colours and looks wrong in dark. Templating them is the only way both themes are right. |
 | The pill rests on screen instead of hiding | It is the only feedback the user has, and it is useless if it is gone when they glance at it. Resting dimmed keeps it available without being loud. `Overlay.AlwaysVisible = false` restores hide-on-idle. |
@@ -106,6 +123,15 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | `ILlmClient` seam, Claude first | Core stays free of any provider SDK; `Talk2Me.Llm` holds the Anthropic dependency. A local model (llama.cpp / ONNX) implements the same two-method interface without touching the pipeline. Claude first because rewrite quality is what makes the feature worth having. |
 | Cleanup off by default, key in DPAPI | It is the only thing that leaves the machine, so it must be a deliberate choice. `settings.json` is plain text, so the key lives in `apikey.dat` encrypted under the Windows account instead. |
 | Effort `low`, adaptive thinking, no retries | The call has ~2 s. Low effort keeps it inside that; retries only delay the fallback. Thinking stays adaptive because disabling it on Opus can leak reasoning markup, which here would be typed into the user's window. |
+| The awkward input logic lives in pure Core reducers | Auto-repeat, a release with no press, the hotkey changing mid-hold, toggle-vs-hold, Esc only while dictating — every one of those was a real bug and none is reachable from a test with Win32 in the way. `HotkeyGesture` and `Activation` take events and return decisions, so all of it is covered. |
+| Every dictation is a `Session` | Cancellation needs something to cancel. An id, a `CancellationTokenSource` and the task let Escape actually stop transcription, stop a late dictation stamping on the one that replaced it, and let shutdown drain instead of tearing up mid-write. |
+| The words are announced before delivery | History used to be written after typing, so a dictation that failed to deliver was lost along with the exception — the exact case the history window exists for. `Recognised` fires first now. |
+| The phrase book runs again after the rewrite | The model is deliberately given the raw transcript, so it has no idea what the user has corrected and cheerfully undoes it. Re-applying afterwards is the only ordering where both features work. |
+| Snippets need the word "insert" | Left implicit, a signature or an address expands in the middle of an ordinary sentence. They also skip the LLM pass entirely: a model asked to tidy up a signature will do exactly that. |
+| Vocabulary is a text box, and its own file | These lists are written in bursts, usually pasted from somewhere, and plain text can be selected, sorted, diffed and kept in a note — a grid of rows with add/remove buttons cannot. The export is separate from `settings.json` because it is the user's own work, not window positions. |
+| A bad number says so instead of being dropped or clamped | Save used to ignore an unusable value silently: the box kept what was typed, the setting did not change, and the window closed looking like it had worked. Clamping would be worse, since a value the user never chose would be saved under their name. `NumberField` holds the range and the message; Save waits. |
+| The recording limit finishes rather than cancels | A key left under a book should not record all afternoon, but throwing the audio away would punish the user for the accident. Whatever was said still arrives. |
+| Sounds use `SystemSounds`, off by default | They respect whatever scheme the user has chosen, silence included, and they need no asset files. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
 
 ## Measured numbers (owner's machine: i7-11700F, RTX 4060 Ti 8 GB)
@@ -241,19 +267,52 @@ Both transcripts were otherwise identical and correctly punctuated.
     - This is what made `%LOCALAPPDATA%` look like a tree the shell refused to read icons out of
       (gotcha 20). The files were simply not there for Explorer.
 
+29. **`Hotkey` is a record whose modifier list is compared by reference unless you stop it.** Two
+    identical hotkeys compared unequal, so "has the hotkey changed?" was always true and the hook
+    re-registered on every settings save. `Equals`/`GetHashCode` are written out by hand; keep them if
+    you add a field.
+30. **No key name may contain `+`.** The parser splits on it, so "Numpad +" parsed as "Numpad", failed,
+    and the hotkey silently reverted to Right Ctrl. The numpad operators are spelled out — Numpad Plus,
+    Minus, Multiply, Divide, Dot — with the old names kept as aliases, and a test walks every key this
+    can name asserting no name contains the separator and each survives a round trip.
+31. **Escape has to reset the toggle gesture, not just the flag.** Cancelling while a toggle dictation
+    was running left the gesture believing it was still on, so the next press *stopped* a dictation
+    that had never started. Found by a test, which is the only reason it was found at all.
+32. **Raise state changes outside the lock.** `DictationEngine` deadlocked against handlers that called
+    back into it. The state is computed under the lock and the event raised after it is released.
+33. **The multiline rule lives in `Delivery`, not the injector.** Text with a line break always pastes,
+    whatever the injection mode says, because typing it sends Return — which submits the chat message,
+    triggers the form, or runs the command. Mode "Type" cannot be allowed to mean that.
+34. **`dotnet build` fails while the app is running, and the error names the lock but not the cause.**
+    Quit from the tray first (gotcha 5). To verify a build without disturbing a running instance, build
+    to a different output directory with `-o`; the compile is what you are checking, and the copy step
+    is the only thing that fails.
+35. **Only one Talk2Me can run per session** — a `Local\Talk2Me.SingleInstance` mutex. A second copy
+    exits silently, so a scripted launch aimed at testing a new build will quietly drive the *old* one
+    that is already up. Check for a running process before believing a screenshot.
+
 ## Roadmap, in the order I would do it
 
-1. **Prove the rewrite on real dictation** and tune the prompt in `CleanupPrompt` against it. Everything
-   below is guesswork until someone has used it for a day.
-2. **Per-app tone**: read the foreground window's process name at release time, pick a preset. The
+1. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste, and only
+   text is put back, so an image or formatted content on the clipboard is destroyed by a dictation. That
+   got more likely, not less, when multiline results started always pasting. Finding 10 is the filler
+   regex — it deletes German "um" and English "ER", so *"The ER is open"* becomes *"The is open"*. Both
+   are small, both are user-visible, and both are already written up with reproductions.
+2. **Prove the rewrite on real dictation** and tune the prompt in `CleanupPrompt` against it. Still true:
+   nobody has seen a successful call (gotcha 9).
+3. **Cut a release.** The latest is `v0.2.9`; everything since — the review fixes, the phrase book,
+   cancel and toggle, the settings validation — is in no installed copy. Nothing here is in a user's
+   hands yet.
+4. **"Remember this replacement"** in the history window: select a mishearing in a past dictation and
+   save the correction. The storage and the matching both exist now, so this is a UI affordance.
+5. **Per-app tone**: read the foreground window's process name at release time, pick a preset. The
    `CleanupStyle` setting and prompt seam are already there; this just chooses the value per app.
-3. **Installer + auto-start + single instance**: Velopack is the least friction for a .NET tray app;
-   MSIX if Store distribution matters.
-4. **Streaming partials** while the key is held (Parakeet is a transducer; it suits this).
-5. **Overlay polish**: replace the level bar with an animated waveform; onboarding window on first run.
-6. **Command mode**: hold a second key, speak an instruction, replace the selected text.
-7. **Local LLM backend** behind `ILlmClient`, so the rewrite works offline and the "nothing leaves this
+6. **Streaming partials** while the key is held (Parakeet is a transducer; it suits this).
+7. **Overlay polish**: replace the level bar with an animated waveform; onboarding window on first run.
+8. **Command mode**: hold a second key, speak an instruction, replace the selected text.
+9. **Local LLM backend** behind `ILlmClient`, so the rewrite works offline and the "nothing leaves this
    machine" promise holds with cleanup switched on.
+10. **Auto-start with Windows** and crash recovery. The installer and the single-instance guard are done.
 
 ## Session log (what was actually done, in order)
 
@@ -290,6 +349,20 @@ Both transcripts were otherwise identical and correctly punctuated.
 15. Turned the pill's minimise button into a real hide, with tray and taskbar routes back.
 16. Added the focus probe: dictation now checks whether the focused element can take text (and whether
     the target is elevated) and falls back to the clipboard with "Copied instead" when it cannot.
+17. Packaged with Velopack and fixed the installed build's generic taskbar button icon — the long hunt
+    written up in gotcha 20, and the sandbox discovery in gotcha 28 that explained why so much of it
+    looked impossible.
+18. Polished the settings window: dark title bars and scroll bars, a language picker by name, engine-
+    dependent fields greyed rather than lying, opt-in model downloads, and the version taken from the
+    release tag instead of a literal.
+19. Acted on the owner's own review (`docs/REVIEW-2026-09-11.md`): stopped transcripts reaching the log,
+    made history retention and deletion mean the file, rewrote hotkey suppression and parsing as pure
+    reducers, made multiline text always paste, moved history ahead of delivery, gave each dictation a
+    session with cancellation and a shutdown drain, and re-checked focus at delivery time.
+20. Acted on `docs/FEATURE-RESEARCH-2026-09-11.md`: Esc to cancel, an optional toggle key, the local
+    phrase book with snippets and an import/export file, optional sounds, and a recording limit.
+21. Gave every numeric settings box real validation, after noticing the two new settings had shipped
+    with no control at all and the existing boxes dropped bad values in silence.
 
 ## Links
 
