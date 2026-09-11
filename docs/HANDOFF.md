@@ -1,4 +1,4 @@
-# Talk2Me — handoff
+# TawkType — handoff
 
 Written 2026-09-10 at the end of the first build session; updated 2026-09-11 after the review and
 feature passes. Read this first; then `README.md` for usage, `docs/ARCHITECTURE.md` for design,
@@ -10,7 +10,7 @@ feature passes. Read this first; then `README.md` for usage, `docs/ARCHITECTURE.
 Push-to-talk dictation for Windows, a Wispr Flow clone. Hold Right Ctrl, speak, release; the cleaned-up
 text is typed into whatever has focus. Everything runs locally. There is no cloud, account, or telemetry.
 
-Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
+Owner: Jupitor Studio. Working name was **Murmur**, then **Talk2Me**; it is now **TawkType**, because Talk2Me turned out to be another dictation product. The rename is display-only — see the rename notes below.
 
 ## State of the code
 
@@ -140,9 +140,9 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Deleting one entry does not ask; Clear still does | One entry is a small, obviously-scoped action and a dialog would be in the way of the tidying-up it exists for. Clear takes everything at once, so it keeps its confirmation. |
 | Clean again reprocesses text, never audio | Re-transcribing would mean keeping every recording ever made. The result goes into the draft rather than to disk, so seeing what cleanup would say now is separate from accepting it. |
 | The caret is read at delivery, not at key-down | It is the one thing that moves while a dictation is being transcribed, so the answer from key-down would be stale exactly when it mattered. That puts an accessibility call on the path of finished text, hence the 250 ms budget and an immediate "do not know" when it expires. |
-| Only a capital Talk2Me added is ever undone | Lowercasing a continuation is the whole point, and lowercasing a name the recogniser produced would be a visible, unattributable corruption of the user's words. Comparing the raw transcript with the finished text says which of the two this is; nothing about the surrounding sentence can. |
+| Only a capital TawkType added is ever undone | Lowercasing a continuation is the whole point, and lowercasing a name the recogniser produced would be a visible, unattributable corruption of the user's words. Comparing the raw transcript with the finished text says which of the two this is; nothing about the surrounding sentence can. |
 | A mode can only narrow the Claude permission, never grant it | Picking how a dictation should read must not be the act that authorises text leaving the machine. `MayUseLlm` is checked alongside `Cleanup.UseLlm`, and there is a test for each direction. |
-| A mode's vocabulary is added to the main one | A correction the user has taught Talk2Me should not stop applying because they picked a different mode. The mode's entries go first, so the more specific one wins where both name a phrase. |
+| A mode's vocabulary is added to the main one | A correction the user has taught TawkType should not stop applying because they picked a different mode. The mode's entries go first, so the more specific one wins where both name a phrase. |
 | Cycling the mode does nothing mid-dictation | Changing how the words will be treated halfway through saying them is not something anyone means, and it would silently reinterpret a recording already in progress. |
 | Switching mode saves | A mode nobody can see the state of after a restart is worse than one extra settings write. The bar carries its name for the same reason. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
@@ -157,6 +157,34 @@ Same 13 s clip, best of 5:
 | Whisper large-v3-turbo | GPU (Vulkan) | 2.4 s | 413 ms | first-ever warm-up ~20 s (shader compile), then 0.4 s |
 
 Both transcripts were otherwise identical and correctly punctuated.
+
+## The rename: what changed and what deliberately did not
+
+The app is **TawkType**. Talk2Me was already another dictation product, so the name had to go. The
+design package is `docs/tawktype-brand/BRAND-PACKAGE.md`; the implementer's half is `branding/BRAND.md`.
+
+**Changed**: every string a user reads — window titles, the tray tooltip and menu, dialog captions,
+update status, overlay wording, the log's startup line — plus the mark, the palette, and the
+executable's Product/Description metadata.
+
+**Not changed**, and each one costs a user something if you "finish the job":
+
+| Stays | Why |
+|---|---|
+| `%LOCALAPPDATA%\Jupitor Studio\Talk2Me` | Settings, the encrypted API key, history, and gigabytes of models. Nobody sees the path. |
+| `"Talk2Me.ApiKey.v1"` (DPAPI entropy) | Part of the key `apikey.dat` was encrypted with. A new value makes every existing key undecryptable, silently. |
+| `"Talk2Me"` (Run key value name) | A new name leaves the old entry behind: the app starts twice and the orphan cannot be turned off from the UI. |
+| `JupitorStudio.Talk2Me` (window AUMID) | Shell identity. Changing it re-opens gotcha 20, which cost days. |
+| `Talk2MeApp` (Velopack packId) | The update channel installed copies poll, **and** the folder Velopack clears on install — gotcha 19. |
+| `Talk2Me` (assembly name), namespaces, project and solution names | Internal. Renaming them is churn plus a packaging change, with nothing visible in return. |
+| `talk2me.ico`, `%TEMP%\Talk2Me\` | Referenced by the csproj and the taskbar identity work. |
+
+If the package identity is ever changed, **test an upgrade from an existing installation first**. The
+package says so and so does gotcha 19.
+
+Still to do from the package's asset checklist: high-contrast tray variants, outlined SVG wordmarks,
+and screenshots of current behaviour. The generated `.ico` does carry separately rendered 16/20/24/32/48
+px frames, and the mark drops its text cursor below 24 px rather than shrinking into a smudge.
 
 ## Gotchas the next person will hit
 
@@ -267,7 +295,7 @@ Both transcripts were otherwise identical and correctly punctuated.
 28. **Nothing an agent session installs is real.** Claude Code's sandbox redirects writes under
     `%LOCALAPPDATA%`, `%APPDATA%` and `HKCU` into a per-session overlay, and serves reads back out of
     it — including under `dangerouslyDisableSandbox`, which does *not* escape the redirection. So an
-    installer run from inside a session produces a Talk2Me that looks perfectly installed from in
+    installer run from inside a session produces an install that looks perfect from in
     there and does not exist at all from outside: no install directory, no data folder, no `Uninstall`
     registry entry, and so no row in Programs and Features or in Settings. `%TEMP%`, `C:\` and the
     repo are not redirected, which is the only reason anything written there behaved normally.
@@ -425,6 +453,8 @@ Both transcripts were otherwise identical and correctly punctuated.
 25. Added dictation modes (feature research §5), entirely locally: `DictationMode` bundles the
     post-processing choices, four ship built in, a key cycles them, the bar shows which is in charge,
     and a mode can only ever narrow the permission to use Claude — never grant it.
+26. Rebranded to TawkType: name, mark, palette and overlay wording from the design package, with the
+    update identity, the data folder and the DPAPI entropy deliberately left alone.
 
 ## Links
 

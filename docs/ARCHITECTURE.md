@@ -200,7 +200,7 @@ right where `\b` does not.
 Both lists are edited as plain text, one `heard => typed` per line, rather than a grid of rows with add
 and remove buttons: they are written in bursts, usually pasted from somewhere, and plain text can be
 selected, sorted, diffed and kept in a note. `VocabularyFile` exports and imports the whole vocabulary
-as JSON of its own, because it is the part of Talk2Me that is genuinely the user's own work and should
+as JSON of its own, because it is the part of TawkType that is genuinely the user's own work and should
 not be trapped in a file full of window positions. A file carrying none of the three lists is refused
 rather than imported as an empty one over the top of theirs.
 
@@ -266,7 +266,7 @@ ticking it switches nothing on. Picking a mode must never be the act that author
 anywhere, so `LlmTextCleaner` checks both and there is a test for each direction.
 
 A mode's vocabulary is **added to** the main one rather than replacing it, and goes first so the more
-specific entry wins where both name a phrase. A correction the user has taught Talk2Me should not stop
+specific entry wins where both name a phrase. A correction the user has taught TawkType should not stop
 applying because they picked a different mode.
 
 Without a model, "preserve identifiers and acronyms" splits into three, and two of them survive:
@@ -304,7 +304,7 @@ Nothing the user has already said is ever held up waiting on somebody else's mes
 - **The first letter's case.**
 
 Capitalisation is the one that could do real damage, and it is safe only because of a narrow rule:
-**Talk2Me will undo a capital it added, and never one the recogniser produced.**
+**TawkType will undo a capital it added, and never one the recogniser produced.**
 `WasCapitalisedByCleanup` compares the raw transcript with the finished text — lower there, upper here,
 the same letter otherwise — which is exactly the edit `BasicTextCleaner` makes. Lowercasing a capital
 the recogniser itself produced would turn somebody's name into a common noun, and no amount of
@@ -315,7 +315,7 @@ are already spaced for what was there — so nothing is added at either end, and
 
 `CaretContext.Unknown` is an ordinary outcome, not a failure: plenty of controls expose `ValuePattern`
 and no `TextPattern`, meaning they can say what they hold but not where the caret is in it. Unknown
-produces exactly the behaviour Talk2Me had before any of this existed — the configured trailing space
+produces exactly the behaviour TawkType had before any of this existed — the configured trailing space
 and nothing else — and `Activation → Fit the text to where it lands` turns the whole thing off.
 
 `tools/Talk2Me.Focus` prints the caret context beside the verdict, because which applications answer
@@ -324,7 +324,7 @@ both answer in under 10 ms.
 
 ## The taskbar button
 
-Talk2Me keeps a taskbar button for as long as it runs, and `TaskbarWindow` exists only to hold it. The
+TawkType keeps a taskbar button for as long as it runs, and `TaskbarWindow` exists only to hold it. The
 status bar cannot: it is a `WS_EX_TOOLWINDOW` and it hides whenever it is minimised or set not to rest on
 screen, which would take the button away at exactly the moment the user needs something to click.
 
@@ -332,7 +332,7 @@ So `TaskbarWindow` is one pixel, parked at -32000,-32000 and permanently minimis
 button is. Restoring it (a taskbar click, or Alt+Tab) is the signal: bring the status bar back, then drop
 straight back to minimised so the button stays. Closing it from the button's system menu quits the app,
 which is what closing a taskbar button means; it routes through `Application.Shutdown` rather than just
-destroying the window, or Talk2Me would keep running with no button.
+destroying the window, or TawkType would keep running with no button.
 
 It deliberately has a normal window style. `WindowStyle="None"` with `AllowsTransparency` — the obvious
 choice for a window meant to be invisible — stops WPF applying `Window.Icon`, and the taskbar falls back

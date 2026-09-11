@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="branding/exports/icon-256.png" width="96" alt="Talk2Me">
+<img src="branding/exports/icon-256.png" width="96" alt="TawkType">
 
-# Talk2Me
+# TawkType
 
-**Push-to-talk dictation for Windows.** Hold a key, speak, release — cleaned-up text is typed
-into whatever you were working in.
+**You talk. It types.** Local voice typing for Windows: hold a key, speak, release, and the text
+appears in the app you are already using.
 
-<img src="docs/images/bar-listening.png" width="433" alt="The Talk2Me status bar while listening">
+<img src="docs/images/bar-listening.png" width="433" alt="The TawkType status bar while listening">
 
 </div>
 
@@ -23,7 +23,7 @@ Hold **Right Ctrl** (or whichever key you pick), talk, let go. A second or two l
 where your cursor is — in your editor, your browser, a chat box, anywhere.
 
 - **Two local engines.** NVIDIA Parakeet TDT 0.6B v3 for English and 24 other European languages, OpenAI
-  Whisper `large-v3-turbo` for the rest. Talk2Me picks per language, or you can force one.
+  Whisper `large-v3-turbo` for the rest. TawkType picks per language, or you can force one.
 - **Four modes, switched with a key.** *Literal* keeps what the recogniser produced, *Clean prose*
   tidies it, *Chat* stays lower-case and unspaced, *Technical* protects acronyms and your own
   identifiers. All four work with no model involved — picking one never sends anything anywhere.
@@ -37,7 +37,7 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 - **Nothing is lost.** Every dictation is kept locally, so one that went into the wrong window is a
   click away. Turn the log off and it means it — nothing keeps a second copy of your words.
 - **History that corrects things.** Search what you have said, edit a past dictation, run cleanup over
-  it again, delete one entry, or turn a mistake into a permanent correction — Talk2Me works out which
+  it again, delete one entry, or turn a mistake into a permanent correction — TawkType works out which
   words actually changed and offers to remember just those.
 - **A dictation box when delivery fails.** If the text could not be typed, it waits in an editable
   scratchpad you can copy from, correct, or send back to the window it was aimed at. It never opens
@@ -45,7 +45,7 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 - **Hold, or toggle.** Hold the key for a sentence; set an optional second key that starts and stops
   with a press each, for long passages or when holding is awkward. **Esc** abandons either — nothing is
   typed, nothing is recorded.
-- **Your own words.** Names Talk2Me should spell your way, corrections for what it keeps mishearing, and
+- **Your own words.** Names TawkType should spell your way, corrections for what it keeps mishearing, and
   saved text you insert by saying *"insert"* and a trigger. All of it works on this machine, with or
   without a Claude key, and the whole vocabulary imports and exports as a file of its own.
 - **Optional AI cleanup.** With a Claude API key, dictations are rewritten before typing: spoken
@@ -58,11 +58,16 @@ Download **Talk2MeApp-win-Setup.exe** from the
 [latest release](https://github.com/JupitorStudioDev/Talk2Me/releases/latest) and run it. It installs
 per-user, needs no administrator rights, and updates itself from that same release feed.
 
-> **Windows will warn you the first time.** Talk2Me is not code-signed yet, so SmartScreen shows
+> **The installer, the repository and the data folder still say Talk2Me.** That is the app's update
+> and storage identity, not its name. Renaming those would clear the install folder, orphan the
+> update channel, and put settings, an encrypted API key, history and gigabytes of models at risk —
+> so an existing installation keeps working, and the rename is the part you can see.
+
+> **Windows will warn you the first time.** TawkType is not code-signed yet, so SmartScreen shows
 > *"Windows protected your PC"*. Choose **More info** → **Run anyway**. That warning is about the
 > absence of a paid certificate, not about anything found in the file.
 
-The installer is around 37 MB. Speech models are **not** included — Talk2Me downloads the one your
+The installer is around 37 MB. Speech models are **not** included — TawkType downloads the one your
 chosen engine needs on first use, so you only fetch what you actually run.
 
 Or [run from source](#running-from-source).
@@ -86,7 +91,7 @@ cd Talk2Me
 dotnet run --project src/Talk2Me.App
 ```
 
-Talk2Me lives in the system tray and on the taskbar. On first run it downloads the active engine's model
+TawkType lives in the system tray and on the taskbar. On first run it downloads the active engine's model
 — Parakeet is 640 MB, Whisper `large-v3-turbo` is 1.6 GB — into
 `%LOCALAPPDATA%\Jupitor Studio\Talk2Me\models`. The
 status bar shows the download progress.
@@ -106,7 +111,7 @@ activates it. Press a button or drag it and your caret stays exactly where it wa
 
 ## Settings
 
-<img src="docs/images/settings-general.png" width="620" alt="The Talk2Me settings window">
+<img src="docs/images/settings-general.png" width="620" alt="The TawkType settings window">
 
 Eight pages, light or dark or following Windows:
 
@@ -144,7 +149,7 @@ me a poem about the sea"* and you get that sentence, not a poem.
 ## Where your data lives
 
 Everything is under `%LOCALAPPDATA%\Jupitor Studio\Talk2Me\` — deliberately separate from the
-application itself, which the installer puts in `%LOCALAPPDATA%\Talk2MeApp\`, so uninstalling Talk2Me
+application itself, which the installer puts in `%LOCALAPPDATA%\Talk2MeApp\`, so uninstalling TawkType
 never takes your models and history with it:
 
 | File | What |
@@ -198,7 +203,7 @@ are point-in-time assessments, each carrying a note of what has been addressed s
 
 ## Credits
 
-Talk2Me leans on other people's work:
+TawkType leans on other people's work:
 
 - **[NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)** — © NVIDIA
   Corporation, used unmodified under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), via the

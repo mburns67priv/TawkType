@@ -1,9 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96">
-  <!-- Talk2Me mark: speech bubble with three sound bars. 24-unit grid; see BRAND.md. -->
-  <path fill="#FFFFFF" d="M6,3 H18 A4,4 0 0 1 22,7 V13 A4,4 0 0 1 18,17 H10 L6,21 V17 A4,4 0 0 1 2,13 V7 A4,4 0 0 1 6,3 Z"/>
-  <g fill="#6D5DFF">
-    <rect x="8" y="8" width="2" height="4" rx="1"/>
-    <rect x="11" y="6" width="2" height="8" rx="1"/>
-    <rect x="14" y="7" width="2" height="6" rx="1"/>
+  <!-- TawkType mark: a speech bubble holding three voice bars and an I-beam text cursor. Speech goes
+       in on the left, text comes out on the right. 24-unit grid; see BRAND.md. -->
+  <path fill="#FFFFFF" d="M7.13,2.63 H16.88 Q21.38,2.63 21.38,7.13 V14.63 Q21.38,19.13 16.88,19.13 H10.13 L4.88,22.5 V18.38 Q2.63,17.25 2.63,14.63 V7.13 Q2.63,2.63 7.13,2.63 Z"/>
+  <g fill="#7867FF">
+    <rect x="6.75" y="8.63" width="1.5" height="4.88" rx=".75"/>
+    <rect x="9.38" y="7.13" width="1.5" height="7.88" rx=".75"/>
+    <rect x="12" y="8.63" width="1.5" height="4.88" rx=".75"/>
+    <rect x="15" y="7.13" width="4.5" height="1.13" rx=".56"/>
+    <rect x="16.69" y="7.13" width="1.13" height="8.25" rx=".56"/>
+    <rect x="15" y="14.25" width="4.5" height="1.13" rx=".56"/>
   </g>
 </svg>
