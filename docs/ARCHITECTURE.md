@@ -65,15 +65,16 @@ Every stage is an interface so each can be swapped independently:
 
 | Interface | Today | Later |
 |---|---|---|
-| `IPushToTalkHotkey` | keyboard hook | mouse side-button, foot pedal, double-tap toggle mode |
+| `IPushToTalkHotkey` | keyboard hook: hold, optional toggle, Esc to cancel, a key to cycle modes | mouse side-button, foot pedal |
 | `IAudioCapture` | WaveIn 16 kHz | WASAPI shared-mode with own resampler, VAD auto-stop |
 | `ITranscriber` | router → Parakeet (sherpa-onnx) or Whisper.net | streaming partials while the key is held, Parakeet on GPU via a CUDA sherpa-onnx build |
-| `ITextCleaner` | regex fillers, then an optional Claude rewrite | tone chosen per foreground app; a local model behind the same `ILlmClient` |
+| `ITextCleaner` | regex fillers, the local phrase book, then an optional Claude rewrite | tone chosen per foreground app; a local model behind the same `ILlmClient` |
 | `ILlmClient` | `ClaudeLlmClient` (Anthropic SDK) | llama.cpp / ONNX for an offline rewrite |
-| `ITextInjector` | SendInput / clipboard | UI Automation `TextPattern` for exact caret insertion |
-| `IDictationHistory` | JSONL append under the profile | search, pinning, re-inject a past dictation |
+| `ITextInjector` | SendInput / clipboard, fitted to the caret | UI Automation `TextPattern` insertion rather than synthetic keys |
+| `IDictationHistory` | JSONL under the profile: append, search, edit, delete | pinning, re-inject a past dictation |
+| `IFocusProbe` | UI Automation: can text land here, and what is either side of the caret | a cheaper native path for the common controls |
 | `IWindowActivator` | `SetForegroundWindow` + settle poll | nothing planned; it exists for the dictation box |
-| Settings UI | nav rail + six pages, themed | per-page validation, an onboarding flow on first run |
+| Settings UI | nav rail + eight pages, themed, per-field validation | an onboarding flow on first run |
 
 ## LLM cleanup
 
@@ -236,7 +237,7 @@ Two properties make it safe:
   and refusing to type into a field that would have worked is a worse bug than the one being fixed. The
   "definitely not text" control list is deliberately short for the same reason.
 
-When it does stop, the text goes to the clipboard through `IClipboard` and the bar says *Copied instead*
+When it does stop, the text goes to the clipboard through `IClipboard` and the bar says *Copied — ready to paste*
 with the reason. Nothing is lost, and the history records it with `CopiedNotTyped`.
 
 `tools/Talk2Me.Focus` prints the verdict once a second so the behaviour can be checked against real
@@ -478,31 +479,53 @@ trade for recoverability, and `History.Enabled` turns it off.
   `Dispatcher.BeginInvoke`. `OverlayViewModel` also reacts to `ISettingsProvider.Changed`, which only
   ever fires from a `SettingsStore.Save` on this thread.
 - **WaveIn callback thread**: appends samples under a lock, raises level events.
-- **Thread pool**: transcription, cleanup, injection (`Task.Run` from the release handler).
+- **Thread pool**: transcription, cleanup, injection (`Task.Run` from the release handler), the focus
+  probe at key-down, and the caret read just before delivery. Both accessibility calls are bounded —
+  400 ms and 250 ms — and answer "do not know" rather than holding anything up.
 - Whisper's processor is not thread-safe; `WhisperTranscriber` serialises calls with a semaphore.
+- `DictationEngine` raises its state changes **outside** its lock. Raising them inside deadlocked
+  against handlers that called back in.
 
 ## Settings
 
-`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\settings.json`, loaded once at startup by `SettingsStore` and re-read by consumers
-through `ISettingsProvider.Current`, so a save takes effect without a restart: the hotkey re-resolves on
-`Changed`, the transcriber reloads when model or language differ from what is loaded, audio device is
-resolved at each `Start()`.
+`%LOCALAPPDATA%\Jupitor Studio\Talk2Me\settings.json` — under the old name on purpose; see the rename
+notes in `docs/HANDOFF.md`. Loaded once at startup by `SettingsStore` and re-read by consumers through
+`ISettingsProvider.Current`, so a save takes effect without a restart: the hotkey re-resolves on
+`Changed`, the transcriber reloads when model or language differ from what is loaded, and the audio
+device is resolved at each `Start()`.
+
+`SettingsStore.Migrate` brings older files forward, and the rule it follows is that a user's answer
+survives a reorganisation. The vocabulary moved out from under AI cleanup when it started applying
+locally; filler removal, the trailing space and caret fitting moved into modes when modes arrived, and
+each of the three hands its old value to every mode rather than being lost. `ISettingsProvider` is
+read-only by design — saving belongs to the app layer, which is why the mode-cycling key is wired in
+`App` rather than in the engine.
 
 ## Roadmap
 
-1. ~~**LLM cleanup** behind `ITextCleaner`~~ — done, Claude-backed and off by default. Still open: a
-   local backend behind `ILlmClient` for an offline rewrite, and streaming the rewrite so the first
-   words are typed before the last ones arrive.
-2. **Per-app styles**: detect the foreground window's process name, pick a tone preset (chat vs email vs
-   code editor).
-3. ~~**Personal dictionary**~~ — done locally: spellings, replacements and snippets apply with or
-   without a model (`PhraseBook`), and the whole vocabulary imports and exports. Still open: seed
-   Whisper's `initial_prompt` with it, and a "remember this replacement" action in the history window
-   so a correction can be saved from the dictation that needed it.
-4. **Command mode**: select text, hold a second key, speak an instruction, replace selection.
-5. **Streaming**: transcribe in 1-second windows while the key is held so text appears as you speak.
-6. **Branding, continued**: identity, icon, palette and overlay restyle are done (see
-   `branding/BRAND.md`). Still to do: overlay waveform animation, onboarding window, installer (MSIX or
-   Velopack), auto-update.
-7. **Auto-start** with Windows, crash recovery. The single-instance guard is in (a `Local\` mutex in
-   `App.OnStartup`).
+Done since this document was first written, and kept here only because the sections above describe how
+rather than whether: LLM cleanup, the personal dictionary, modes, caret-aware insertion, the dictation
+box, history as a correction tool, the Velopack installer with auto-update, auto-start, and the
+single-instance guard.
+
+Open, roughly in the order worth doing:
+
+1. **Clipboard hardening.** The restore races the paste, and only text is put back — an image or
+   formatted content on the clipboard does not survive a dictation. More results go through the
+   clipboard now that multiline text always pastes, so this is the most user-visible thing left.
+   (`docs/REVIEW-2026-09-11.md`, finding 6.)
+2. **The filler regex still eats real words.** German "um" and a lowercase English "er" are removed as
+   disfluencies. All-capitals words are safe now, which is why *"The ER is open"* works, but nothing
+   protects the lowercase cases. (Same review, finding 10.)
+3. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
+   it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
+4. **A local `ILlmClient`** (llama.cpp or ONNX), so the rewrite works offline and "nothing leaves this
+   machine" holds with cleanup switched on.
+5. **Streaming**: transcribe in one-second windows while the key is held, so text appears as it is
+   spoken. Parakeet is a transducer, which suits this.
+6. **Command mode**: select text, hold a second key, speak an instruction, replace the selection.
+7. **First run**: an onboarding flow that ends in a successful dictation, and a visible privacy panel.
+   (`docs/FEATURE-RESEARCH-2026-09-11.md`, §8 and §9.)
+8. **Overlay polish**: an animated waveform in place of the level meter, respecting reduced motion.
+9. **Seed the recogniser with the vocabulary** — Whisper's `initial_prompt` takes a word list, so the
+   names the user has taught TawkType could be got right before cleanup rather than after.

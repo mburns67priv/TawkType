@@ -35,7 +35,7 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 - **It knows where it can type.** Before typing it checks whether the focused element actually accepts
   text, and whether the target window is running as administrator — synthetic keystrokes to an elevated
   window are discarded by Windows without any error. If it can't type, the text goes to your clipboard
-  and the bar says *Copied instead*.
+  and the bar says *Copied — ready to paste*.
 - **Nothing is lost.** Every dictation is kept locally, so one that went into the wrong window is a
   click away. Turn the log off and it means it — nothing keeps a second copy of your words.
 - **History that corrects things.** Search what you have said, edit a past dictation, run cleanup over
@@ -50,9 +50,13 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 - **Your own words.** Names TawkType should spell your way, corrections for what it keeps mishearing, and
   saved text you insert by saying *"insert"* and a trigger. All of it works on this machine, with or
   without a Claude key, and the whole vocabulary imports and exports as a file of its own.
+- **Sounds and a safety net.** Optional start, finish and failure sounds, off by default and using
+  your own Windows scheme. A recording limit — five minutes by default — *finishes* a runaway
+  dictation rather than throwing it away, so a key left under a book costs you nothing.
 - **Optional AI cleanup.** With a Claude API key, dictations are rewritten before typing: spoken
   corrections applied ("no, make that Tuesday"), lists formatted. Your vocabulary is re-applied
-  afterwards, so a rewrite can never undo a correction you wrote down.
+  afterwards, so a rewrite can never undo a correction you wrote down. The bar says *Rewriting with
+  Claude* while it happens, because that is the one step that leaves your machine.
 
 ## Install it
 
@@ -105,8 +109,10 @@ Then hold Right Ctrl and talk.
 <img src="docs/images/bar-resting.png" width="433" alt="The status bar at rest">
 
 It sits on screen, dimmed, showing your hotkey; the moment you speak it comes back to full strength with
-a live level meter and a timer. Its toolbar has Settings, History, Copy last dictation, minimise, and
-hide-between-dictations. Drag it anywhere — it remembers where, per monitor.
+a live level meter and a timer. Its toolbar has Settings, History and Copy last dictation, plus a
+recovery button that appears only when a dictation failed to land. The active mode's name sits on the
+right — a mode you cannot see is a mode you will be surprised by. Drag the bar anywhere; it remembers
+where, per monitor.
 
 **It never takes focus.** The window is `WS_EX_NOACTIVATE`, so Windows delivers your clicks but never
 activates it. Press a button or drag it and your caret stays exactly where it was.

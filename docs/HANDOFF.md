@@ -7,59 +7,82 @@ feature passes. Read this first; then `README.md` for usage, `docs/ARCHITECTURE.
 
 ## What this is
 
-Push-to-talk dictation for Windows, a Wispr Flow clone. Hold Right Ctrl, speak, release; the cleaned-up
-text is typed into whatever has focus. Everything runs locally. There is no cloud, account, or telemetry.
+**TawkType — you talk, it types.** Local voice typing for Windows, modelled on Wispr Flow. Hold Right
+Ctrl, speak, release; the text is typed into whatever has focus. Speech recognition runs on the
+machine. There is no account and no telemetry, and the only thing that ever leaves the computer is the
+optional Claude rewrite, which is off until someone turns it on and supplies a key.
 
-Owner: Jupitor Studio. Working name was **Murmur**, then **Talk2Me**; it is now **TawkType**, because Talk2Me turned out to be another dictation product. The rename is display-only — see the rename notes below.
+Owner: Jupitor Studio. Home: [tawktype.com](https://tawktype.com). Working name was **Murmur**, then
+**Talk2Me**; it is now **TawkType**, because Talk2Me turned out to be another dictation product. The
+rename is display-only — see "The rename" below for the six identifiers that still say Talk2Me on
+purpose.
 
 ## State of the code
 
-- **Branch `main`, clean tree.** Last release tag `v0.2.9`; several commits past it, so the next pack
-  is overdue.
-- **Builds clean** with `dotnet build`, **326 unit tests pass** with `dotnet test`.
+- **Branch `main`, clean tree.** Last release tag `v0.2.9`, and a long way past it: everything below
+  is in no installed copy. **Cutting a release is the most overdue thing in this repository.**
+- **Builds clean** with `dotnet build`, **326 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
-  with Parakeet. Overlay, tray, settings, model download, model deletion are all verified in the running
-  app.
-- **LLM cleanup is in**, off by default: `LlmTextCleaner` runs the regex cleaner, then optionally a
-  Claude rewrite under a 2 s timeout, falling back to the regex text on anything that goes wrong. Unit
-  tested; the live path was verified only as far as a rejected key (see "Gotchas" 9).
+  with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
+- **Renamed to TawkType**, display-only — see "The rename" below for the six identifiers that
+  deliberately still say Talk2Me and what each costs if you change one.
+- **The whole pipeline is session-scoped**: a dictation can be cancelled with Esc, cannot be stamped
+  on by a later one, and shutdown drains rather than tearing up mid-write.
+- **Post-processing is local first.** `PhraseBook` applies the user's spellings, replacements and
+  snippets with no model involved, and again after a rewrite so Claude cannot undo them. Four
+  **modes** bundle the post-processing choices and a key cycles them; a mode can only ever *narrow*
+  the permission to use Claude, never grant it.
+- **Delivery knows where it is going.** The focus probe says whether text can land and re-checks at
+  delivery time; `CaretFit` reads the words either side of the caret and fixes the spacing and the
+  first letter's case. Anything unreadable behaves exactly as it did before either existed.
+- **Nothing is lost when delivery fails.** The words are announced before they are typed, so they
+  reach the history either way, and the **dictation box** holds them — editable, copyable, and able to
+  hand the foreground back to the window they were aimed at.
+- **History is a correction tool**, not just a log: search across what was typed and what was heard,
+  edit, re-run cleanup, delete one entry, and save a vocabulary replacement from a mistake.
+- **LLM cleanup is in**, off by default. Unit tested; the live path was verified only as far as a
+  rejected key (see "Gotchas" 9) — **nobody has yet seen a real rewrite**.
 - **The installed build's taskbar icon is fixed** as of 0.2.8, after a long hunt. The answer is in
   "Gotchas" 20, and it is not what anyone would guess.
-- **The review in `docs/REVIEW-2026-09-11.md` is partly addressed**, findings 1–5 and 7 — transcript
-  logging, history retention and deletion, hotkey suppression and parsing, delivery ordering, session
-  lifetime, focus revalidation. That doc carries a status note listing what is left; **finding 6
-  (clipboard restore) and finding 10 (the filler regex eating "um" in German and "ER" in English) are
-  both still open**, and 6 matters more now that multiline results always paste.
-- **Personalisation landed locally**: `PhraseBook` (spellings, replacements, snippets), Esc to cancel,
-  an optional toggle key, optional sounds, and a recording limit.
+- **The review in `docs/REVIEW-2026-09-11.md` is mostly addressed.** Findings 1–5, 7, 8 and part of 11
+  are done. **Finding 6 (clipboard restore) and finding 10 (the filler regex) are still open**, and 6
+  matters more now that multiline results always paste. That doc carries a status note.
+- **`docs/FEATURE-RESEARCH-2026-09-11.md` §1–§7 are built**, except §5's per-application defaults,
+  which the section itself puts later. §8 (first run) and §9 (visible privacy) are untouched.
 
 ## Repo map
+
+The project and namespace names still say Talk2Me. That is deliberate — see "The rename" below.
 
 ```
 Talk2Me.sln
 src/Talk2Me.Core            pipeline state machine, interfaces, settings, regex cleaner, and the pure
-                            reducers that make the awkward parts testable: Hotkey, HotkeyGesture,
-                            Activation, Delivery, PhraseBook, NumberField, WindowPlacement  (no Windows deps)
-src/Talk2Me.Windows         WH_KEYBOARD_LL hook, WaveIn mic capture, SendInput + clipboard injection
+                            reducers that make the awkward parts testable, all free of Windows deps:
+                              Input/     Hotkey, HotkeyGesture, Activation (hold / toggle / Esc / mode)
+                              Text/      PhraseBook, CaretFit, CorrectionGuess, Delivery, BasicTextCleaner
+                              Settings/  DictationMode, VocabularyEdit, VocabularyFormat, NumberField
+                              History/   DictationHistoryStore, HistoryQuery, LastDictation
+                              Pipeline/  DictationEngine, Recovery
+src/Talk2Me.Windows         WH_KEYBOARD_LL hook, WaveIn mic capture, SendInput + clipboard injection,
+                            UiaFocusProbe (can text land here, and what is either side of the caret),
+                            Win32WindowActivator, DPAPI key store, Run-key startup, taskbar identity
 src/Talk2Me.Transcription   ParakeetTranscriber (sherpa-onnx), WhisperTranscriber (Whisper.net),
                             TranscriberRouter, model downloaders, ModelStorage
 src/Talk2Me.Llm             ClaudeLlmClient — the only project that references the Anthropic SDK
 src/Talk2Me.App             WPF tray app (namespace Talk2Me.Desktop): App.xaml has the palette + mark
-                            geometry; Views/ has OverlayWindow, SettingsWindow, HistoryWindow, BrandMark;
+                            geometry; Views/ has OverlayWindow, SettingsWindow, HistoryWindow,
+                            DictationBoxWindow, RememberWindow, TaskbarWindow, HotkeyBox, BrandMark;
                             Themes/ has Light.xaml, Dark.xaml and the templated Controls.xaml;
-                            Services/ has ModelMaintenance, ThemeManager and LegacyMigration;
-                            Logging/ has the file logger
+                            Services/ has ModelMaintenance, ThemeManager, UpdateService, SoundCues,
+                            LegacyMigration; Logging/ has the file logger
 tools/Talk2Me.Bench         transcribes a WAV with one or both engines, prints latency side by side
 tools/Talk2Me.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
-tools/Talk2Me.Focus         prints what the focus probe makes of whatever window is in front
+tools/Talk2Me.Focus         what the focus probe makes of the front window, and the text around its caret
 tools/Talk2Me.Brand         renders talk2me.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/Talk2Me.Core.Tests    xUnit, 240 tests: DictationEngine + session lifetime, hotkey parsing and
-                            gesture, activation (hold / toggle / cancel), PhraseBook, VocabularyFormat,
-                            NumberField, Delivery, focus deflection, failed delivery, history store,
-                            BasicTextCleaner, EngineSelection, LlmTextCleaner, CleanupPrompt,
-                            ModelStorage, WindowPlacement, languages, stats, settings cloning
+tests/Talk2Me.Core.Tests    xUnit, 326 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
-docs/                       ARCHITECTURE.md, HANDOFF.md
+docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
+                            tawktype-brand/ (the design package; untracked, see .gitignore)
 ```
 
 ## Run, build, test
@@ -110,7 +133,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Whisper runtime order CUDA12 → Vulkan → CPU | No CUDA Toolkit installed, so Vulkan is what runs. Installing the toolkit flips to CUDA automatically. |
 | H.NotifyIcon.Wpf pinned to **2.3.2** | 2.4.x dropped net8.0 and silently resolves to the .NET Framework asset, which fails XAML compile. |
 | WaveIn at 16 kHz mono, not WASAPI | The driver resamples for free to exactly what both engines want. Swap for WASAPI only if latency or loopback becomes a need. |
-| Settings is a nav rail + pages, not one form | It had grown past 1400px with the expanders open and was genuinely hard to read. Seven pages (General / Transcription / Activation / Appearance / Vocabulary / AI cleanup / History) modelled on WhisperTyping, which the owner asked for by screenshot. |
+| Settings is a nav rail + pages, not one form | It had grown past 1400px with the expanders open and was genuinely hard to read. Eight pages (General / Transcription / Activation / Modes / Appearance / Vocabulary / AI cleanup / History) modelled on WhisperTyping, which the owner asked for by screenshot. |
 | Light default with a dark toggle, pill always dark | The owner picked light with a toggle. The pill is the exception on purpose: it floats over other applications, so it has to read against *their* content, not ours. Its brushes are `Overlay.*` in App.xaml and never swap. |
 | Controls are fully templated | WPF's stock ComboBox/CheckBox/Button chrome comes from system colours and looks wrong in dark. Templating them is the only way both themes are right. |
 | The pill rests on screen instead of hiding | It is the only feedback the user has, and it is useless if it is gone when they glance at it. Resting dimmed keeps it available without being loud. `Overlay.AlwaysVisible = false` restores hide-on-idle. |
@@ -239,7 +262,7 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     sets `Overlay.AlwaysVisible = false` — it stops resting on screen but still appears while
     dictating, and is persisted. Minimise (`─`) sets `OverlayViewModel.IsHidden` — gone entirely,
     including during dictation, and deliberately *not* persisted, so a restart brings it back. While
-    minimised the only ways back are the tray icon (left click, or "Show status bar" on the menu) and
+    minimised the only ways back are the tray icon (left click, or "Show" on the menu) and
     turning Appearance → "Keep the pill on screen" from off to on.
 19. **Never let the installer's packId be `Talk2Me`.** Velopack installs to `%LOCALAPPDATA%\<packId>`
     and *clears that folder first*. Builds before the installer kept user data in
@@ -375,27 +398,31 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
 
 ## Roadmap, in the order I would do it
 
-1. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste, and only
-   text is put back, so an image or formatted content on the clipboard is destroyed by a dictation. That
-   got more likely, not less, when multiline results started always pasting. Finding 10 is the filler
-   regex — it deletes German "um" and English "ER", so *"The ER is open"* becomes *"The is open"*. Both
-   are small, both are user-visible, and both are already written up with reproductions.
-2. **Prove the rewrite on real dictation** and tune the prompt in `CleanupPrompt` against it. Still true:
-   nobody has seen a successful call (gotcha 9).
-3. **Cut a release.** The latest is `v0.2.9`; everything since — the review fixes, the phrase book,
-   cancel and toggle, the settings validation — is in no installed copy. Nothing here is in a user's
-   hands yet.
-4. **Bring Remember… to the dictation box** as well. It is in the history window now; the box is the
-   other place the wrong words are already on screen.
-5. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
-   it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map from process name
-   to mode name and nothing else. Feature research §5 calls it out as the "later" half of modes.
-6. **Streaming partials** while the key is held (Parakeet is a transducer; it suits this).
-7. **Overlay polish**: replace the level bar with an animated waveform; onboarding window on first run.
-8. **Command mode**: hold a second key, speak an instruction, replace the selected text.
-9. **Local LLM backend** behind `ILlmClient`, so the rewrite works offline and the "nothing leaves this
-   machine" promise holds with cleanup switched on.
-10. **Auto-start with Windows** and crash recovery. The installer and the single-instance guard are done.
+1. **Cut a release.** `v0.2.9` is the latest, and everything since — the review fixes, the phrase book,
+   modes, caret fitting, the dictation box, history corrections, and the whole rebrand — is in no
+   installed copy. Nothing here is in a user's hands. Pack it, install it *yourself* (gotcha 28: an
+   agent cannot), and check an upgrade from an existing install still finds its settings and models.
+2. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste and only
+   text is put back, so an image or formatted content is destroyed by a dictation — more likely now
+   that multiline results always paste. Finding 10 is the filler regex: it still removes German "um"
+   and a lowercase English "er". All-capitals words are protected, which is why *"The ER is open"*
+   survives, but the lowercase cases are open. Both are small, user-visible, and already written up
+   with reproductions.
+3. **Prove the rewrite on real dictation** and tune `CleanupPrompt` against it. Still true: nobody has
+   seen a successful call (gotcha 9), so every judgement about rewrite quality is currently a guess.
+4. **Finish the brand assets**: high-contrast tray variants, outlined SVG wordmarks, and a licence and
+   trademark check on the name. The domain is bought; availability was never established.
+5. **Bring Remember… to the dictation box.** It is in the history window; the box is the other place
+   the wrong words are already on screen.
+6. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
+   it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
+   Feature research §5 calls it the "later" half of modes.
+7. **First run** (§8) and **visible privacy** (§9): an onboarding flow that ends in a successful
+   dictation, and a panel that shows what is actually kept rather than what the settings imply.
+8. **Streaming partials** while the key is held. Parakeet is a transducer; it suits this.
+9. **Local `ILlmClient`** so the rewrite works offline and "nothing leaves this machine" holds with
+   cleanup switched on.
+10. **Command mode**: hold a second key, speak an instruction, replace the selected text.
 
 ## Session log (what was actually done, in order)
 
