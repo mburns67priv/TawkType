@@ -51,13 +51,20 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedNavPage))]
+    [NotifyPropertyChangedFor(nameof(SaveBlockedBy))]
     private SettingsPage _selectedPage = SettingsPage.General;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MinimumHoldError))]
+    [NotifyPropertyChangedFor(nameof(SaveBlockedBy))]
+    [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
     private string _minimumHoldText;
 
     /// <summary>Minutes, because nobody thinks about a runaway recording in seconds.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MaxRecordingError))]
+    [NotifyPropertyChangedFor(nameof(SaveBlockedBy))]
+    [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
     private string _maxRecordingMinutesText;
 
     [ObservableProperty]
@@ -83,6 +90,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private double? _downloadProgress;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CleanupTimeoutError))]
+    [NotifyPropertyChangedFor(nameof(SaveBlockedBy))]
+    [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
     private string _cleanupTimeoutText;
 
     /// <summary>One "heard => typed" per line.</summary>
@@ -100,6 +110,9 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private string _apiKeyStatus;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HistoryMaxEntriesError))]
+    [NotifyPropertyChangedFor(nameof(SaveBlockedBy))]
+    [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
     private string _historyMaxEntriesText;
 
     [ObservableProperty]
@@ -138,7 +151,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
         _draft = store.Current.Clone();
         _minimumHoldText = _draft.MinimumHoldMs.ToString();
-        _maxRecordingMinutesText = (_draft.MaxRecordingSeconds / 60d).ToString("0.##");
+        _maxRecordingMinutesText = NumberField.RecordingLimit.Format(_draft.MaxRecordingSeconds / 60d);
         InputDevices = new[] { "(system default)" }.Concat(WaveInAudioCapture.ListInputDevices()).ToArray();
         _selectedInputDevice = _draft.InputDeviceName ?? InputDevices[0];
         _modelStorageText = models.Describe();
@@ -270,6 +283,34 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     public string StatTimeSaved => DictationStats.FormatDuration(Stats.TimeSaved);
 
+    // Each box checks itself as you type: the message appears under the box and Save goes quiet until
+    // it is gone. Nothing is clamped or corrected behind your back — what you typed stays there to fix.
+    public string? MinimumHoldError => NumberField.MinimumHold.Parse(MinimumHoldText).Error;
+
+    public string? MaxRecordingError => NumberField.RecordingLimit.Parse(MaxRecordingMinutesText).Error;
+
+    public string? CleanupTimeoutError => NumberField.CleanupTimeout.Parse(CleanupTimeoutText).Error;
+
+    public string? HistoryMaxEntriesError => NumberField.HistoryEntries.Parse(HistoryMaxEntriesText).Error;
+
+    public bool CanSave => BadValuePage is null;
+
+    /// <summary>The first page holding a value Save will not accept, or null when there is none.</summary>
+    private SettingsPage? BadValuePage
+        => MinimumHoldError is not null || MaxRecordingError is not null ? SettingsPage.Activation
+            : CleanupTimeoutError is not null ? SettingsPage.Cleanup
+            : HistoryMaxEntriesError is not null ? SettingsPage.History
+            : null;
+
+    /// <summary>
+    /// Shown beside a greyed-out Save. Without it, a bad value left on one page disables Save while you
+    /// are looking at another, with nothing on screen to say why.
+    /// </summary>
+    public string? SaveBlockedBy
+        => BadValuePage is { } page && page != SelectedPage
+            ? $"Check the value on the {NavPage.All.First(nav => nav.Page == page).Title} page"
+            : null;
+
     public string SettingsPath => _store.Path;
 
     public string HistoryPath => _history.Path;
@@ -286,28 +327,14 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Navigate(SettingsPage page) => SelectedPage = page;
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private void Save()
     {
-        if (int.TryParse(MinimumHoldText, out var hold) && hold >= 0)
-        {
-            Draft.MinimumHoldMs = hold;
-        }
-
-        if (double.TryParse(MaxRecordingMinutesText, out var minutes) && minutes >= 0)
-        {
-            Draft.MaxRecordingSeconds = (int)Math.Round(minutes * 60);
-        }
-
-        if (int.TryParse(CleanupTimeoutText, out var timeout) && timeout >= 250)
-        {
-            Draft.Cleanup.TimeoutMs = timeout;
-        }
-
-        if (int.TryParse(HistoryMaxEntriesText, out var maxEntries) && maxEntries >= 1)
-        {
-            Draft.History.MaxEntries = maxEntries;
-        }
+        // CanSave has already checked all four, so these are only unwrapping what it validated.
+        Draft.MinimumHoldMs = (int)NumberField.MinimumHold.Parse(MinimumHoldText).Value;
+        Draft.MaxRecordingSeconds = (int)Math.Round(NumberField.RecordingLimit.Parse(MaxRecordingMinutesText).Value * 60);
+        Draft.Cleanup.TimeoutMs = (int)NumberField.CleanupTimeout.Parse(CleanupTimeoutText).Value;
+        Draft.History.MaxEntries = (int)NumberField.HistoryEntries.Parse(HistoryMaxEntriesText).Value;
 
         Draft.InputDeviceName = SelectedInputDevice == InputDevices[0] ? null : SelectedInputDevice;
         Draft.Language = string.IsNullOrWhiteSpace(Draft.Language) ? "en" : Draft.Language.Trim();

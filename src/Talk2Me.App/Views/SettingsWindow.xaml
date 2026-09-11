@@ -118,6 +118,9 @@
                     Padding="28,12">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Ui.FieldError}" Margin="0,0,12,0" VerticalAlignment="Center"
+                                   Text="{Binding SaveBlockedBy}"
+                                   Visibility="{Binding SaveBlockedBy, Converter={StaticResource NullToCollapsed}}" />
                         <!-- IsCancel alone does nothing here: it only closes a window shown with ShowDialog, and this
                              one is modeless. The Click handler is what actually closes it. -->
                         <Button Content="Cancel" IsCancel="True" Click="OnCancelClick"
@@ -409,6 +412,8 @@
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Ignore taps shorter than (ms)" />
                             <TextBox Style="{StaticResource Ui.TextBox}" Width="120" HorizontalAlignment="Left"
                                      Text="{Binding MinimumHoldText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.FieldError}" Text="{Binding MinimumHoldError}"
+                                       Visibility="{Binding MinimumHoldError, Converter={StaticResource NullToCollapsed}}" />
                         </StackPanel>
 
                         <StackPanel Style="{StaticResource Field}">
@@ -437,6 +442,8 @@
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Stop recording after (minutes)" />
                             <TextBox Style="{StaticResource Ui.TextBox}" Width="120" HorizontalAlignment="Left"
                                      Text="{Binding MaxRecordingMinutesText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.FieldError}" Text="{Binding MaxRecordingError}"
+                                       Visibility="{Binding MaxRecordingError, Converter={StaticResource NullToCollapsed}}" />
                             <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
                                        Text="A safety net for a key left held down under a book. The dictation is finished rather than thrown away, so whatever you said still arrives. 0 turns it off." />
                         </StackPanel>
@@ -551,6 +558,8 @@
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Give up after (ms)" />
                             <TextBox Style="{StaticResource Ui.TextBox}" Width="120" HorizontalAlignment="Left"
                                      Text="{Binding CleanupTimeoutText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.FieldError}" Text="{Binding CleanupTimeoutError}"
+                                       Visibility="{Binding CleanupTimeoutError, Converter={StaticResource NullToCollapsed}}" />
                         </StackPanel>
 
                         <StackPanel Style="{StaticResource Field}">
@@ -587,6 +596,8 @@
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Keep at most" />
                             <TextBox Style="{StaticResource Ui.TextBox}" Width="120" HorizontalAlignment="Left"
                                      Text="{Binding HistoryMaxEntriesText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.FieldError}" Text="{Binding HistoryMaxEntriesError}"
+                                       Visibility="{Binding HistoryMaxEntriesError, Converter={StaticResource NullToCollapsed}}" />
                         </StackPanel>
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Previous dictations" />
