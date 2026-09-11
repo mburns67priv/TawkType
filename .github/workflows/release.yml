@@ -65,8 +65,16 @@ jobs:
             Where-Object { $_ -ne $current } | Select-Object -First 1
 
           if ($previous) {
-            Write-Host "previous release: $previous"
-            gh release download $previous --dir build/releases --pattern '*.nupkg' --clobber
+            # Only the previous *full* package, which is all a delta needs to be built against.
+            #
+            # Downloading '*.nupkg' fetched every package the previous release carried, vpk then listed
+            # all of them in the feed, and this job uploaded the lot again — so each release inherited
+            # its predecessor's history and grew. v0.3.0 shipped 364 MB of assets, 17 packages, for an
+            # application that is 37 MB. A user on any version can always take the newest full package,
+            # so the older ones buy nothing.
+            $previousVersion = $previous.TrimStart('v')
+            Write-Host "previous release: $previous (fetching its full package for the delta)"
+            gh release download $previous --dir build/releases --pattern "*-$previousVersion-full.nupkg" --clobber
           } else {
             Write-Host "no previous release; this one will be a full package only"
           }

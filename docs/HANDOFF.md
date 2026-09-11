@@ -405,6 +405,14 @@ px frames, and the mark drops its text cursor below 24 px rather than shrinking 
     just downloaded. Both the v0.2.8 and v0.2.9 runs show as failed for this reason even though those
     releases exist. The step skips its own tag now.
 
+44. **Each release used to inherit every package before it.** The delta step downloaded `*.nupkg`
+    from the previous release, vpk listed everything it found in the feed, and the publish step
+    uploaded the whole folder — so the history compounded. v0.3.0 shipped **364 MB of assets and 17
+    packages** for a 37 MB application, and v0.4.0 would have been larger again. It fetches only the
+    previous *full* package now, which is all a delta needs; a simulated v0.4.0 produces three feed
+    entries and 135 MB. **The packages already attached to v0.3.0 and earlier must not be deleted** —
+    their feeds name them, and an installed copy resolves updates through those names.
+
 ## Roadmap, in the order I would do it
 
 1. **Install v0.3.0 yourself and check the upgrade.** The release is cut and published; what nobody
