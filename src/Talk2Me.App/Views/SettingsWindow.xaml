@@ -74,7 +74,10 @@
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="18,18,14,16">
                     <Border Width="28" Height="28" CornerRadius="7"
                             Background="{StaticResource Brand.VoiceGradient}" Margin="0,0,10,0">
-                        <views:BrandMark Width="20" Height="20" Margin="0,1,0,0" BarsBrush="White" />
+                        <!-- White bubble, violet bars, exactly as the app icon is drawn. Both white makes the
+                                 bars vanish into the bubble and the mark stops being the mark. -->
+                            <views:BrandMark Width="20" Height="20" Margin="0,1,0,0"
+                                             BarsBrush="{StaticResource Brand.Accent}" />
                     </Border>
                     <TextBlock VerticalAlignment="Center"
                                FontFamily="{StaticResource Brand.DisplayFont}" FontSize="17" FontWeight="Bold"
