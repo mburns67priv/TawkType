@@ -131,9 +131,20 @@ public sealed partial class HistoryViewModel : ObservableObject, IDisposable
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
-        if (answer == MessageBoxResult.Yes)
+        if (answer != MessageBoxResult.Yes)
         {
-            _history.Clear();
+            return;
+        }
+
+        if (!_history.Clear())
+        {
+            // The list would otherwise empty itself and the log would be back on the next launch.
+            MessageBox.Show(
+                "Talk2Me could not delete the history file. It is still on disk and will come back the "
+                + "next time Talk2Me starts." + Environment.NewLine + Environment.NewLine + _history.Path,
+                "Talk2Me",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
     }
 

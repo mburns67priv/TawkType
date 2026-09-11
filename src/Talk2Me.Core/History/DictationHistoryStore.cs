@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -8,9 +9,14 @@ using Talk2Me.Core.Settings;
 namespace Talk2Me.Core.History;
 
 /// <summary>
-/// The dictation log, kept as JSON Lines at %LOCALAPPDATA%/Talk2Me/history.jsonl: one record per line,
-/// appended as each dictation completes. A corrupt or half-written line is skipped rather than losing
-/// the file. The whole log is rewritten only when it is trimmed or cleared.
+/// The dictation log, kept as JSON Lines in the app data folder: one record per line, appended as each
+/// dictation completes. A corrupt or half-written line is skipped rather than losing the file.
+///
+/// Retention is about the file, not the list. Trimming what is in memory is invisible to anyone
+/// worried about what is on their disk, and counting from memory is what let the file grow without
+/// limit: loading trimmed the count back under the threshold, so a session could never reach it.
+/// <see cref="_linesOnDisk"/> tracks the file instead, and compaction rewrites through a temporary
+/// file, so a crash part-way through cannot destroy a log that was intact a moment earlier.
 /// </summary>
 public sealed class DictationHistoryStore : IDictationHistory
 {
@@ -21,15 +27,18 @@ public sealed class DictationHistoryStore : IDictationHistory
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    /// <summary>Trimming rewrites the file, so leave headroom rather than doing it on every single add.</summary>
+    /// <summary>Compaction rewrites the file, so leave headroom rather than doing it on every add.</summary>
     private const int TrimSlack = 50;
 
     private readonly ISettingsProvider _settings;
     private readonly ILogger<DictationHistoryStore> _logger;
     private readonly object _gate = new();
 
-    /// <summary>Newest first, mirroring what is on disk.</summary>
+    /// <summary>Newest first. May hold fewer records than the file does; see the note above.</summary>
     private readonly List<DictationRecord> _records = new();
+
+    /// <summary>Lines believed to be in the file, including any too old to be kept in memory.</summary>
+    private long _linesOnDisk;
 
     public DictationHistoryStore(ISettingsProvider settings, ILogger<DictationHistoryStore> logger)
         : this(settings, logger, System.IO.Path.Combine(SettingsStore.AppDataDirectory, "history.jsonl"))
@@ -52,7 +61,7 @@ public sealed class DictationHistoryStore : IDictationHistory
         {
             lock (_gate)
             {
-                // Trimming the file is deliberately lazy, so never hand out more than the user asked to keep.
+                // Compaction is deliberately lazy, so never hand out more than the user asked to keep.
                 return _records.Take(MaxEntries).ToArray();
             }
         }
@@ -85,14 +94,11 @@ public sealed class DictationHistoryStore : IDictationHistory
             try
             {
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
+                TerminateLastLine();
                 File.AppendAllText(Path, JsonSerializer.Serialize(record, JsonOptions) + Environment.NewLine);
+                _linesOnDisk++;
 
-                var max = MaxEntries;
-                if (_records.Count > max + TrimSlack)
-                {
-                    _records.RemoveRange(max, _records.Count - max);
-                    Rewrite();
-                }
+                Compact();
             }
             catch (Exception ex)
             {
@@ -104,39 +110,101 @@ public sealed class DictationHistoryStore : IDictationHistory
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    public void Clear()
+    public bool Clear()
     {
+        bool deleted;
+
         lock (_gate)
         {
-            _records.Clear();
-
+            // Delete first. Emptying the list before knowing the file has gone shows the user an empty
+            // history that will be full again on the next launch.
             try
             {
                 if (File.Exists(Path))
                 {
                     File.Delete(Path);
                 }
+
+                File.Delete(TempPath); // a compaction that never finished
+                deleted = true;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Could not delete the dictation history at {Path}", Path);
+                deleted = false;
+            }
+
+            if (deleted)
+            {
+                _records.Clear();
+                _linesOnDisk = 0;
             }
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
+        return deleted;
     }
 
     private int MaxEntries => Math.Max(1, _settings.Current.History.MaxEntries);
 
-    /// <summary>Writes the in-memory list back out, oldest line first so appends stay chronological.</summary>
-    private void Rewrite()
+    private string TempPath => Path + ".compacting";
+
+    /// <summary>
+    /// Rewrites the file down to what the user asked to keep, once it has drifted far enough past that
+    /// for the write to be worth it. Called after every append and after loading, because the file can
+    /// already be over the limit before this process appends anything.
+    /// </summary>
+    private void Compact()
     {
+        var max = MaxEntries;
+        if (_linesOnDisk <= max + TrimSlack)
+        {
+            return;
+        }
+
+        if (_records.Count > max)
+        {
+            _records.RemoveRange(max, _records.Count - max);
+        }
+
+        // Through a temporary file: writing in place truncates first, so a crash half way would leave
+        // a log that was whole a moment earlier in pieces.
         var lines = _records
             .AsEnumerable()
             .Reverse()
             .Select(record => JsonSerializer.Serialize(record, JsonOptions));
 
-        File.WriteAllLines(Path, lines);
+        File.WriteAllLines(TempPath, lines);
+        File.Move(TempPath, Path, overwrite: true);
+        _linesOnDisk = _records.Count;
+    }
+
+    /// <summary>
+    /// Makes sure the file ends with a line break before appending. A write torn by a crash or a full
+    /// disk leaves a partial line with no newline, and appending to that glues the next record onto the
+    /// wreckage — losing the new dictation as well as the old one.
+    /// </summary>
+    private void TerminateLastLine()
+    {
+        var file = new FileInfo(Path);
+        if (!file.Exists || file.Length == 0)
+        {
+            return;
+        }
+
+        using var stream = new FileStream(Path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        stream.Seek(-1, SeekOrigin.End);
+
+        var last = stream.ReadByte();
+        if (last == '\n' || last == '\r')
+        {
+            return;
+        }
+
+        _logger.LogWarning("The dictation history ended mid-line; closing it before appending");
+        stream.Seek(0, SeekOrigin.End);
+        var terminator = Encoding.UTF8.GetBytes(Environment.NewLine);
+        stream.Write(terminator, 0, terminator.Length);
     }
 
     private void Load()
@@ -155,6 +223,8 @@ public sealed class DictationHistoryStore : IDictationHistory
                     continue;
                 }
 
+                _linesOnDisk++;
+
                 try
                 {
                     if (JsonSerializer.Deserialize<DictationRecord>(line, JsonOptions) is { } record)
@@ -168,16 +238,15 @@ public sealed class DictationHistoryStore : IDictationHistory
                 }
             }
 
-            var max = MaxEntries;
-            if (_records.Count > max)
-            {
-                _records.RemoveRange(max, _records.Count - max);
-            }
+            // Bring the file back within the limit, not just the list. Without this it grows for ever
+            // while the window faithfully shows the newest few hundred.
+            Compact();
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Could not read the dictation history from {Path}; starting empty", Path);
             _records.Clear();
+            _linesOnDisk = 0;
         }
     }
 }

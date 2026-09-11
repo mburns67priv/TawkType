@@ -17,8 +17,12 @@ public interface IDictationHistory
     /// <summary>Records a dictation. A no-op when history is switched off in settings.</summary>
     void Add(DictationRecord record);
 
-    /// <summary>Forgets everything, on disk as well as in memory.</summary>
-    void Clear();
+    /// <summary>
+    /// Forgets everything, on disk as well as in memory. Returns false when the file could not be
+    /// deleted and the log will therefore come back on the next launch — an empty list is not proof
+    /// that anything was erased, and the user has to be told the difference.
+    /// </summary>
+    bool Clear();
 
     /// <summary>Raised after <see cref="Add"/> or <see cref="Clear"/>. May arrive on a background thread.</summary>
     event EventHandler? Changed;

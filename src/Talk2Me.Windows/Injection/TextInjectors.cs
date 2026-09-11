@@ -1,10 +1,14 @@
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Settings;
+using Talk2Me.Core.Text;
 
 namespace Talk2Me.Windows.Injection;
 
-/// <summary>Types text character by character with KEYEVENTF_UNICODE. Reliable everywhere, but slow for long text.</summary>
+/// <summary>
+/// Types text character by character with KEYEVENTF_UNICODE. Reliable everywhere, but slow for long
+/// text, and single-line only: see <see cref="Delivery"/> for why it will not press Return.
+/// </summary>
 public sealed class UnicodeTypingInjector : ITextInjector
 {
     private const int CharsPerBatch = 32;
@@ -14,24 +18,15 @@ public sealed class UnicodeTypingInjector : ITextInjector
     {
         await NativeInput.WaitForModifiersReleasedAsync(ModifierTimeout, cancellationToken).ConfigureAwait(false);
 
+        // Never a Return keypress. Multiline results are routed to the clipboard before they get here;
+        // this fold is the backstop for anything that reaches it anyway.
+        text = Delivery.SingleLine(text);
+
         var batch = new List<NativeInput.Input>(CharsPerBatch * 2);
         foreach (var c in text)
         {
-            if (c == '\r')
-            {
-                continue;
-            }
-
-            if (c == '\n')
-            {
-                batch.Add(NativeInput.KeyDown(NativeInput.VkReturn));
-                batch.Add(NativeInput.KeyUp(NativeInput.VkReturn));
-            }
-            else
-            {
-                batch.Add(NativeInput.UnicodeDown(c));
-                batch.Add(NativeInput.UnicodeUp(c));
-            }
+            batch.Add(NativeInput.UnicodeDown(c));
+            batch.Add(NativeInput.UnicodeUp(c));
 
             if (batch.Count >= CharsPerBatch * 2)
             {
@@ -93,8 +88,6 @@ public sealed class ClipboardPasteInjector : ITextInjector
 /// <summary>Chooses an injector per <see cref="Talk2MeSettings.InjectionMode"/>.</summary>
 public sealed class AutoTextInjector : ITextInjector
 {
-    private const int PasteThresholdChars = 400;
-
     private readonly ISettingsProvider _settings;
     private readonly UnicodeTypingInjector _typing;
     private readonly ClipboardPasteInjector _paste;
@@ -108,14 +101,8 @@ public sealed class AutoTextInjector : ITextInjector
 
     public Task InjectAsync(string text, CancellationToken cancellationToken = default)
     {
-        var mode = _settings.Current.InjectionMode;
-        var usePaste = mode switch
-        {
-            TextInjectionMode.Paste => true,
-            TextInjectionMode.TypeUnicode => false,
-            _ => text.Length > PasteThresholdChars,
-        };
-
-        return usePaste ? _paste.InjectAsync(text, cancellationToken) : _typing.InjectAsync(text, cancellationToken);
+        return Delivery.ShouldPaste(text, _settings.Current.InjectionMode)
+            ? _paste.InjectAsync(text, cancellationToken)
+            : _typing.InjectAsync(text, cancellationToken);
     }
 }

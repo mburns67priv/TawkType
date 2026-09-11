@@ -10,6 +10,10 @@ namespace Talk2Me.Desktop.Services;
 /// Two moves have happened. The app was called Murmur, and its data lived in %LOCALAPPDATA%\Murmur.
 /// Then it kept data in %LOCALAPPDATA%\Talk2Me — which turned out to be the folder the installer wants
 /// for the application itself, so data moved again, into %LOCALAPPDATA%\Jupitor Studio\Talk2Me.
+///
+/// It runs once and leaves a marker saying so. Deciding by "the destination file is missing" meant
+/// clearing the history could make an old copy eligible again, and the next launch would quietly
+/// resurrect dictations the user had deleted on purpose.
 /// </summary>
 internal static class LegacyMigration
 {
@@ -18,16 +22,35 @@ internal static class LegacyMigration
 
     private static readonly string[] OwnedFolders = ["models", "logs"];
 
+    /// <summary>Written after a successful pass; its presence means never migrate again.</summary>
+    private const string MarkerName = ".migrated";
+
     public static void Run()
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var current = SettingsStore.AppDataDirectory;
+        var marker = Path.Combine(current, MarkerName);
+
+        if (File.Exists(marker))
+        {
+            return;
+        }
 
         // The whole folder was ours back then, so it can move wholesale.
         TryMoveWholeFolder(Path.Combine(localAppData, "Murmur"), current);
 
         // This one may now also contain the installed application, so move only what we own.
         MoveOwnedItems(Path.Combine(localAppData, "Talk2Me"), current);
+
+        try
+        {
+            Directory.CreateDirectory(current);
+            File.WriteAllText(marker, "Talk2Me moved its data here. Delete this file to migrate again.");
+        }
+        catch (Exception)
+        {
+            // Without the marker migration simply runs again next time, which is what it did before.
+        }
     }
 
     private static void TryMoveWholeFolder(string from, string to)
