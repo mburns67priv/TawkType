@@ -236,6 +236,12 @@ Three values, all read-only and all with a comment saying why:
 Delete any of them and the corresponding migration stops working for anyone who has not yet run a
 build that performed it.
 
+**They are kept deliberately, not by oversight.** Removing them was considered and deferred: nothing
+has ever been installed, but running from source creates the same data folder, so whether there is
+anything left under the old name is a question about a real machine rather than about this repository.
+The right moment is after v0.4.0 has been installed once and confirmed to have carried everything
+across — at which point all three are dead and can go in a single commit.
+
 ## Gotchas the next person will hit
 
 1. ~~Repo folder is still named `Murmur`.~~ Done — it is `~/source/repos/TawkType` now.
