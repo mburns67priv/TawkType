@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Talk2Me.Core.History;
 using Talk2Me.Core.Models;
 using Talk2Me.Core.Tests.Fakes;
@@ -27,6 +27,70 @@ public sealed class DictationHistoryStoreTests : IDisposable
         AudioSeconds = 3.2,
         TranscriptionMs = 215,
     };
+
+    [Fact]
+    public void A_deleted_entry_goes_from_the_file_as_well_as_the_list()
+    {
+        var store = CreateStore();
+        var keep = Record("keep me");
+        store.Add(Record("delete me"));
+        store.Add(keep);
+
+        Assert.True(store.Remove(store.Recent.Last().Id));
+
+        Assert.Single(store.Recent);
+        Assert.Equal(["keep me"], CreateStore().Recent.Select(r => r.FinalText));
+        Assert.DoesNotContain("delete me", File.ReadAllText(Path_));
+    }
+
+    [Fact]
+    public void Deleting_something_that_is_not_there_changes_nothing()
+    {
+        var store = CreateStore();
+        store.Add(Record("only one"));
+
+        Assert.True(store.Remove("no such id"));
+        Assert.Single(store.Recent);
+    }
+
+    /// <summary>An edit has to reach the file, or it is undone by the next launch.</summary>
+    [Fact]
+    public void An_edited_transcript_survives_a_reload()
+    {
+        var store = CreateStore();
+        store.Add(Record("teh deadline is tuesday"));
+        var original = store.Recent[0];
+
+        Assert.True(store.Replace(original with { FinalText = "The deadline is Tuesday." }));
+
+        Assert.Equal("The deadline is Tuesday.", CreateStore().Recent[0].FinalText);
+    }
+
+    [Fact]
+    public void Editing_keeps_the_entry_where_it_was()
+    {
+        var store = CreateStore();
+        store.Add(Record("first"));
+        store.Add(Record("second"));
+        store.Add(Record("third"));
+
+        var middle = store.Recent[1];
+        store.Replace(middle with { FinalText = "corrected" });
+
+        Assert.Equal(["third", "corrected", "first"], store.Recent.Select(r => r.FinalText));
+    }
+
+    /// <summary>Raw text is what a correction is learned from, so an edit must not overwrite it.</summary>
+    [Fact]
+    public void Editing_what_was_typed_leaves_what_was_heard_alone()
+    {
+        var store = CreateStore();
+        store.Add(Record("Jupiter Studio", raw: "jupitor studio"));
+
+        store.Replace(store.Recent[0] with { FinalText = "Jupitor Studio" });
+
+        Assert.Equal("jupitor studio", CreateStore().Recent[0].RawText);
+    }
 
     [Fact]
     public void Keeps_the_newest_dictation_first()

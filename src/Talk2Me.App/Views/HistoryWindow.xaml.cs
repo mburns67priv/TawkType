@@ -1,9 +1,12 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using System.Windows.Interop;
 using Microsoft.Win32;
 using Talk2Me.Core.Settings;
+using Talk2Me.Core.Text;
 using Talk2Me.Desktop.Services;
 using Talk2Me.Desktop.ViewModels;
 using Talk2Me.Windows.Shell;
@@ -36,6 +39,78 @@ public partial class HistoryWindow : Window
 
         SetBinding(TopmostProperty, new Binding(nameof(HistoryViewModel.AlwaysOnTop)));
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+    }
+
+    /// <summary>
+    /// Opens the correction dialog for a row, seeded from whatever the user has selected.
+    ///
+    /// The selection is the reason this lives in code-behind: the natural gesture is to highlight the
+    /// words that came out wrong and press the button, and a TextBox's selection is not something a
+    /// binding can reach. Selected raw text becomes the phrase to listen for; selected final text
+    /// becomes what to type instead.
+    /// </summary>
+    private void OnRememberClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: HistoryEntry entry })
+        {
+            return;
+        }
+
+        var row = FindRow(sender as DependencyObject);
+        var heard = Selected(row, "HeardBox");
+        var typed = Selected(row, "DraftBox");
+
+        // With nothing selected, guess: the words that differ between what was heard and what is
+        // there now. Offering both whole sentences would save a rule that only ever fires on that
+        // exact sentence again, which is close to useless.
+        var guess = heard is null || typed is null
+            ? CorrectionGuess.Between(heard ?? entry.RawText, typed ?? entry.Draft)
+            : new Correction(heard, typed);
+
+        new RememberWindow(_viewModel, guess.Heard.Trim(), guess.Typed.Trim()) { Owner = this }.ShowDialog();
+    }
+
+    /// <summary>The selected text in a named box inside this row, or null when nothing is selected.</summary>
+    private static string? Selected(DependencyObject? row, string name)
+    {
+        if (row is null)
+        {
+            return null;
+        }
+
+        var box = FindDescendant<TextBox>(row, name);
+        return string.IsNullOrWhiteSpace(box?.SelectedText) ? null : box!.SelectedText;
+    }
+
+    private static DependencyObject? FindRow(DependencyObject? from)
+    {
+        while (from is not null and not ListBoxItem)
+        {
+            from = VisualTreeHelper.GetParent(from);
+        }
+
+        return from;
+    }
+
+    private static T? FindDescendant<T>(DependencyObject root, string name)
+        where T : FrameworkElement
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+
+            if (child is T match && match.Name == name)
+            {
+                return match;
+            }
+
+            if (FindDescendant<T>(child, name) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Set on shutdown so the last close actually closes instead of hiding.</summary>

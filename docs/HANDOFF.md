@@ -16,7 +16,7 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
 
 - **Branch `main`, clean tree.** Last release tag `v0.2.9`; several commits past it, so the next pack
   is overdue.
-- **Builds clean** with `dotnet build`, **247 unit tests pass** with `dotnet test`.
+- **Builds clean** with `dotnet build`, **271 unit tests pass** with `dotnet test`.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download, model deletion are all verified in the running
   app.
@@ -66,7 +66,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md
 
 ```bash
 dotnet run --project src/Talk2Me.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 247 tests, ~2 s
+dotnet test                                   # 271 tests, ~2 s
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Brand      # regenerate icon + exports after brand changes
@@ -135,6 +135,10 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Sounds use `SystemSounds`, off by default | They respect whatever scheme the user has chosen, silence included, and they need no asset files. |
 | The dictation box never opens itself | It appears after a failed delivery, which is exactly when the user is mid-sentence in something else. A window arriving over that would be a worse interruption than the failure, and it would take the focus the rest of the app works so hard never to touch. The bar reports it; the user opens it. |
 | Send-it-back is refused for elevated targets | Windows discards synthetic input aimed at a more privileged process and says nothing either time, so a second attempt fails exactly as silently as the first. The box says the text has to be pasted by hand rather than offering a button that cannot work. |
+| An edit writes only what was typed | What was heard is the evidence a correction is learned from. An edit that overwrote it would destroy the pair the vocabulary needs, and the pair is the whole point of remembering corrections from history. |
+| Remember… proposes the words that changed, not the sentence | A replacement rule for a whole sentence only ever fires on that exact sentence again. `CorrectionGuess` trims what both versions agree on from each end; words rather than characters, because a character diff of "jupitor"/"Jupiter" proposes letters nobody can read or edit. |
+| Deleting one entry does not ask; Clear still does | One entry is a small, obviously-scoped action and a dialog would be in the way of the tidying-up it exists for. Clear takes everything at once, so it keeps its confirmation. |
+| Clean again reprocesses text, never audio | Re-transcribing would mean keeping every recording ever made. The result goes into the draft rather than to disk, so seeing what cleanup would say now is separate from accepting it. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
 
 ## Measured numbers (owner's machine: i7-11700F, RTX 4060 Ti 8 GB)
@@ -305,6 +309,11 @@ Both transcripts were otherwise identical and correctly punctuated.
     `Icon` pack URIs resolve against the *entry* assembly too, so the harness needs its own copy of
     `talk2me.ico` as a `Resource`.
 
+38. **An owned WPF dialog is a UIA *descendant* of its owner, not a child of the root.** A
+    `ShowDialog` with `Owner` set does not appear in `RootElement`'s children, so a script looking for
+    it there concludes it never opened. Search the owner's descendants, or the root's. This wasted a
+    debugging round trip on a dialog that had been working the whole time.
+
 ## Roadmap, in the order I would do it
 
 1. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste, and only
@@ -317,10 +326,8 @@ Both transcripts were otherwise identical and correctly punctuated.
 3. **Cut a release.** The latest is `v0.2.9`; everything since — the review fixes, the phrase book,
    cancel and toggle, the settings validation — is in no installed copy. Nothing here is in a user's
    hands yet.
-4. **"Remember this replacement"** in the history window: select a mishearing in a past dictation and
-   save the correction. The storage and the matching both exist now, so this is a UI affordance. With
-   the dictation box in, the same action belongs there too — a correction is most likely to be wanted
-   at the moment the wrong words are on screen.
+4. **Bring Remember… to the dictation box** as well. It is in the history window now; the box is the
+   other place the wrong words are already on screen.
 5. **Per-app tone**: read the foreground window's process name at release time, pick a preset. The
    `CleanupStyle` setting and prompt seam are already there; this just chooses the value per app.
 6. **Streaming partials** while the key is held (Parakeet is a transducer; it suits this).
@@ -383,6 +390,10 @@ Both transcripts were otherwise identical and correctly punctuated.
     offered for a dictation that did not arrive, and the window holds the text, editable, until the
     user is done with it — copy it, correct it, or hand the foreground back to the window it was aimed
     at and type it there.
+23. Turned history into a correction tool (feature research §7): search across what was typed and what
+    was heard, edit a past dictation, re-run cleanup over the raw transcript, delete single entries,
+    and save a vocabulary replacement from a mistake — with `CorrectionGuess` proposing the words that
+    actually changed rather than the whole sentence.
 
 ## Links
 

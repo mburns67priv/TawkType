@@ -21,6 +21,7 @@
 
             <views:BoolToVisibilityConverter x:Key="BoolToVisible" />
             <views:NullToCollapsedConverter x:Key="NullToCollapsed" />
+            <views:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisible" />
 
             <SolidColorBrush x:Key="Brand.Accent" Color="{StaticResource Brand.VioletColor}" />
             <SolidColorBrush x:Key="Brand.Coral" Color="{StaticResource Brand.CoralColor}" />

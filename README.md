@@ -30,6 +30,9 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
   and the bar says *Copied instead*.
 - **Nothing is lost.** Every dictation is kept locally, so one that went into the wrong window is a
   click away. Turn the log off and it means it — nothing keeps a second copy of your words.
+- **History that corrects things.** Search what you have said, edit a past dictation, run cleanup over
+  it again, delete one entry, or turn a mistake into a permanent correction — Talk2Me works out which
+  words actually changed and offers to remember just those.
 - **A dictation box when delivery fails.** If the text could not be typed, it waits in an editable
   scratchpad you can copy from, correct, or send back to the window it was aimed at. It never opens
   itself over what you were doing — the bar tells you, and you open it when you want it.
@@ -109,7 +112,7 @@ Seven pages, light or dark or following Windows:
 | **Appearance** | Theme, and where the status bar sits |
 | **Vocabulary** | Spellings, replacements and snippets — with import and export |
 | **AI cleanup** | The optional Claude rewrite |
-| **History** | Everything you've dictated, and the log's settings |
+| **History** | The log's settings; the dictations themselves live in the History window |
 
 Pick a hotkey by clicking the box and **holding the keys you want**, rather than typing their names. A
 number that a box cannot use says so underneath, and Save waits until it is fixed — nothing is dropped
@@ -160,7 +163,7 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 247 unit tests, ~2 s
+dotnet test                                              # 271 unit tests, ~2 s
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Focus -- 15           # what the focus probe sees

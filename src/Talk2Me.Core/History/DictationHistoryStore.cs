@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -154,6 +154,90 @@ public sealed class DictationHistoryStore : IDictationHistory
     /// for the write to be worth it. Called after every append and after loading, because the file can
     /// already be over the limit before this process appends anything.
     /// </summary>
+    public bool Remove(string id)
+    {
+        bool written;
+
+        lock (_gate)
+        {
+            var at = _records.FindIndex(record => record.Id == id);
+            if (at < 0)
+            {
+                return true;
+            }
+
+            var removed = _records[at];
+            _records.RemoveAt(at);
+
+            written = RewriteFile();
+            if (!written)
+            {
+                // Put it back. A list that no longer shows an entry still on disk is the lie that
+                // Clear() exists to avoid telling.
+                _records.Insert(at, removed);
+            }
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+        return written;
+    }
+
+    public bool Replace(DictationRecord record)
+    {
+        bool written;
+
+        lock (_gate)
+        {
+            var at = _records.FindIndex(existing => existing.Id == record.Id);
+            if (at < 0)
+            {
+                return true;
+            }
+
+            var previous = _records[at];
+            _records[at] = record;
+
+            written = RewriteFile();
+            if (!written)
+            {
+                _records[at] = previous;
+            }
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+        return written;
+    }
+
+    /// <summary>
+    /// Writes the whole log back out from memory. Editing or deleting one entry means rewriting the
+    /// file, since JSON Lines has no way to change a line in place — which is the price of a format
+    /// whose append path is one call and whose torn lines cost one record instead of the file.
+    ///
+    /// Through a temporary file and a move, for the same reason <see cref="Compact"/> is.
+    /// </summary>
+    private bool RewriteFile()
+    {
+        try
+        {
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
+
+            var lines = _records
+                .AsEnumerable()
+                .Reverse()
+                .Select(record => JsonSerializer.Serialize(record, JsonOptions));
+
+            File.WriteAllLines(TempPath, lines);
+            File.Move(TempPath, Path, overwrite: true);
+            _linesOnDisk = _records.Count;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not rewrite the dictation history at {Path}", Path);
+            return false;
+        }
+    }
+
     private void Compact()
     {
         var max = MaxEntries;

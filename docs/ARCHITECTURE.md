@@ -354,8 +354,36 @@ that made the setting untrue: "keep 50" has to delete the rest, not hide it. `Cl
 the file actually went, so the UI cannot claim a deletion that failed, and compaction writes a temp
 file and moves it over the original so an interrupted trim cannot lose the log.
 
+The log is also where corrections are made, not just read. `Remove` and `Replace` rewrite the file
+through the same temporary-file move as compaction — JSON Lines has no way to change a line in place,
+which is the price of a format whose append path is one call and whose torn lines cost one record
+rather than the file. Both report whether the write succeeded, and put the record back in memory when
+it did not: a list that stops showing an entry still on disk is exactly the lie `Clear` exists to
+avoid telling.
+
+`HistoryQuery` filters on what was typed **and** what was heard, because the reason to go looking for
+an old dictation is usually that it came out wrong — the words the user remembers saying may only
+exist in the raw transcript.
+
+Editing writes only `FinalText`. `RawText` is the evidence a correction is learned from, and an edit
+that overwrote it would destroy the pair the vocabulary needs. That pair is what **Remember…** turns
+into a replacement: `CorrectionGuess.Between` trims the words both versions agree on from each end, so
+"send it to jupitor studio please" against "Send it to Jupiter Studio please." proposes *jupitor
+studio → Jupiter Studio* rather than the whole sentence — a rule for a whole sentence only ever fires
+on that sentence again. It compares words rather than characters, since a character diff of
+"jupitor"/"Jupiter" proposes letters nobody can read or edit, and it ignores a leading capital only
+when stepping over it still leaves a correction behind. `VocabularyEdit.Learn` then refuses the
+degenerate cases: a phrase replaced by itself, a single character, or a second rule for a phrase that
+already has one — which would leave the user no way to see which was winning.
+
+**Clean again** re-runs `ITextCleaner` over the raw transcript under whatever the settings say now, and
+puts the result in the draft rather than on disk: the point is to see what it would say, and accepting
+it is a separate decision. It reprocesses text, never audio. Re-transcribing would mean keeping a
+permanent archive of every recording ever made, which is not a thing to introduce by default.
+
 `HistoryWindow` subscribes through `IDictationHistory.Changed`, so it updates live while it sits on
-screen. Its list expands rows in place rather than pairing a list with a detail pane: in a 420x560 panel
+screen. A rebuild carries half-finished edits across, since dictations land while the user is typing
+into a past one. Its list expands rows in place rather than pairing a list with a detail pane: in a 420x560 panel
 two scroll regions fight over the height, and the loser gets clipped mid-line. One region, and a
 selected row grows into a card with an accent spine, its full text selectable, what was heard beneath it
 when cleanup changed anything, and Copy in the row header so a long dictation cannot push it out of

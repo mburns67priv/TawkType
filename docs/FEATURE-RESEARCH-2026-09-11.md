@@ -8,8 +8,7 @@ I researched current official documentation for Wispr Flow, Superwhisper, Aqua V
 
 ## Status as of 2026-09-11 (added as sections landed)
 
-This research is kept as written. **§1, §2, §3 and §4 are built** (`839d6de`, `b050a20`, `18008a5`,
-and the dictation box):
+This research is kept as written. **§1, §2, §3, §4 and §7 are built**:
 
 - **§1** — `PhraseBook` applies spellings and replacements locally, with or without a key, and is
   re-applied after a rewrite so the model cannot undo a correction. Its one unbuilt piece is the
@@ -25,11 +24,15 @@ and the dictation box):
   Its "preserve the transcript before attempting delivery" requirement was already met by `8a39890`
   and the in-memory `LastDictation`.
 
-**§5–§9 are untouched.** Modes (§5), caret-aware insertion (§6), history as a correction tool (§7),
-first-run (§8) and visible privacy (§9) are all still open, and the ordering at the foot of this
-document still holds for them. §7 is the natural next one: the "remember this replacement" action it
-describes is what §1 was left missing, and it now has two places to live — the history window and the
-dictation box.
+- **§7** — history as a correction tool. All seven of its bullets are in: search, edit, copy raw or
+  cleaned, re-run cleanup on the raw transcript, compare before and after, delete single entries, and
+  save a vocabulary replacement from a correction. The last of those is what §1 was left missing.
+  Its two cautions were both followed: cleanup is re-run over *text*, never by retranscribing audio,
+  and there is no "correct last insertion" blind-backspace anywhere.
+
+**§5, §6, §8 and §9 are untouched.** Modes (§5), caret-aware insertion (§6), first-run (§8) and
+visible privacy (§9) are still open, and the ordering at the foot of this document still holds for
+them.
 
 ## What the established apps offer
 
