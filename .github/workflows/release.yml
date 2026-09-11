@@ -109,7 +109,8 @@ jobs:
           **More info** then **Run anyway**. Installed copies update themselves from this feed.
 
           Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0); the
-          installer offers to fetch it if it is missing. Speech models download on first use.
+          installer offers to fetch it if it is missing. No speech model is included: the first run
+          walks you through choosing one, downloading it, and dictating a sentence to prove it works.
           "@
           gh release create $tag (Get-ChildItem build/releases | ForEach-Object FullName) `
             --title $tag --notes $notes --verify-tag
