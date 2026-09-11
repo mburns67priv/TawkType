@@ -49,6 +49,8 @@ public sealed partial class WhisperTranscriber : ITranscriber
     /// <summary>The native backend that was actually loaded, once a model has been opened.</summary>
     public static RuntimeLibrary? ActiveRuntime => RuntimeOptions.LoadedLibrary;
 
+    public bool IsModelReady => _models.IsDownloaded(ModelManager.ParseModelType(_settings.Current.Model));
+
     public async Task WarmUpAsync(IProgress<ModelProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         await EnsureLoadedAsync(progress, cancellationToken).ConfigureAwait(false);
@@ -126,7 +128,12 @@ public sealed partial class WhisperTranscriber : ITranscriber
         var type = ModelManager.ParseModelType(settings.Model);
         var language = string.IsNullOrWhiteSpace(settings.Language) ? "en" : settings.Language.Trim().ToLowerInvariant();
 
-        var path = await _models.EnsureModelAsync(type, progress, cancellationToken).ConfigureAwait(false);
+        if (!_models.IsDownloaded(type))
+        {
+            throw new ModelNotDownloadedException("Whisper " + type);
+        }
+
+        var path = _models.GetModelPath(type);
 
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try

@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.History;
+using Talk2Me.Core.Models;
 using Talk2Me.Core.Settings;
 using Talk2Me.Desktop.Services;
 using Talk2Me.Transcription;
@@ -37,6 +38,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private string? _pendingApiKey;
 
     private CancellationTokenSource? _statusTimer;
+    private CancellationTokenSource? _download;
 
     [ObservableProperty]
     private Talk2MeSettings _draft;
@@ -53,6 +55,18 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _modelStorageText;
+
+    /// <summary>What the active engine needs, and whether it already has it.</summary>
+    [ObservableProperty]
+    private string _activeModelText = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDownloadIndeterminate))]
+    private bool _isDownloading;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsDownloadIndeterminate))]
+    private double? _downloadProgress;
 
     [ObservableProperty]
     private string _cleanupTimeoutText;
@@ -272,6 +286,57 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>A download whose size we do not know yet still has to look like it is doing something.</summary>
+    public bool IsDownloadIndeterminate => IsDownloading && DownloadProgress is null;
+
+    /// <summary>
+    /// Fetches the model for whichever engine the current settings use. This is the only thing in
+    /// Talk2Me that downloads one — the transcribers refuse to, so that holding the hotkey never starts
+    /// a surprise several-hundred-megabyte transfer.
+    /// </summary>
+    [RelayCommand]
+    private async Task DownloadModelAsync()
+    {
+        if (IsDownloading)
+        {
+            return;
+        }
+
+        _download = new CancellationTokenSource();
+        IsDownloading = true;
+        DownloadProgress = null;
+
+        try
+        {
+            var progress = new Progress<ModelProgress>(report => DownloadProgress = report.Fraction);
+            await _models.DownloadActiveAsync(progress, _download.Token);
+            Flash("Model downloaded.");
+        }
+        catch (OperationCanceledException)
+        {
+            Flash("Download cancelled.");
+        }
+        catch (Exception ex)
+        {
+            Flash("Download failed: " + ex.Message);
+        }
+        finally
+        {
+            IsDownloading = false;
+            DownloadProgress = null;
+            _download?.Dispose();
+            _download = null;
+            RefreshModels();
+            ModelDownloaded?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    [RelayCommand]
+    private void CancelDownload() => _download?.Cancel();
+
+    /// <summary>Raised after a download attempt so the app can re-check and warm up.</summary>
+    public event EventHandler? ModelDownloaded;
+
     [RelayCommand]
     private async Task DeleteSelectedModelsAsync(Window? owner)
     {
@@ -348,6 +413,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
 
         ModelStorageText = _models.Describe();
+        ActiveModelText = _models.IsActiveModelDownloaded
+            ? $"{_models.ActiveModelLabel} is downloaded and ready."
+            : $"{_models.ActiveModelLabel} is not downloaded ({_models.ActiveModelSizeText}). "
+              + "Dictation does nothing until it is.";
     }
 
     private string DescribeApiKey()

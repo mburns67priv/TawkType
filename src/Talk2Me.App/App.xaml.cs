@@ -240,10 +240,24 @@ public partial class App : Application
         services.AddTransient<SettingsViewModel>();
     }
 
+    /// <summary>
+    /// Loads the model and warms the runtime, but only if the model is already on disk. Talk2Me never
+    /// downloads one by itself — Settings → Transcription does that, on the user's say-so — so when
+    /// there is nothing to load the bar says so and waits.
+    /// </summary>
     private async Task WarmUpAsync(OverlayViewModel overlayVm)
     {
         var transcriber = Services.GetRequiredService<ITranscriber>();
         var progress = new Progress<ModelProgress>(overlayVm.ReportProgress);
+
+        if (!transcriber.IsModelReady)
+        {
+            _logger?.LogInformation("No model downloaded for the active engine; waiting for the user");
+            overlayVm.ModelMissing = true;
+            return;
+        }
+
+        overlayVm.ModelMissing = false;
 
         try
         {
@@ -262,6 +276,12 @@ public partial class App : Application
 
     private static string FriendlyMessage(Exception ex)
     {
+        // The one error with a specific thing to do about it, so it says the thing rather than the fault.
+        if (ex is ModelNotDownloadedException || ex.InnerException is ModelNotDownloadedException)
+        {
+            return "Download a model in Settings";
+        }
+
         var message = ex.InnerException?.Message ?? ex.Message;
         return message.Length > 90 ? message[..90] + "…" : message;
     }
@@ -314,6 +334,12 @@ public partial class App : Application
         }
 
         var viewModel = Services.GetRequiredService<SettingsViewModel>();
+
+        // A download is the one settings action the rest of the app has to react to: the bar is sitting
+        // there telling the user to do this, and the engine has nothing loaded until it is done.
+        viewModel.ModelDownloaded += (_, _) =>
+            Dispatcher.BeginInvoke(() => _ = WarmUpAsync(Services.GetRequiredService<OverlayViewModel>()));
+
         _settingsWindow = new SettingsWindow(viewModel);
         _settingsWindow.Closed += (_, _) =>
         {

@@ -48,6 +48,13 @@ public sealed partial class OverlayViewModel : ObservableObject
     [ObservableProperty]
     private bool _isHidden;
 
+    /// <summary>
+    /// No model on disk for the selected engine. The bar says so instead of showing the hotkey: the
+    /// hotkey does nothing until a model is downloaded, and there is nowhere else the user would look.
+    /// </summary>
+    [ObservableProperty]
+    private bool _modelMissing;
+
     [ObservableProperty]
     private string _statusText = string.Empty;
 
@@ -285,6 +292,15 @@ public sealed partial class OverlayViewModel : ObservableObject
     /// <summary>The bar has been asked for explicitly; show it and raise it, wherever it was.</summary>
     public event EventHandler? AttentionRequested;
 
+    /// <summary>Re-settles so the resting line switches between the hotkey and the download prompt.</summary>
+    partial void OnModelMissingChanged(bool value)
+    {
+        if (IsResting || !IsVisible)
+        {
+            Settle();
+        }
+    }
+
     private void StartListening()
     {
         foreach (var bar in Bars)
@@ -350,7 +366,9 @@ public sealed partial class OverlayViewModel : ObservableObject
 
         if (_settings.Current.Overlay.AlwaysVisible && !IsHidden)
         {
-            StatusText = $"Hold {FriendlyHotkey(_settings.Current.Hotkey)}";
+            StatusText = ModelMissing
+                ? "Download a model in Settings"
+                : $"Hold {FriendlyHotkey(_settings.Current.Hotkey)}";
             IsResting = true;
             IsVisible = true;
         }

@@ -57,6 +57,8 @@ public sealed class FakeAudioCapture : IAudioCapture
 
 public sealed class FakeTranscriber : ITranscriber
 {
+    public bool IsModelReady { get; set; } = true;
+
     public string TextToReturn { get; set; } = "hello world";
 
     public Exception? ExceptionToThrow { get; set; }

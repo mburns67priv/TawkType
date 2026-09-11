@@ -29,6 +29,8 @@ public sealed class ParakeetTranscriber : ITranscriber
 
     public bool IsLoaded => _recognizer is not null;
 
+    public bool IsModelReady => _models.IsDownloaded;
+
     public async Task WarmUpAsync(IProgress<ModelProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         await EnsureLoadedAsync(progress, cancellationToken).ConfigureAwait(false);
@@ -112,7 +114,10 @@ public sealed class ParakeetTranscriber : ITranscriber
             return;
         }
 
-        await _models.EnsureModelAsync(progress, cancellationToken).ConfigureAwait(false);
+        if (!_models.IsDownloaded)
+        {
+            throw new ModelNotDownloadedException("Parakeet");
+        }
 
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try

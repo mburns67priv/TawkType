@@ -31,6 +31,8 @@ public sealed class TranscriberRouter : ITranscriber
     public TranscriptionEngine ActiveEngine
         => EngineSelection.Resolve(_settings.Current.Engine, _settings.Current.Language);
 
+    public bool IsModelReady => Select(ActiveEngine).IsModelReady;
+
     public Task WarmUpAsync(IProgress<ModelProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         var engine = ActiveEngine;

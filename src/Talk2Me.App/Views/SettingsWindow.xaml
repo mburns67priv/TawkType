@@ -314,6 +314,26 @@
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Downloaded models" />
                         <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,12" Text="{Binding ModelStorageText}" />
 
+                        <!-- Nothing downloads on its own; this button is the only way a model arrives. -->
+                        <Border Style="{StaticResource Ui.CardSurface}" Margin="0,0,0,14" Padding="14,12"
+                                HorizontalAlignment="Left" MinWidth="420">
+                            <StackPanel>
+                                <TextBlock Text="{Binding ActiveModelText}" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource Ui.Text}" />
+                                <ProgressBar Height="4" Margin="0,10,0,0" Minimum="0" Maximum="1"
+                                             Value="{Binding DownloadProgress, Mode=OneWay}"
+                                             IsIndeterminate="{Binding IsDownloadIndeterminate}"
+                                             Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVisible}}" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Content="Download model" Style="{StaticResource Ui.PrimaryButton}"
+                                            Margin="0,0,8,0" Command="{Binding DownloadModelCommand}" />
+                                    <Button Content="Cancel" Style="{StaticResource Ui.Button}"
+                                            Command="{Binding CancelDownloadCommand}"
+                                            Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVisible}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
                         <ItemsControl ItemsSource="{Binding InstalledModels}" Margin="0,0,0,14" HorizontalAlignment="Left">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>

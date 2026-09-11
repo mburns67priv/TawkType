@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
+using Talk2Me.Core.Models;
 using Talk2Me.Core.Settings;
 using Talk2Me.Transcription;
 
@@ -21,6 +22,7 @@ public sealed class ModelMaintenance
 {
     private readonly ModelStorage _storage;
     private readonly ModelManager _whisperModels;
+    private readonly ParakeetModelManager _parakeetModels;
     private readonly TranscriberRouter _router;
     private readonly ISettingsProvider _settings;
     private readonly ILogger<ModelMaintenance> _logger;
@@ -28,18 +30,49 @@ public sealed class ModelMaintenance
     public ModelMaintenance(
         ModelStorage storage,
         ModelManager whisperModels,
+        ParakeetModelManager parakeetModels,
         TranscriberRouter router,
         ISettingsProvider settings,
         ILogger<ModelMaintenance> logger)
     {
         _storage = storage;
         _whisperModels = whisperModels;
+        _parakeetModels = parakeetModels;
         _router = router;
         _settings = settings;
         _logger = logger;
     }
 
     public string ModelsDirectory => _storage.ModelsDirectory;
+
+    /// <summary>The engine the current settings would use, named for the UI.</summary>
+    public string ActiveModelLabel => _router.ActiveEngine == TranscriptionEngine.Parakeet
+        ? "Parakeet TDT 0.6B v3"
+        : "Whisper " + _settings.Current.Model;
+
+    /// <summary>Roughly what the active engine's model will cost to download.</summary>
+    public string ActiveModelSizeText => _router.ActiveEngine == TranscriptionEngine.Parakeet
+        ? "about 670 MB"
+        : "about 1.6 GB";
+
+    /// <summary>False when the active engine has nothing to load; dictation fails until this is fixed.</summary>
+    public bool IsActiveModelDownloaded => _router.IsModelReady;
+
+    /// <summary>
+    /// Downloads the active engine's model. Nothing else downloads: the transcribers refuse to fetch
+    /// hundreds of megabytes on their own, so this is the only path, and the user chose to be here.
+    /// </summary>
+    public async Task DownloadActiveAsync(IProgress<ModelProgress>? progress, CancellationToken cancellationToken)
+    {
+        if (_router.ActiveEngine == TranscriptionEngine.Parakeet)
+        {
+            await _parakeetModels.EnsureModelAsync(progress, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var type = ModelManager.ParseModelType(_settings.Current.Model);
+        await _whisperModels.EnsureModelAsync(type, progress, cancellationToken).ConfigureAwait(false);
+    }
 
     public string Describe()
     {

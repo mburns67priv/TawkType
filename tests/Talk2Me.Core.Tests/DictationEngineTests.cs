@@ -147,6 +147,8 @@ public sealed class DictationEngineTests
 
         public BlockingTranscriber(Task gate) => _gate = gate;
 
+        public bool IsModelReady => true;
+
         public Task WarmUpAsync(IProgress<ModelProgress>? progress = null, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
