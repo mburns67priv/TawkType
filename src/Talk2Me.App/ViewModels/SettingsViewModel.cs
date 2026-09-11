@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -55,6 +55,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _minimumHoldText;
+
+    /// <summary>Minutes, because nobody thinks about a runaway recording in seconds.</summary>
+    [ObservableProperty]
+    private string _maxRecordingMinutesText;
 
     [ObservableProperty]
     private string _selectedInputDevice;
@@ -134,6 +138,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
         _draft = store.Current.Clone();
         _minimumHoldText = _draft.MinimumHoldMs.ToString();
+        _maxRecordingMinutesText = (_draft.MaxRecordingSeconds / 60d).ToString("0.##");
         InputDevices = new[] { "(system default)" }.Concat(WaveInAudioCapture.ListInputDevices()).ToArray();
         _selectedInputDevice = _draft.InputDeviceName ?? InputDevices[0];
         _modelStorageText = models.Describe();
@@ -287,6 +292,11 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         if (int.TryParse(MinimumHoldText, out var hold) && hold >= 0)
         {
             Draft.MinimumHoldMs = hold;
+        }
+
+        if (double.TryParse(MaxRecordingMinutesText, out var minutes) && minutes >= 0)
+        {
+            Draft.MaxRecordingSeconds = (int)Math.Round(minutes * 60);
         }
 
         if (int.TryParse(CleanupTimeoutText, out var timeout) && timeout >= 250)

@@ -1,4 +1,4 @@
-<Window x:Class="Talk2Me.Desktop.Views.SettingsWindow"
+﻿<Window x:Class="Talk2Me.Desktop.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -422,9 +422,24 @@
                         <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
                                   IsChecked="{Binding Draft.RemoveFillerWords}"
                                   Content="Remove filler words (um, uh, erm…)" />
-                        <CheckBox Style="{StaticResource Ui.CheckBox}"
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
                                   IsChecked="{Binding Draft.AppendTrailingSpace}"
                                   Content="Add a trailing space after each dictation" />
+
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="While you are talking" />
+
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
+                                  IsChecked="{Binding Draft.PlaySounds}">
+                            <TextBlock Text="Play a sound when a dictation starts, finishes or fails" TextWrapping="Wrap" />
+                        </CheckBox>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Stop recording after (minutes)" />
+                            <TextBox Style="{StaticResource Ui.TextBox}" Width="120" HorizontalAlignment="Left"
+                                     Text="{Binding MaxRecordingMinutesText, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="A safety net for a key left held down under a book. The dictation is finished rather than thrown away, so whatever you said still arrives. 0 turns it off." />
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- ============ Appearance ============ -->
