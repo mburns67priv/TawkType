@@ -21,14 +21,21 @@ Windows only.
 
 ## State of the code
 
-- **Branch `main`, clean tree.** Last release tag `v0.4.0`, the first under the TawkType package id,
-  published and never installed by anyone. **Nothing here has been run outside a developer checkout**
-  — that, not the release, is what is overdue.
+- **Branch `main`, clean tree.** `v0.5.0` is the only release and the only tag — everything earlier
+  was deleted, releases and tags alike, because nothing had ever been installed from them. It is the
+  first build whose install and data folders cannot collide. **Nothing here has been run outside a
+  developer checkout**; that, not the release, is what is overdue.
 - **Builds clean** with `dotnet build`, **329 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
-- **Renamed to TawkType**, display-only — see "The rename" below for the six identifiers that
-  deliberately still say TawkType and what each costs if you change one.
+- **Renamed to TawkType, completely.** Name, mark, palette, namespaces, projects, solution, assembly,
+  window identity, installer, data folder. Nothing in the repository says Talk2Me, and the migration
+  code that used to carry old data forward has been deleted — nothing was ever installed under the
+  old name, so there was nothing to carry. See "The rename" below.
+- **The install folder and the data folder differ by three letters.** The app installs to
+  `%LOCALAPPDATA%\TawkTypeApp`; data lives in `%LOCALAPPDATA%\TawkType`. Velopack clears its own folder
+  on every install, so those two must never converge — gotcha 19, and `DataFolderTests` reads the id
+  out of `build/pack.ps1` to enforce it.
 - **The whole pipeline is session-scoped**: a dictation can be cancelled with Esc, cannot be stamped
   on by a later one, and shutdown drains rather than tearing up mid-write.
 - **Post-processing is local first.** `PhraseBook` applies the user's spellings, replacements and
@@ -211,15 +218,18 @@ paths differ by that suffix alone. That is the whole of gotcha 19 and `DataFolde
 straight out of `build/pack.ps1` to assert it — shortening the packId to `TawkType` fails the build,
 which was confirmed by trying it.
 
-### The packId is the one thing that would not have carried across
+### Why the packId could be changed at all
 
-Changing it makes this a different application to Velopack: anything installed as `Talk2MeApp` polls
-the old channel and would never update to `TawkType`. It would have to be replaced by hand.
+A different packId is a different application to Velopack: anything installed under the old one polls
+the old channel and would never update. Normally that makes the id effectively permanent.
 
-**Nothing was ever installed anywhere** — not by a user, not by the owner. Releases up to v0.3.0 exist
-as artefacts and nobody ran their installer, so there was no copy to strand and no upgrade to get
-right. That is the whole reason this was the moment to do it: the cost of renaming a package identity
-is zero before the first install and never zero again.
+**Nothing had ever been installed anywhere** — not by a user, not by the owner, who had been
+uninstalling between tests. So there was no copy to strand, and the releases that carried the old ids
+have since been deleted outright. That is the whole reason this was the moment: the cost of renaming a
+package identity is zero before the first install and never zero again.
+
+It moved twice. `Talk2MeApp` to `TawkType` with the rename, then to `TawkTypeApp` when the data folder
+was flattened to `%LOCALAPPDATA%\TawkType` and the two would otherwise have collided.
 
 **The migration code has been removed**, along with the API-key and startup fallbacks that went with
 it. It existed to carry data forward from three older folder names, and there is nothing anywhere to
@@ -428,8 +438,8 @@ installed from a release, so there is nothing out there to rescue.
 43. **A re-run of the release workflow used to fail on its own release.** The delta step fetches the
     most recent release for packaging; on a re-run that is the version being built, so vpk refused
     with "there is a release equal or greater to the current version" — naming a package the job had
-    just downloaded. Both the v0.2.8 and v0.2.9 runs show as failed for this reason even though those
-    releases exist. The step skips its own tag now.
+    just downloaded. It showed up as failed runs against releases that had in fact published fine.
+    The step skips its own tag now.
 
 44. **Each release used to inherit every package before it.** The delta step downloaded `*.nupkg`
     from the previous release, vpk listed everything it found in the feed, and the publish step
@@ -438,18 +448,18 @@ installed from a release, so there is nothing out there to rescue.
     previous *full* package now, which is all a delta needs; a simulated v0.4.0 produces three feed
     entries and 135 MB.
 
-    **The inherited packages have since been deleted from v0.2.1 through v0.3.0**, taking the releases
-    from 1499 MB to 714 MB. That was only safe because nothing has ever been installed from any of
-    them: the published feeds still name the deleted files, so a copy polling one of those feeds would
-    now 404. Do not repeat this once anybody has installed a release. Each release keeps its own
-    installer, portable zip, its own full and delta packages, and its feed files.
+    Moot now — every release before v0.5.0 has been deleted outright, tags included, because nothing
+    had ever been installed from one. **The fix in the workflow is what matters going forward**, and
+    the warning it carries is this: deleting a published package breaks any installed copy polling
+    that feed. It was free here only because there were no such copies. It will not be free again.
 
 ## Roadmap, in the order I would do it
 
-1. **Install v0.4.0 and use it.** It is published, and nothing has ever been installed from any
-   release — so this is a first install, not an upgrade, and there is no old copy to remove. What it
-   proves is that the packaged build runs at all outside a developer checkout: the Start Menu entry,
-   the taskbar icon (gotcha 20), the tray, and a real dictation end to end.
+1. **Install v0.5.0 and use it.** Nothing has ever been installed from any release, so this is a
+   first install with no old copy to remove. What it proves is that the packaged build works at all
+   outside a developer checkout: the Start Menu entry, **the taskbar icon (gotcha 20, never once
+   tested against a real install)**, the tray, downloading a model from Settings, and a dictation
+   landing in another application.
 
    An agent session cannot do it. Writes under `%LOCALAPPDATA%` and `HKCU` go into a per-session
    overlay (gotcha 28), so everything verified here was verified there and nowhere else.
@@ -541,7 +551,21 @@ installed from a release, so there is nothing out there to rescue.
     post-processing choices, four ship built in, a key cycles them, the bar shows which is in charge,
     and a mode can only ever narrow the permission to use Claude — never grant it.
 26. Rebranded to TawkType: name, mark, palette and overlay wording from the design package, with the
-    update identity, the data folder and the DPAPI entropy deliberately left alone.
+    update identity, the data folder and the DPAPI entropy deliberately left alone at first.
+27. Renamed the GitHub repository to TawkType and pointed the update feed at it; bought tawktype.com
+    and put it in the README, the About panel and the brand notes.
+28. Finished the rename on the owner's instruction: data folder, DPAPI entropy, Run-key value, window
+    AppUserModelID, assembly, namespaces, projects, solution, installer. Each identifier got a
+    migration, and each migration was exercised against a seeded old installation.
+29. Flattened the data folder to `%LOCALAPPDATA%\TawkType` and moved the packId to `TawkTypeApp` to keep
+    it clear of the install directory, then deleted every migration once it was established that no
+    release had ever been installed anywhere.
+30. Corrected the documentation against the code rather than memory: the model download is not
+    automatic, Whisper runs Vulkan-then-CPU with no CUDA, and both model sizes were quoted from the
+    progress-bar estimates instead of the files. Measured what each engine costs to run and put it in
+    the README.
+31. Cut v0.5.0, then deleted every earlier release and tag — safe exactly once, while nothing had been
+    installed from any of them.
 
 ## Links
 
