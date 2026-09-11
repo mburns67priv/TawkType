@@ -8,7 +8,7 @@ I researched current official documentation for Wispr Flow, Superwhisper, Aqua V
 
 ## Status as of 2026-09-11 (added as sections landed)
 
-This research is kept as written. **§1, §2, §3, §4 and §7 are built**:
+This research is kept as written. **§1, §2, §3, §4, §6 and §7 are built**:
 
 - **§1** — `PhraseBook` applies spellings and replacements locally, with or without a key, and is
   re-applied after a rewrite so the model cannot undo a correction. Its one unbuilt piece is the
@@ -30,9 +30,15 @@ This research is kept as written. **§1, §2, §3, §4 and §7 are built**:
   Its two cautions were both followed: cleanup is re-run over *text*, never by retranscribing audio,
   and there is no "correct last insertion" blind-backspace anywhere.
 
-**§5, §6, §8 and §9 are untouched.** Modes (§5), caret-aware insertion (§6), first-run (§8) and
-visible privacy (§9) are still open, and the ordering at the foot of this document still holds for
-them.
+- **§6** — caret-aware insertion. All five bullets: no doubled spaces, a separating space where one is
+  needed, no capital dropped into a continuation, a selection distinguished from a caret, and an
+  unreadable control treated exactly as it was before. It reads a bounded window through
+  `TextPattern` at delivery time and revalidates the destination first, as this section asks. Its
+  caution was followed too: no screenshots, no broad application text extraction, no clipboard
+  collection — the read is 64 characters either side of the caret and never leaves the machine.
+
+**§5, §8 and §9 are untouched.** Modes (§5), first-run (§8) and visible privacy (§9) are still open,
+and the ordering at the foot of this document still holds for them.
 
 ## What the established apps offer
 

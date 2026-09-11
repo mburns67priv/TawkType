@@ -243,6 +243,47 @@ with the reason. Nothing is lost, and the history records it with `CopiedNotType
 applications; that part cannot be unit tested, because it depends on what each application chooses to
 expose.
 
+## Fitting the text to where it lands
+
+A dictation used to be typed exactly as the cleaner produced it, plus an unconditional trailing space.
+That is wrong in the middle of a sentence in three visible ways: a doubled space where one was already
+there, no space where one was needed, and a capital letter the cleaner added to what is actually a
+continuation.
+
+`IFocusProbe.ReadCaret` reads up to 64 characters either side of the caret through UI Automation's
+`TextPattern`, and whether anything is selected. It is a **separate call from `Probe`, made at delivery
+time**, because the caret is precisely the thing that moves while a dictation is being transcribed — it
+cannot be answered at key-down like the rest of the probe. That makes it the one accessibility call on
+the path of finished text, so it gets a 250 ms budget and answers "do not know" the moment it runs out.
+Nothing the user has already said is ever held up waiting on somebody else's message loop.
+
+`CaretFit.Fit` (Core, pure) then decides three things, and every one of them only fires on evidence:
+
+- **A separating space**, unless what precedes the caret is already whitespace, the start of the field,
+  or something that opens a phrase — `(`, a quote, a hyphen, a slash.
+- **A trailing space**, unless the text after the caret already begins with whitespace, or begins with
+  punctuation that belongs to the sentence being joined. `the deadline , which` is worse than no space.
+- **The first letter's case.**
+
+Capitalisation is the one that could do real damage, and it is safe only because of a narrow rule:
+**Talk2Me will undo a capital it added, and never one the recogniser produced.**
+`WasCapitalisedByCleanup` compares the raw transcript with the finished text — lower there, upper here,
+the same letter otherwise — which is exactly the edit `BasicTextCleaner` makes. Lowercasing a capital
+the recogniser itself produced would turn somebody's name into a common noun, and no amount of
+surrounding context can tell those two cases apart after the fact.
+
+A selection is not a caret. When text is selected the insertion replaces it, and the words either side
+are already spaced for what was there — so nothing is added at either end, and nothing is lowercased.
+
+`CaretContext.Unknown` is an ordinary outcome, not a failure: plenty of controls expose `ValuePattern`
+and no `TextPattern`, meaning they can say what they hold but not where the caret is in it. Unknown
+produces exactly the behaviour Talk2Me had before any of this existed — the configured trailing space
+and nothing else — and `Activation → Fit the text to where it lands` turns the whole thing off.
+
+`tools/Talk2Me.Focus` prints the caret context beside the verdict, because which applications answer
+this is not something that can be unit tested. Measured: Chromium edit controls and WPF text boxes
+both answer in under 10 ms.
+
 ## The taskbar button
 
 Talk2Me keeps a taskbar button for as long as it runs, and `TaskbarWindow` exists only to hold it. The

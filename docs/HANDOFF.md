@@ -16,7 +16,7 @@ Owner: Jupitor Studio. Working name was **Murmur**; it is now **Talk2Me**.
 
 - **Branch `main`, clean tree.** Last release tag `v0.2.9`; several commits past it, so the next pack
   is overdue.
-- **Builds clean** with `dotnet build`, **271 unit tests pass** with `dotnet test`.
+- **Builds clean** with `dotnet build`, **298 unit tests pass** with `dotnet test`.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download, model deletion are all verified in the running
   app.
@@ -66,7 +66,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md
 
 ```bash
 dotnet run --project src/Talk2Me.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 271 tests, ~2 s
+dotnet test                                   # 298 tests, ~2 s
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Brand      # regenerate icon + exports after brand changes
@@ -139,6 +139,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Remember… proposes the words that changed, not the sentence | A replacement rule for a whole sentence only ever fires on that exact sentence again. `CorrectionGuess` trims what both versions agree on from each end; words rather than characters, because a character diff of "jupitor"/"Jupiter" proposes letters nobody can read or edit. |
 | Deleting one entry does not ask; Clear still does | One entry is a small, obviously-scoped action and a dialog would be in the way of the tidying-up it exists for. Clear takes everything at once, so it keeps its confirmation. |
 | Clean again reprocesses text, never audio | Re-transcribing would mean keeping every recording ever made. The result goes into the draft rather than to disk, so seeing what cleanup would say now is separate from accepting it. |
+| The caret is read at delivery, not at key-down | It is the one thing that moves while a dictation is being transcribed, so the answer from key-down would be stale exactly when it mattered. That puts an accessibility call on the path of finished text, hence the 250 ms budget and an immediate "do not know" when it expires. |
+| Only a capital Talk2Me added is ever undone | Lowercasing a continuation is the whole point, and lowercasing a name the recogniser produced would be a visible, unattributable corruption of the user's words. Comparing the raw transcript with the finished text says which of the two this is; nothing about the surrounding sentence can. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
 
 ## Measured numbers (owner's machine: i7-11700F, RTX 4060 Ti 8 GB)
@@ -314,6 +316,16 @@ Both transcripts were otherwise identical and correctly punctuated.
     it there concludes it never opened. Search the owner's descendants, or the root's. This wasted a
     debugging round trip on a dialog that had been working the whole time.
 
+39. **`TextPattern` and `ValuePattern` are not the same answer.** Plenty of ordinary edit controls
+    expose `ValuePattern` only: they can say what they hold but not where the caret is in it, which is
+    useless for fitting text around an insertion point. `ReadCaret` requires `TextPattern` and returns
+    Unknown otherwise. `TextPatternRangeEndpoint` and `TextUnit` live in
+    `System.Windows.Automation.Text`, not `System.Windows.Automation`.
+40. **Do not send synthetic keystrokes to verify anything.** A scripted `SendKeys` goes to whatever has
+    focus, which is the user's window, not yours — it typed test text into an application during this
+    session. Use a harness window you own, and bring it to the front from the script with
+    `SetForegroundWindow` on its `MainWindowHandle`, since a scripted launch opens behind (gotcha 3).
+
 ## Roadmap, in the order I would do it
 
 1. **Close review findings 6 and 10.** Finding 6 is the clipboard: the restore races the paste, and only
@@ -330,6 +342,7 @@ Both transcripts were otherwise identical and correctly punctuated.
    other place the wrong words are already on screen.
 5. **Per-app tone**: read the foreground window's process name at release time, pick a preset. The
    `CleanupStyle` setting and prompt seam are already there; this just chooses the value per app.
+   Feature research §5 is the same idea with a mode switcher on top.
 6. **Streaming partials** while the key is held (Parakeet is a transducer; it suits this).
 7. **Overlay polish**: replace the level bar with an animated waveform; onboarding window on first run.
 8. **Command mode**: hold a second key, speak an instruction, replace the selected text.
@@ -394,6 +407,9 @@ Both transcripts were otherwise identical and correctly punctuated.
     was heard, edit a past dictation, re-run cleanup over the raw transcript, delete single entries,
     and save a vocabulary replacement from a mistake — with `CorrectionGuess` proposing the words that
     actually changed rather than the whole sentence.
+24. Made insertion aware of the caret (feature research §6): `ReadCaret` through `TextPattern` at
+    delivery time, and `CaretFit` deciding spacing and the first letter's case from what is actually
+    either side of the insertion point.
 
 ## Links
 

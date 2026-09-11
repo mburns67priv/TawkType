@@ -1,9 +1,11 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Automation;
+using System.Windows.Automation.Text;
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
+using Talk2Me.Core.Text;
 
 namespace Talk2Me.Windows.Input;
 
@@ -24,6 +26,12 @@ public sealed class UiaFocusProbe : IFocusProbe
     private const int ProcessQueryLimitedInformation = 0x1000;
     private const int ErrorAccessDenied = 5;
 
+    /// <summary>Characters either side of the caret to read. Enough to answer the questions asked.</summary>
+    private const int Window = 64;
+
+    /// <summary>A cap on the selection read: its length is all that matters, not its contents.</summary>
+    private const int MaxSelectionProbe = 1;
+
     private readonly ILogger<UiaFocusProbe> _logger;
 
     public UiaFocusProbe(ILogger<UiaFocusProbe> logger)
@@ -36,6 +44,60 @@ public sealed class UiaFocusProbe : IFocusProbe
     {
         var window = GetForegroundWindow();
         return window == 0 ? null : window;
+    }
+
+    /// <summary>
+    /// Reads a little text either side of the caret through <c>TextPattern</c>.
+    ///
+    /// Bounded on purpose. <see cref="Window"/> characters is enough to answer the only questions
+    /// asked of it — is there already a space here, did the last sentence end, is there punctuation
+    /// coming — and asking for more means a larger cross-process call for no extra answer. Every
+    /// failure returns <see cref="CaretContext.Unknown"/>, which produces the behaviour Talk2Me had
+    /// before any of this existed.
+    /// </summary>
+    public CaretContext ReadCaret(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var focused = AutomationElement.FocusedElement;
+            if (focused is null || cancellationToken.IsCancellationRequested)
+            {
+                return CaretContext.Unknown;
+            }
+
+            if (TryGetPattern<TextPattern>(focused, TextPattern.Pattern) is not { } text)
+            {
+                // Plenty of ordinary edit controls expose ValuePattern and no TextPattern. They can
+                // say what they hold but not where the caret is in it, which is not enough.
+                return CaretContext.Unknown;
+            }
+
+            var selection = text.GetSelection();
+            if (selection is null || selection.Length == 0)
+            {
+                return CaretContext.Unknown;
+            }
+
+            var caret = selection[0];
+            var selected = caret.GetText(MaxSelectionProbe);
+
+            var before = caret.Clone();
+            before.MoveEndpointByRange(TextPatternRangeEndpoint.End, caret, TextPatternRangeEndpoint.Start);
+            before.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, -Window);
+
+            var after = caret.Clone();
+            after.MoveEndpointByRange(TextPatternRangeEndpoint.Start, caret, TextPatternRangeEndpoint.End);
+            after.MoveEndpointByUnit(TextPatternRangeEndpoint.End, TextUnit.Character, Window);
+
+            return new CaretContext(before.GetText(Window), after.GetText(Window), selected.Length > 0);
+        }
+        catch (Exception ex)
+        {
+            // ElementNotAvailable, COM failures, a control whose TextPattern is a polite fiction —
+            // all of them mean the same thing here, and none is worth more than a debug line.
+            _logger.LogDebug(ex, "Could not read the text around the caret");
+            return CaretContext.Unknown;
+        }
     }
 
     /// <summary>

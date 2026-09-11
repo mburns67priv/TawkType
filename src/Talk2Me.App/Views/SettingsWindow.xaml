@@ -427,9 +427,15 @@
                         <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
                                   IsChecked="{Binding Draft.RemoveFillerWords}"
                                   Content="Remove filler words (um, uh, erm…)" />
-                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,12"
                                   IsChecked="{Binding Draft.AppendTrailingSpace}"
                                   Content="Add a trailing space after each dictation" />
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,4"
+                                  IsChecked="{Binding Draft.FitToCaret}">
+                            <TextBlock Text="Fit the text to where it lands" TextWrapping="Wrap" />
+                        </CheckBox>
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="26,0,0,18" TextWrapping="Wrap"
+                                   Text="Looks at the words either side of your cursor just before typing, so a dictation does not double a space or start a capital in the middle of a sentence. Only ever acts on what it can actually see." />
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="While you are talking" />
 

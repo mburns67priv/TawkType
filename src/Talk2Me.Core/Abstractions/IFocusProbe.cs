@@ -1,3 +1,5 @@
+﻿using Talk2Me.Core.Text;
+
 namespace Talk2Me.Core.Abstractions;
 
 public enum FocusVerdict
@@ -70,4 +72,15 @@ public interface IFocusProbe
     /// the platform cannot say.
     /// </summary>
     long? CurrentWindow() => null;
+
+    /// <summary>
+    /// The text either side of the caret, read immediately before delivery — the caret moves while a
+    /// dictation is being transcribed, so this cannot be answered at key-down like the rest of the
+    /// probe.
+    ///
+    /// Best-effort by contract: it must never throw, must respect the token, and returns
+    /// <see cref="CaretContext.Unknown"/> for everything it cannot answer. The default does exactly
+    /// that, so a platform or a test double that does not implement it costs nothing.
+    /// </summary>
+    CaretContext ReadCaret(CancellationToken cancellationToken = default) => CaretContext.Unknown;
 }

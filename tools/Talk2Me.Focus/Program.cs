@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Talk2Me.Windows.Input;
 
@@ -26,5 +26,20 @@ for (var i = 0; i < seconds; i++)
     var elapsed = (int)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 
     Console.WriteLine($"{target.Verdict,-12} {target.CanType,-7} {elapsed,-6} {target.Description}");
+
+    // The caret read is the other half, and the half most likely to differ between applications: a
+    // control can be perfectly typeable and still expose nothing about where the caret is in it.
+    var caretStarted = Stopwatch.GetTimestamp();
+    var caret = probe.ReadCaret();
+    var caretMs = (int)Stopwatch.GetElapsedTime(caretStarted).TotalMilliseconds;
+
+    Console.WriteLine(caret.IsUnknown
+        ? $"{"caret",-12} {"-",-7} {caretMs,-6} (nothing readable)"
+        : $"{"caret",-12} {(caret.HasSelection ? "sel" : "-"),-7} {caretMs,-6} "
+            + $"before=[{Show(caret.Before)}] after=[{Show(caret.After)}]");
+
     await Task.Delay(1000);
 }
+
+// Line breaks would wreck the table, and the whole point is to see the characters either side.
+static string Show(string? text) => text?.Replace("\r", "\\r").Replace("\n", "\\n") ?? string.Empty;

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Models;
+using Talk2Me.Core.Text;
 
 namespace Talk2Me.Core.Pipeline;
 
@@ -30,6 +31,9 @@ public sealed class DictationEngine : IDisposable
 
     /// <summary>How long the probe may still be running once there is text ready to deliver.</summary>
     private static readonly TimeSpan FocusProbeGrace = TimeSpan.FromMilliseconds(400);
+
+    /// <summary>Shorter than the focus probe's: this one is on the path of already-finished text.</summary>
+    private static readonly TimeSpan CaretGrace = TimeSpan.FromMilliseconds(250);
 
     /// <summary>Long enough for a rewrite and an injection to finish; short enough to close the app.</summary>
     private static readonly TimeSpan ShutdownGrace = TimeSpan.FromSeconds(3);
@@ -333,9 +337,15 @@ public sealed class DictationEngine : IDisposable
             }
             else if (target.CanType)
             {
-                // Only when typing: a trailing space runs consecutive dictations together, and means
-                // nothing on the clipboard. Kept off `clean` so a fallback copy does not carry it.
-                var typed = _settings.Current.AppendTrailingSpace ? clean + " " : clean;
+                // Only when typing: spacing and capitals are about the place the text is landing, and
+                // mean nothing on the clipboard. Kept off `clean` so a fallback copy does not carry
+                // them, and so the history records the words rather than their punctuation.
+                var caret = await ReadCaretAsync(token).ConfigureAwait(false);
+                var typed = CaretFit.Fit(
+                    clean,
+                    caret,
+                    _settings.Current.AppendTrailingSpace,
+                    CaretFit.WasCapitalisedByCleanup(transcript.Text, clean));
 
                 SetState(DictationState.Injecting);
 
@@ -448,6 +458,41 @@ public sealed class DictationEngine : IDisposable
         }
 
         return await probe.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reads the text around the caret, on a pool thread and against a short deadline.
+    ///
+    /// It has to happen here rather than at key-down with the rest of the probe, because the caret is
+    /// exactly the thing that moves while a dictation is being transcribed. That makes it the one
+    /// accessibility call on the hot path, so it gets a small budget and an answer of "do not know"
+    /// the moment it runs out — finished text must never wait on somebody else's message loop.
+    /// </summary>
+    private async Task<CaretContext> ReadCaretAsync(CancellationToken token)
+    {
+        if (!_settings.Current.FitToCaret)
+        {
+            return CaretContext.Unknown;
+        }
+
+        try
+        {
+            var read = Task.Run(() => _focus.ReadCaret(token), token);
+            var finished = await Task.WhenAny(read, Task.Delay(CaretGrace, token)).ConfigureAwait(false);
+
+            if (finished != read)
+            {
+                _logger.LogDebug("Reading around the caret took too long; delivering without it");
+                return CaretContext.Unknown;
+            }
+
+            return await read.ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "Could not read around the caret");
+            return CaretContext.Unknown;
+        }
     }
 
     /// <summary>

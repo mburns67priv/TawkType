@@ -24,6 +24,9 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 
 - **Two local engines.** NVIDIA Parakeet TDT 0.6B v3 for English and 24 other European languages, OpenAI
   Whisper `large-v3-turbo` for the rest. Talk2Me picks per language, or you can force one.
+- **It fits the text to where it lands.** Before typing, it reads the few words either side of your
+  cursor: no doubled spaces, a separating space where one is needed, and no capital letter dropped
+  into the middle of a sentence. It only ever acts on what it can actually see.
 - **It knows where it can type.** Before typing it checks whether the focused element actually accepts
   text, and whether the target window is running as administrator — synthetic keystrokes to an elevated
   window are discarded by Windows without any error. If it can't type, the text goes to your clipboard
@@ -108,7 +111,7 @@ Seven pages, light or dark or following Windows:
 |---|---|
 | **General** | Overview, your dictation stats, where the files live |
 | **Transcription** | Engine, language, microphone, and managing downloaded models |
-| **Activation** | Push-to-talk key, optional toggle key, tap threshold, how text gets inserted, sounds, recording limit |
+| **Activation** | Push-to-talk key, optional toggle key, tap threshold, how text gets inserted and fitted, sounds, recording limit |
 | **Appearance** | Theme, and where the status bar sits |
 | **Vocabulary** | Spellings, replacements and snippets — with import and export |
 | **AI cleanup** | The optional Claude rewrite |
@@ -163,7 +166,7 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 271 unit tests, ~2 s
+dotnet test                                              # 298 unit tests, ~2 s
 dotnet run --project tools/Talk2Me.Bench -- speech.wav Both 5
 dotnet run --project tools/Talk2Me.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/Talk2Me.Focus -- 15           # what the focus probe sees

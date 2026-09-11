@@ -1,5 +1,6 @@
-using Talk2Me.Core.Abstractions;
+﻿using Talk2Me.Core.Abstractions;
 using Talk2Me.Core.Models;
+using Talk2Me.Core.Text;
 using Talk2Me.Core.Settings;
 
 namespace Talk2Me.Core.Tests.Fakes;
@@ -142,6 +143,22 @@ public sealed class FakeFocusProbe : IFocusProbe
 
     /// <summary>Delay before answering, so the engine's grace period can be exercised.</summary>
     public TimeSpan Delay { get; set; } = TimeSpan.Zero;
+
+    /// <summary>What the text around the caret looks like. Unknown unless a test says otherwise.</summary>
+    public CaretContext Caret { get; set; } = CaretContext.Unknown;
+
+    /// <summary>Delay before answering about the caret, to exercise the delivery-time budget.</summary>
+    public TimeSpan CaretDelay { get; set; } = TimeSpan.Zero;
+
+    public CaretContext ReadCaret(CancellationToken cancellationToken = default)
+    {
+        if (CaretDelay > TimeSpan.Zero)
+        {
+            Thread.Sleep(CaretDelay);
+        }
+
+        return Caret;
+    }
 
     public int Probes { get; private set; }
 

@@ -1,4 +1,4 @@
-namespace Talk2Me.Core.Settings;
+﻿namespace Talk2Me.Core.Settings;
 
 public enum TextInjectionMode
 {
@@ -52,6 +52,13 @@ public sealed class Talk2MeSettings
 
     /// <summary>Append a trailing space so consecutive dictations flow into one sentence.</summary>
     public bool AppendTrailingSpace { get; set; } = true;
+
+    /// <summary>
+    /// Read a little text around the caret before typing, so spacing and capitals fit where the words
+    /// are landing. On by default: it only ever acts on what it can actually see, and falls back to
+    /// the old behaviour for anything it cannot.
+    /// </summary>
+    public bool FitToCaret { get; set; } = true;
 
     public TextInjectionMode InjectionMode { get; set; } = TextInjectionMode.Auto;
 
