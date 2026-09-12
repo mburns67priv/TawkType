@@ -117,8 +117,8 @@ public sealed partial class OverlayViewModel : ObservableObject
 
         _wasAlwaysVisible = settings.Current.Overlay.AlwaysVisible;
         _settings.Changed += (_, _) => ApplyVisibilityMode();
-        _settings.Changed += (_, _) => RefreshPrivacy();
-        RefreshPrivacy();
+        _settings.Changed += (_, _) => ApplySettings();
+        ApplySettings();
         ApplyVisibilityMode();
     }
 
@@ -301,6 +301,30 @@ public sealed partial class OverlayViewModel : ObservableObject
         // The mode is half of the answer: one that forbids the rewrite makes the next dictation local
         // whatever the AI cleanup page says. Switching mode therefore changes the badge.
         RefreshPrivacy();
+    }
+
+    /// <summary>
+    /// Everything on the bar that is read out of settings, applied together.
+    ///
+    /// The mode used to be missing from here, and only `SetMode` set it — which the mode key calls and
+    /// the Settings window does not. So choosing a different mode in Settings and saving left the bar
+    /// naming the old one, on the one indicator whose entire purpose is that a mode you cannot see is a
+    /// mode you will be surprised by. The privacy badge was already on this subscription, which is why
+    /// it stayed right while the name beside it went stale.
+    /// </summary>
+    private void ApplySettings()
+    {
+        ModeName = _settings.Current.ActiveModeOrDefault().Name;
+        RefreshPrivacy();
+
+        // The resting bar names the key to hold, and that text is otherwise only built when the bar
+        // returns to idle — so changing the hotkey left it naming the old key until the next dictation
+        // had been and gone. Which is the one moment it is wrong at: somebody who has just rebound
+        // their key is looking at the bar to find out what to hold.
+        if (IsResting)
+        {
+            Settle();
+        }
     }
 
     /// <summary>

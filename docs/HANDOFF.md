@@ -686,6 +686,19 @@ with a script. The script sees what it asks about; a person sees the thing that 
     The rule: a computed property over somebody else's state needs whoever owns that state to tell it.
     `UpdateService` had been raising `Changed` on every transition the entire time; nobody subscribed.
 
+    **Third instance, reported from a real install of v0.7.4.** Changing *Use this mode* in Settings
+    and saving left the bar still naming the old mode. `OverlayViewModel` had been subscribed to
+    `SettingsStore.Changed` the whole time — but only to refresh the privacy badge, which is why the
+    badge beside it stayed right while the mode name went stale. `ModeName` was set by `SetMode`, which
+    the mode *key* calls and the Settings window does not. The resting *"Hold Right Ctrl"* text had the
+    same hole and was found while fixing it: it is built only when the bar returns to idle, so
+    rebinding the hotkey left the bar naming the old key until a dictation had been and gone — at
+    exactly the moment somebody is looking at it to find out what to hold. Both now go through one
+    `ApplySettings`.
+
+    The pattern across all three: **a value that is correct when something else happens to set it.**
+    The subscription existing is not the same as the subscription covering everything on that surface.
+
     **Second instance, found by the owner going to look for something else.** The tray tooltip was the
     literal `"TawkType — hold Right Ctrl to dictate"` in `App.xaml`, and the code that builds it from
     the user's actual hotkey only ran inside `OnUpdateStateChanged`. So anyone who rebound their key
@@ -1093,6 +1106,17 @@ with a script. The script sees what it asks about; a person sees the thing that 
     Also confirmed, out of the owner's own log rather than by asking: the update announcement path ran
     for real. `Update available: 0.7.3` at 03:30:54 and `Update 0.7.3 is staged and has been announced`
     at 03:30:57. Roadmap item 2's third bullet is closed.
+
+54. Fixed the bar keeping the old mode name after the mode was changed in Settings — reported from a
+    real install minutes after v0.7.4 went out. Third instance of gotcha 50, and the most instructive
+    one: the view model had been subscribed to settings saves since the privacy badge was built, so
+    the subscription existed, was working, and covered one of the two things on that part of the bar.
+    The mode name was set only by `SetMode`, which the mode key calls and the Settings window does not.
+
+    The resting *"Hold {key}"* text turned out to have the same hole and was fixed with it: it is
+    computed only when the bar settles to idle, so changing the hotkey left the bar naming the old key
+    until the next dictation had finished. Both are now applied together, and the duplicate `SetMode`
+    call at startup went with it so there is one place that reads the mode out of settings.
 
 ## Links
 

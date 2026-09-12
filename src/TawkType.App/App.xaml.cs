@@ -169,8 +169,6 @@ public partial class App : Application
         Services.GetRequiredService<IPushToTalkHotkey>().NextModeRequested += (_, _) =>
             Dispatcher.BeginInvoke(() => SwitchToNextMode(overlayVm));
 
-        overlayVm.SetMode(Services.GetRequiredService<SettingsStore>().Current.ActiveModeOrDefault().Name);
-
         // A staged update used to be announced nowhere: the check ran in the background, the download
         // finished, and it applied itself whenever the app was next restarted for unrelated reasons.
         // The bar is the only surface that is always on screen, so it is where this belongs.
