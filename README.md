@@ -53,6 +53,11 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 - **Sounds and a safety net.** Optional start, finish and failure sounds, off by default and using
   your own Windows scheme. A recording limit — five minutes by default — *finishes* a runaway
   dictation rather than throwing it away, so a key left under a book costs you nothing.
+- **You can see where your words go.** The bar carries a **Local** or **Cloud** badge while you work,
+  and its tooltip spells out the whole state: whether recognition is local (it always is), whether the
+  Claude rewrite will run, and whether anything is being written to disk. It reports what will
+  actually happen rather than what the settings imply — switch the rewrite on without an API key and
+  it still says Local, because nothing will be sent.
 - **Optional AI cleanup.** With a Claude API key, dictations are rewritten before typing: spoken
   corrections applied ("no, make that Tuesday"), lists formatted. Your vocabulary is re-applied
   afterwards, so a rewrite can never undo a correction you wrote down. The bar says *Rewriting with
@@ -214,6 +219,23 @@ network degrades dictation rather than breaking it.
 The prompt is explicit that the transcript is speech to be typed, never an instruction. Dictate *"write
 me a poem about the sea"* and you get that sentence, not a poem.
 
+## What leaves your machine
+
+Nothing, unless you turn on the Claude rewrite. Speech recognition, the phrase book, the modes, the
+caret fitting and the history are all local, always.
+
+With the rewrite on, each dictation sends **the transcript of what you said, your vocabulary list, and
+any custom instructions you have written** to the Anthropic API. It does not send the audio, the
+contents of your screen, the text around your cursor, or your history.
+
+**Settings → General** shows the current state in plain sentences and carries both switches — the
+history and the rewrite, independently. The same summary is on the status bar's badge as you work, and
+the bar says *Rewriting with Claude* during the one step that leaves your machine.
+
+The badge describes what will happen rather than what is ticked. Three things have to be true before
+anything is sent: the rewrite is on, the active mode permits it (*Literal* never does), and a key is
+stored. If any one of them is false the badge says **Local** and tells you which.
+
 ## Where your data lives
 
 Everything is under `%LOCALAPPDATA%\TawkType\` — deliberately a different folder from the
@@ -293,7 +315,7 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 385 unit tests, ~2 s
+dotnet test                                              # 394 unit tests, ~2 s
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Focus -- 15           # what the focus probe sees

@@ -553,6 +553,32 @@ past something is told what is missing instead of being congratulated. **Skip se
 person who cannot finish today; it marks setup done rather than letting the window reappear at every
 launch, and the tray menu is the way back.
 
+## Visible privacy
+
+`PrivacyState.From(settings, hasApiKey)` is the single answer to "where does the next dictation go",
+and both places that show it read the same function.
+
+It mirrors the cleaner's own three conditions rather than the one checkbox a user might think is in
+charge: `Cleanup.UseLlm`, the active mode's `MayUseLlm`, and whether the LLM client has a key. Any one
+of those being false means nothing is sent, and the state says **Local** — with a line explaining
+which one it was. That distinction is the whole feature. Switch the rewrite on with no key stored and
+a badge reading "Cloud" would be describing the checkbox; the machine is what the user is asking
+about, and the first time somebody checks, an indicator that overstates is worse than none.
+
+The bar carries the badge — one word, which is the room there is — with the full state in its
+tooltip. It refreshes on `SettingsStore.Changed` and on a mode switch, because a mode is half the
+answer. Settings → General carries the panel: the three lines, what leaves in detail, and the two
+independent controls.
+
+Those two controls also exist on the History and AI cleanup pages. All three copies bind to
+`KeepHistory` and `UseClaude` on the view model rather than to the draft directly, so they move
+together; binding two of them straight to `Draft.History.Enabled` would leave one checkbox stale
+until the window was reopened.
+
+What leaves is written from what `CleanupPrompt` actually builds — the transcript, the vocabulary, the
+custom instructions — and what does not: the audio, the screen, the caret context, the history. A test
+asserts those words are present, so adding anything to the request should fail it before it ships.
+
 ## Deleting the data
 
 Everything TawkType keeps lives in one folder, so removing it is one recursive delete — which is
@@ -611,13 +637,12 @@ Open, roughly in the order worth doing:
    to know the language. (Same review, finding 10, now partly closed.)
 3. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
    it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
+   Feature research §5's "later" half, and the only part of that document still open.
 4. **A local `ILlmClient`** (llama.cpp or ONNX), so the rewrite works offline and "nothing leaves this
    machine" holds with cleanup switched on.
 5. **Streaming**: transcribe in one-second windows while the key is held, so text appears as it is
    spoken. Parakeet is a transducer, which suits this.
 6. **Command mode**: select text, hold a second key, speak an instruction, replace the selection.
-7. **Visible privacy**: a panel that shows what is actually kept during use, rather than what the
-   settings imply. (`docs/FEATURE-RESEARCH-2026-09-11.md`, §9; §8, first run, is built.)
-8. **Overlay polish**: an animated waveform in place of the level meter, respecting reduced motion.
-9. **Seed the recogniser with the vocabulary** — Whisper's `initial_prompt` takes a word list, so the
+7. **Overlay polish**: an animated waveform in place of the level meter, respecting reduced motion.
+8. **Seed the recogniser with the vocabulary** — Whisper's `initial_prompt` takes a word list, so the
    names the user has taught TawkType could be got right before cleanup rather than after.

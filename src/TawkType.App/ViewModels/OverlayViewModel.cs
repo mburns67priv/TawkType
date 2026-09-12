@@ -36,6 +36,7 @@ public sealed partial class OverlayViewModel : ObservableObject
 
     private readonly SettingsStore _settings;
     private readonly LastDictation _last;
+    private readonly ILlmClient _llm;
     private readonly DispatcherTimer _elapsedTimer;
 
     private CancellationTokenSource? _settleTimer;
@@ -90,10 +91,11 @@ public sealed partial class OverlayViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowProgress))]
     private bool _isBusyWithModel;
 
-    public OverlayViewModel(SettingsStore settings, LastDictation last)
+    public OverlayViewModel(SettingsStore settings, LastDictation last, ILlmClient llm)
     {
         _settings = settings;
         _last = last;
+        _llm = llm;
 
         for (var i = 0; i < BarCount; i++)
         {
@@ -109,6 +111,8 @@ public sealed partial class OverlayViewModel : ObservableObject
 
         _wasAlwaysVisible = settings.Current.Overlay.AlwaysVisible;
         _settings.Changed += (_, _) => ApplyVisibilityMode();
+        _settings.Changed += (_, _) => RefreshPrivacy();
+        RefreshPrivacy();
         ApplyVisibilityMode();
     }
 
@@ -242,7 +246,42 @@ public sealed partial class OverlayViewModel : ObservableObject
     [ObservableProperty]
     private string _modeName = string.Empty;
 
-    public void SetMode(string name) => ModeName = name;
+    public void SetMode(string name)
+    {
+        ModeName = name;
+
+        // The mode is half of the answer: one that forbids the rewrite makes the next dictation local
+        // whatever the AI cleanup page says. Switching mode therefore changes the badge.
+        RefreshPrivacy();
+    }
+
+    /// <summary>
+    /// Feature research §9: privacy has to be visible while dictating, not only in a settings page.
+    /// One word, because the bar has room for one word, and the whole state in the tooltip.
+    /// </summary>
+    [ObservableProperty]
+    private string _privacyBadge = string.Empty;
+
+    [ObservableProperty]
+    private bool _privacyIsCloud;
+
+    [ObservableProperty]
+    private string _privacyTooltip = string.Empty;
+
+    private void RefreshPrivacy()
+    {
+        // ILlmClient.IsConfigured, not the settings flag: the badge has to agree with what the cleaner
+        // will actually do, and the cleaner checks for a key.
+        var state = PrivacyState.From(_settings.Current, _llm.IsConfigured);
+
+        PrivacyBadge = state.Badge;
+        PrivacyIsCloud = state.IsCloud;
+        PrivacyTooltip = string.Join(
+            Environment.NewLine,
+            new[] { state.Summary, string.Empty }
+                .Concat(state.Lines.Select(line => "• " + line.Text))
+                .Concat([string.Empty, state.WhatLeaves]));
+    }
 
     [RelayCommand]
     private void OpenDictationBox() => DictationBoxRequested?.Invoke(this, EventArgs.Empty);

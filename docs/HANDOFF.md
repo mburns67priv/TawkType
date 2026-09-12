@@ -28,7 +28,7 @@ Windows only.
 - **Nothing here has ever been run outside a developer checkout.** That, not the release, is what is
   overdue, and three separate things now depend on it: the taskbar icon (gotcha 20), the first run's
   practice dictation, and the uninstall hook. See the roadmap.
-- **Builds clean** with `dotnet build`, **385 unit tests pass** with `dotnet test` in about two seconds.
+- **Builds clean** with `dotnet build`, **394 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
 - **Renamed to TawkType, completely.** Name, mark, palette, namespaces, projects, solution, assembly,
@@ -61,6 +61,10 @@ Windows only.
   hand the foreground back to the window they were aimed at.
 - **History is a correction tool**, not just a log: search across what was typed and what was heard,
   edit, re-run cleanup, delete one entry, and save a vocabulary replacement from a mistake.
+- **Privacy is visible while dictating** (§9): a badge on the bar saying Local or Cloud, its whole
+  state in the tooltip, and a panel on Settings → General. `PrivacyState` mirrors the three conditions
+  the cleaner checks, so the badge cannot disagree with the pipeline — the rewrite switched on with no
+  key still reads Local, and says why.
 - **LLM cleanup is in**, off by default. Unit tested; the live path was verified only as far as a
   rejected key (see "Gotchas" 9) — **nobody has yet seen a real rewrite**.
 - **The installed build's taskbar icon is fixed** as of 0.2.8, after a long hunt. The answer is in
@@ -69,7 +73,7 @@ Windows only.
   10, 11 and 14 are partly closed. **Finding 6, the clipboard, is the largest still fully open**, and
   it matters more now that multiline results always paste. That doc carries a status table.
 - **`docs/FEATURE-RESEARCH-2026-09-11.md` §1–§8 are built**, except §5's per-application defaults,
-  which the section itself puts later. §9 (visible privacy during use) is untouched.
+  which the section itself puts later. **Every section of that document is now built.**
 - **There is a first run** (§8): seven steps ending in a real dictation into a box TawkType owns. It
   saves each answer as it is given, because the later steps use them, and no step is satisfied by the
   user agreeing to it — the microphone gate wants a level, the model gate wants an engine that
@@ -117,7 +121,7 @@ tools/TawkType.Bench         transcribes a WAV with one or both engines, prints 
 tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
 tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/TawkType.Core.Tests    xUnit, 385 tests. One file per behaviour; the names are the specification.
+tests/TawkType.Core.Tests    xUnit, 394 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -127,7 +131,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessmen
 
 ```bash
 dotnet run --project src/TawkType.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 385 tests, ~2 s
+dotnet test                                   # 394 tests, ~2 s
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Brand      # regenerate icon + exports after brand changes
@@ -217,6 +221,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | The uninstall question is asked in the app, not during the uninstall | Velopack's hooks "may not show any UI" and are killed after 30 seconds. A prompt there would be against the contract and would hang on anyone who walked away mid-answer. So Settings carries the choice and the hook only obeys it. |
 | Uninstalling keeps the data by default | Up to 1.5 GB of models, the vocabulary, and every dictation ever made. Throwing that away on an assumption is worse than leaving a folder behind, and a reinstall then picks up where the user left off. |
 | A pure guard in front of every recursive delete | `DataRemoval.Check` refuses anything near the root of a drive, anything relative, the install folder, and any folder containing it. The data folder and the install folder differ by three letters (gotcha 19) and one caller runs during an uninstall with nobody watching, so the check is a tested function rather than an `if`. |
+| The privacy badge reads the machine, not the checkbox | `Cleanup.UseLlm` is one of three conditions the cleaner checks; the mode and the key are the others. A badge sourced from the setting alone would say "Cloud" while nothing was being sent, and an indicator that overstates is worse than none — the first person to check would find it lying. `PrivacyState` recomputes all three. |
+| One privacy switch, three places on screen | History and Claude each appear on the General panel and on their own page. All of them bind to the same two view-model properties, because two of them bound to the draft directly would leave a stale checkbox behind until the window was reopened. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
 | Apache-2.0 | Open source, permissive, with an explicit patent grant and a requirement to mark changed files. Chosen over MIT for the patent clause, and over GPL-3.0 because the owner decided a closed fork was an acceptable price for being easy to adopt. Nothing in the dependency tree constrained the choice — every package is MIT or Apache-2.0, with no copyleft anywhere. |
 | The licence texts are fetched, never recalled | PolyForm Strict was recommended here as permitting commercial use. It does not: its permitted purposes are personal use and noncommercial organisations. That was a confident claim from memory, wrong, and acted on. Read the text — the Apache-2.0 in `LICENSE` is byte-for-byte from apache.org. |
@@ -613,14 +619,13 @@ site source and every snapshot from v2 on were already clean.
    the wrong words are already on screen.
 6. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
    it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
-   Feature research §5 calls it the "later" half of modes.
-7. **Visible privacy** (§9): a panel that shows what is actually kept during use, rather than what
-   the settings imply. First run states it once, at the end, from what actually happened — but that
-   is a sentence at a moment, not an indicator while dictating.
-8. **Streaming partials** while the key is held. Parakeet is a transducer; it suits this.
-9. **Local `ILlmClient`** so the rewrite works offline and "nothing leaves this machine" holds with
-   cleanup switched on.
-10. **Command mode**: hold a second key, speak an instruction, replace the selected text.
+   Feature research §5 calls it the "later" half of modes, and it is now the only part of that
+   document left to build.
+7. **Streaming partials** while the key is held. Parakeet is a transducer; it suits this.
+8. **Local `ILlmClient`** so the rewrite works offline and "nothing leaves this machine" holds with
+   cleanup switched on — which would also make the bar's privacy badge read Local again for people
+   who want the rewrite.
+9. **Command mode**: hold a second key, speak an instruction, replace the selected text.
 
 ## Session log (what was actually done, in order)
 
@@ -733,6 +738,12 @@ site source and every snapshot from v2 on were already clean.
     Apache-2.0, read out of the packages themselves rather than the notices file, with no copyleft
     anywhere. The name and mark are no longer reserved by the licence, and the contribution
     assignment is gone: Apache-2.0 section 5 handles inbound contributions without a CLA.
+38. Built visible privacy (feature research §9), which closes that document: `PrivacyState` in Core
+    with 9 tests, a Local/Cloud badge on the bar with the whole state in its tooltip, and a panel on
+    Settings → General carrying the three lines, what leaves in detail, and the two independent
+    controls. The point of it is the disagreement case — the rewrite switched on with no key reads
+    Local, because that is what will happen. Driven in the running app and screenshotted, including
+    toggling the switch and watching the panel refuse to say Cloud.
 
 ## Links
 

@@ -91,6 +91,37 @@
                             <!-- The one setting that changes between one dictation and the next, so the
                                  one worth a permanent place here. A mode you cannot see is a mode you
                                  will be surprised by. -->
+                            <!-- Feature research §9: where the next dictation goes, on screen while
+                                 you are using it. One word, because that is the room there is; the
+                                 whole state is in the tooltip. It says Local while the rewrite is
+                                 switched on but cannot run, because that is what will happen. -->
+                            <Border CornerRadius="7" Padding="6,1" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    ToolTipService.ShowDuration="30000" ToolTip="{Binding PrivacyTooltip}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#1F2636" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding PrivacyIsCloud}" Value="True">
+                                                <Setter Property="Background" Value="#3A2F5E" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding PrivacyBadge}" FontSize="9.5">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource Overlay.TextMuted}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PrivacyIsCloud}" Value="True">
+                                                    <Setter Property="Foreground"
+                                                            Value="{StaticResource Brand.AccentTint}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+
                             <TextBlock Text="{Binding ModeName}" VerticalAlignment="Center"
                                        Margin="0,0,8,0" FontSize="10.5"
                                        Foreground="{StaticResource Overlay.TextMuted}" />

@@ -26,7 +26,7 @@ assumes something is finished because the rest is.
 | 6 | Caret-aware insertion | **Done** |
 | 7 | History as a correction tool | **Done** |
 | 8 | First-run experience | **Done** |
-| 9 | Visible privacy | Not started |
+| 9 | Visible privacy | **Done** |
 
 **§1 — vocabulary without Claude.** `PhraseBook` applies preferred spellings and replacements locally,
 with or without a key, and runs again after a rewrite so the model cannot undo a correction. The
@@ -73,9 +73,21 @@ the user agreeing to it. The microphone gate wants a level above the noise floor
 an engine that initialised, and the last gate wants words back from a real dictation through the real
 pipeline. "Ready" means it worked.
 
-**§9 is untouched.** A privacy panel that shows what is actually kept rather than what the settings
-imply. First run now *states* it at the end — and states it from what happened — but that is a
-sentence at a moment, not the during-use indicator this section asks for.
+**§9 — privacy visible during use.** A badge on the status bar saying where the next dictation goes,
+with the whole state in its tooltip, and a panel on Settings → General carrying the three concise
+lines this section asks for plus the two independent controls, which now appear in three places and
+move together.
+
+The section's real demand was the caveat at its end: the labels are only credible if they are true.
+So `PrivacyState` mirrors the three conditions the cleaner itself checks — the setting, the active
+mode, and whether a key is configured — rather than reading the one checkbox a user might think is in
+charge. Switch the rewrite on with no key stored and the badge still says **Local**, because nothing
+will be sent; the panel says why. The prerequisite the section named was already met: transcripts
+stopped reaching the log, and turning history off deletes the file rather than hiding it.
+
+"Exactly what leaves" is spelled out from what `CleanupPrompt` actually builds: the transcript, the
+vocabulary and any custom instructions — not the audio, the screen, the text around the cursor, or the
+history.
 
 ### Small pieces still open
 

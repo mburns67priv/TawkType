@@ -34,6 +34,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly ModelMaintenance _models;
     private readonly AppDataMaintenance _appData;
     private readonly IApiKeyStore _apiKeys;
+    private readonly ILlmClient _llm;
     private readonly IDictationHistory _history;
     private readonly UpdateService _updates;
 
@@ -157,6 +158,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         ModelMaintenance models,
         AppDataMaintenance appData,
         IApiKeyStore apiKeys,
+        ILlmClient llm,
         IDictationHistory history,
         UpdateService updates)
     {
@@ -164,6 +166,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _models = models;
         _appData = appData;
         _apiKeys = apiKeys;
+        _llm = llm;
         _history = history;
         _updates = updates;
 
@@ -378,6 +381,50 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
                 Draft.ActiveMode = value.Name;
                 OnPropertyChanged();
             }
+        }
+    }
+
+    /// <summary>
+    /// Feature research §9. Built from the draft rather than from what is saved, so the two switches
+    /// below change what it says as they are clicked — a panel that only told the truth after Save
+    /// would be describing a machine the user is no longer looking at.
+    /// </summary>
+    public PrivacyState Privacy => PrivacyState.From(Draft, _llm.IsConfigured);
+
+    /// <summary>
+    /// The independent controls §9 asks for, and the reason they are properties rather than direct
+    /// bindings to the draft: the same two switches appear on the History and AI cleanup pages, and
+    /// all of them have to move together.
+    /// </summary>
+    public bool KeepHistory
+    {
+        get => Draft.History.Enabled;
+        set
+        {
+            if (value == Draft.History.Enabled)
+            {
+                return;
+            }
+
+            Draft.History.Enabled = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(Privacy));
+        }
+    }
+
+    public bool UseClaude
+    {
+        get => Draft.Cleanup.UseLlm;
+        set
+        {
+            if (value == Draft.Cleanup.UseLlm)
+            {
+                return;
+            }
+
+            Draft.Cleanup.UseLlm = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(Privacy));
         }
     }
 
