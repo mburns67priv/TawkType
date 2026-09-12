@@ -147,6 +147,14 @@
                                     ToolTip="Open the dictation that did not arrive"
                                     Visibility="{Binding IsRecoverable, Converter={StaticResource BoolToVisible}}" />
 
+                            <!-- Same rule as the recovery button: on the bar only while it means
+                                 something. An update that has downloaded and is waiting for a restart
+                                 has no other way of telling anyone. -->
+                            <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Update}"
+                                    Command="{Binding ApplyUpdateCommand}"
+                                    ToolTip="{Binding UpdateTooltip}"
+                                    Visibility="{Binding UpdateReady, Converter={StaticResource BoolToVisible}}" />
+
                             <TextBlock Text="{Binding Toast}" VerticalAlignment="Center" Margin="8,0,0,0"
                                        FontSize="11" Foreground="{StaticResource State.Injecting}" />
                         </StackPanel>

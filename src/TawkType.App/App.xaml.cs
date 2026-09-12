@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using TawkType.Core.Abstractions;
 using TawkType.Core.History;
+using TawkType.Core.Input;
 using TawkType.Core.Models;
 using TawkType.Core.Pipeline;
 using TawkType.Core.Settings;
@@ -161,6 +162,17 @@ public partial class App : Application
             Dispatcher.BeginInvoke(() => SwitchToNextMode(overlayVm));
 
         overlayVm.SetMode(Services.GetRequiredService<SettingsStore>().Current.ActiveModeOrDefault().Name);
+
+        // A staged update used to be announced nowhere: the check ran in the background, the download
+        // finished, and it applied itself whenever the app was next restarted for unrelated reasons.
+        // The bar is the only surface that is always on screen, so it is where this belongs.
+        var updates = Services.GetRequiredService<UpdateService>();
+        overlayVm.UpdateRequested += (_, _) => updates.RestartAndUpdate();
+        updates.Changed += (_, _) => Dispatcher.BeginInvoke(() => OnUpdateStateChanged(updates, overlayVm));
+
+        // The tray menu's "Restart to update" item binds against this, and the tray is the only way
+        // back when the bar has been hidden.
+        _tray.DataContext = overlayVm;
 
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
 
@@ -494,6 +506,32 @@ public partial class App : Application
         Services.GetRequiredService<DictationBoxViewModel>().Load(_undelivered);
         _dictationBox.Show();
         _dictationBox.Activate();
+    }
+
+    private void OnApplyUpdateClick(object sender, RoutedEventArgs e)
+        => Services.GetRequiredService<UpdateService>().RestartAndUpdate();
+
+    /// <summary>
+    /// Puts a staged update on the bar and in the tray tooltip. The tooltip matters: it is the one
+    /// signal that survives the bar being hidden and the menu being closed.
+    /// </summary>
+    private void OnUpdateStateChanged(UpdateService updates, OverlayViewModel overlay)
+    {
+        var ready = updates.State == UpdateState.ReadyToRestart;
+
+        overlay.SetUpdateReady(ready, updates.PendingVersion);
+
+        if (_tray is not null)
+        {
+            _tray.ToolTipText = ready
+                ? $"TawkType — {updates.PendingVersion} ready, restart to apply"
+                : $"TawkType — hold {Hotkey.ParseOrDefault(Services.GetRequiredService<SettingsStore>().Current.Hotkey)} to dictate";
+        }
+
+        if (ready)
+        {
+            _logger?.LogInformation("Update {Version} is staged and has been announced", updates.PendingVersion);
+        }
     }
 
     private void OnSetupClick(object sender, RoutedEventArgs e) => ShowSetup();

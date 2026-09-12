@@ -249,6 +249,35 @@ public sealed partial class OverlayViewModel : ObservableObject
     public void SetRecoverable(bool recoverable) => IsRecoverable = recoverable;
 
     /// <summary>
+    /// An update has downloaded and is waiting for a restart.
+    ///
+    /// It belongs on the bar because the bar is the only part of TawkType that is always on screen.
+    /// Before this, a staged update was announced nowhere at all: the check ran in the background, the
+    /// download finished, and the only way to find out was to open Settings on the right page at the
+    /// right moment. It applied itself whenever the app happened to be restarted next, which is not
+    /// the same as being told.
+    /// </summary>
+    [ObservableProperty]
+    private bool _updateReady;
+
+    [ObservableProperty]
+    private string _updateTooltip = string.Empty;
+
+    public void SetUpdateReady(bool ready, string? version)
+    {
+        UpdateReady = ready;
+        UpdateTooltip = version is null
+            ? "An update is ready. Click to restart TawkType and apply it."
+            : $"TawkType {version} is ready. Click to restart and apply it.";
+    }
+
+    [RelayCommand]
+    private void ApplyUpdate() => UpdateRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>The user asked for the staged update to be applied, which means restarting.</summary>
+    public event EventHandler? UpdateRequested;
+
+    /// <summary>
     /// The mode in charge, shown on the bar. It is the one setting that changes between one dictation
     /// and the next, so it is the one worth a permanent place there — a mode you cannot see is a mode
     /// you will be surprised by.

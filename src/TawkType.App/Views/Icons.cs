@@ -46,6 +46,10 @@ public static class Icons
     public static Geometry Rescue { get; } =
         Parse("M5,13.5 V19 H19 V13.5 M12,4 V14 M8.5,7.5 L12,4 L15.5,7.5");
 
+    /// <summary>An arrow into a tray: the usual shape for "there is something to install".</summary>
+    public static Geometry Update { get; } =
+        Parse("M12,3 V14 M7.5,9.5 L12,14 L16.5,9.5 M4,17 V20 H20 V17");
+
     public static Geometry Minimize { get; } = Parse("M6,12 H18");
 
     public static Geometry Close { get; } = Parse("M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5");
