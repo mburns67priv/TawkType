@@ -1,6 +1,24 @@
 # Settings → Vocabulary: redesign plan
 
-Written 2026-09-12. Status: **proposed, not built.**
+Written 2026-09-12. Status: **built**, with the changes Codex's review forced.
+
+Read this as the design record rather than as instructions. What actually shipped differs from the
+plan in five places, all of them because a review against the code found the plan asserting something
+that was not true:
+
+- **The structured list is not a single source of truth while a text box is open.** There is a list
+  and a text buffer, and the transitions between them had to be written down: Save flushes every open
+  box and refuses on a bad line; Import drops the boxes without parsing them, because parsing a box
+  that is a view of the list just replaced would put the replaced vocabulary straight back.
+- **Import and text mode now go through the same rules as the dialogs.** They did not before — the
+  careful path was the only careful path.
+- **One collision rule, not "overwrite on add, block on edit".** The pair was arbitrary and left a
+  user blocked from editing a row able to get what they wanted by deleting it and adding it again.
+- **`MinWidth`, not `Width`, at 460.** A fixed 520 overflows at the 720px minimum window width.
+- **The loop and shadow warnings, the filter box, merge-on-import and live counts were cut.**
+
+The AI cleanup page's *Personal dictionary* box is also gone: it was a second editable copy of the
+same spellings, comma separated, with none of the rules applied to it.
 
 ## 0. The tension, resolved up front
 

@@ -56,8 +56,11 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
   with a press each, for long passages or when holding is awkward. **Esc** abandons either — nothing is
   typed, nothing is recorded.
 - **Your own words.** Names TawkType should spell your way, corrections for what it keeps mishearing, and
-  saved text you insert by saying *"insert"* and a trigger. All of it works on this machine, with or
-  without a Claude key, and the whole vocabulary imports and exports as a file of its own.
+  saved text you insert by saying *"insert"* and a trigger. Each one is added through a dialog with
+  real fields, so there is no punctuation to remember and a multi-line snippet is typed as several
+  lines rather than an escape code. Any of the three lists can still be opened as plain text to paste
+  a list in or sort one, and the whole vocabulary imports and exports as a file of its own. All of it
+  works on this machine, with or without a Claude key.
 - **Sounds and a safety net.** Optional start, finish and failure sounds, off by default and using
   your own Windows scheme. A recording limit — five minutes by default — *finishes* a runaway
   dictation rather than throwing it away, so a key left under a book costs you nothing.

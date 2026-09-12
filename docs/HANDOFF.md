@@ -234,7 +234,9 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | The phrase book runs again after the rewrite | The model is deliberately given the raw transcript, so it has no idea what the user has corrected and cheerfully undoes it. Re-applying afterwards is the only ordering where both features work. |
 | A snippet's text is exempt from every pass after it | It is saved text, typed as written — that is the promise in the README, in the settings hint, and in `PhraseBook`'s own comment, which said "nothing after this should be rewriting it" directly above the code that went on to rewrite it. The replacement and spelling passes ran over the freshly inserted text, so a user's own correction rule could rewrite their signature, and the closing `Trim` took the blank line a signature usually ends with. Each snippet now goes in as a private-use placeholder character, the other passes run, the text is trimmed, and only then does the snippet text go back. A digit or a word would not do as a placeholder: a replacement can match either. |
 | Snippets need the word "insert" | Left implicit, a signature or an address expands in the middle of an ordinary sentence. They also skip the LLM pass entirely: a model asked to tidy up a signature will do exactly that. |
-| Vocabulary is a text box, and its own file | These lists are written in bursts, usually pasted from somewhere, and plain text can be selected, sorted, diffed and kept in a note — a grid of rows with add/remove buttons cannot. The export is separate from `settings.json` because it is the user's own work, not window positions. |
+| Vocabulary is a list first, and a text box when you ask | **Supersedes the row below, which is kept because its reasoning still holds for half the job.** Entries are added and edited in dialogs with real fields: nobody remembers `=>`, and `
+` for a line break in a signature is worse — a snippet is now typed into a real multi-line box. But the paste-sort-diff argument was never wrong, so every section still has *Edit as text*, and the text is a view onto the list rather than a second copy of it. Entering formats from the list; leaving parses back and **refuses while a line is not an entry**, because a projection that drops a line loses a rule the user wrote and has no reason to look for. |
+| ~~Vocabulary is a text box, and its own file~~ | These lists are written in bursts, usually pasted from somewhere, and plain text can be selected, sorted, diffed and kept in a note — a grid of rows with add/remove buttons cannot. The export is separate from `settings.json` because it is the user's own work, not window positions. |
 | A bad number says so instead of being dropped or clamped | Save used to ignore an unusable value silently: the box kept what was typed, the setting did not change, and the window closed looking like it had worked. Clamping would be worse, since a value the user never chose would be saved under their name. `NumberField` holds the range and the message; Save waits. |
 | TawkType checks for updates only when asked | The application is local: speech recognition, the phrase book, the modes and the caret fitting all run here and need nothing. An automatic check is then the one connection nobody chose — it sends nothing about the user, but it happens on a schedule they did not set and tells whoever is listening that this machine runs TawkType. Off by default makes "it connects when you choose" true on a machine that never opens Settings, which is the only place that claim is worth anything. `CheckAsync` itself is never gated, because pressing *Check now* is the choosing. |
 | Turning automatic checks on checks immediately | The loop wakes every six hours, so switching it on and being told nothing for the rest of the afternoon would read as broken. The `SettingsStore.Changed` handler spots the transition and runs one check there and then. |
@@ -1147,6 +1149,29 @@ with a script. The script sees what it asks about; a person sees the thing that 
     and nobody was looking for it; it came out of checking a sentence the plan wanted to put in a
     dialog. Eight tests in `SnippetExactnessTests`, named after the promise rather than the mechanism,
     so reordering the passes in `Apply` fails something that says what was lost.
+
+57. Rebuilt Settings -> Vocabulary as three structured lists with guided dialogs, on the owner's
+    instruction, keeping bulk text editing as a per-section *Edit as text* toggle. A UI designer drew
+    the plan (`docs/VOCABULARY-REDESIGN-2026-09-12.md`) and Codex reviewed it against the code before
+    a line was written, which is where most of the value was: it found that the plan's "single source
+    of truth" was false while a text box was open, that Import and text mode bypassed every rule the
+    dialogs applied, that a fixed 520px section overflows at the 720px minimum window width, and that
+    `PhraseBook` did not do what the plan assumed about ordering.
+
+    The Core layer went first and is the half that matters: `VocabularyRules` is one policy for all
+    three ways in, `VocabularyEdit` gained Upsert with a single collision rule for adding and editing,
+    and `VocabularyFormat` gained a strict parse that names the line it could not use. 38 new tests.
+
+    Verified by driving the built app through UI Automation and screenshotting each step: both dialogs
+    save and close, rows and counts render, text mode formats from the list, a bad line is refused by
+    number, and Save applies without closing the window.
+
+    **Gotcha 38 cost three round trips in one session.** An owned dialog is a UIA *descendant of its
+    owner*, and its controls therefore show up in the owner's descendants too. A working Add dialog
+    looked broken because the script searched the root's children; later, text typed "into the page"
+    went into a dialog that was still open behind the search. The plan cited gotcha 38 by number and
+    the code-behind carries a comment about it, and it still happened three times. If a UIA script
+    seems to prove a window is not opening, check the owner's descendants before believing it.
 
 ## Links
 

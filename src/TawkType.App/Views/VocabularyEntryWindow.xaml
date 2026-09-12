@@ -1,0 +1,41 @@
+﻿<Window x:Class="TawkType.Desktop.Views.VocabularyEntryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Vocabulary"
+        Icon="pack://application:,,,/Assets/tawktype.ico"
+        Width="460"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource Ui.Window}"
+        Foreground="{DynamicResource Ui.Text}"
+        FontFamily="{StaticResource Brand.Font}"
+        FontSize="13">
+    <StackPanel Margin="18,16,18,16">
+        <TextBlock x:Name="Heading" FontFamily="{StaticResource Brand.DisplayFont}"
+                   FontSize="16" Margin="0,0,0,4" />
+        <TextBlock x:Name="Blurb" TextWrapping="Wrap" Foreground="{DynamicResource Ui.TextMuted}"
+                   FontSize="11.5" Margin="0,0,0,14" />
+
+        <TextBlock x:Name="FirstLabel" Style="{StaticResource Ui.Label}" />
+        <TextBox x:Name="FirstBox" Style="{StaticResource Ui.TextBox}" />
+        <TextBlock x:Name="FirstHint" Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                   Margin="0,4,0,12" />
+
+        <TextBlock x:Name="SecondLabel" Style="{StaticResource Ui.Label}" />
+        <TextBox x:Name="SecondBox" Style="{StaticResource Ui.TextBox}" />
+        <TextBlock x:Name="SecondHint" Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                   Margin="0,4,0,0" />
+
+        <TextBlock x:Name="Problem" Style="{StaticResource Ui.FieldError}" Visibility="Collapsed"
+                   TextWrapping="Wrap" Margin="0,10,0,0" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Cancel" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                    IsCancel="True" Click="OnCancelClick" />
+            <Button x:Name="PrimaryButton" Style="{StaticResource Ui.PrimaryButton}" IsDefault="True"
+                    Click="OnSaveClick" />
+        </StackPanel>
+    </StackPanel>
+</Window>

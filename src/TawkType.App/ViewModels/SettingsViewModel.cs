@@ -47,8 +47,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly IDictationHistory _history;
     private readonly UpdateService _updates;
 
-    /// <summary>Commas or line breaks, so a list can be pasted in either shape.</summary>
-    private static readonly char[] Separators = [',', (char)10, (char)13];
 
     /// <summary>Set by the password box as the user types. Null means "leave the stored key alone".</summary>
     private string? _pendingApiKey;
@@ -98,6 +96,36 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _logText;
 
+    /// <summary>
+    /// The three vocabulary lists. Each owns its rows, its text box and the rules for getting in, so
+    /// the page is three copies of one thing rather than three arrangements of the same idea.
+    /// </summary>
+    public SpellingSection Spellings { get; }
+
+    public ReplacementSection Replacements { get; }
+
+    public SnippetSection Snippets { get; }
+
+    private IEnumerable<VocabularySection> Vocabularies => [Spellings, Replacements, Snippets];
+
+    /// <summary>
+    /// What the AI cleanup page says about the vocabulary, which it sends with every rewrite. It used
+    /// to carry a second editable box for the same spellings, comma separated — a way into the list
+    /// that none of the rules applied to, and a second place for it to disagree with itself.
+    /// </summary>
+    public string VocabularySummary
+    {
+        get
+        {
+            var words = Draft.Vocabulary.Spellings.Length;
+            var rules = Draft.Vocabulary.Replacements.Length;
+
+            return words == 0 && rules == 0
+                ? "Nothing yet. Anything you add on the Vocabulary page is sent with the rewrite, so Claude knows the words you have taught TawkType."
+                : $"{words} spelling{(words == 1 ? string.Empty : "s")} and {rules} replacement{(rules == 1 ? string.Empty : "s")}, from the Vocabulary page, are sent with every rewrite.";
+        }
+    }
+
     /// <summary>What the active engine needs, and whether it already has it.</summary>
     [ObservableProperty]
     private string _activeModelText = string.Empty;
@@ -121,16 +149,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private string _cleanupTimeoutText;
 
     /// <summary>One "heard => typed" per line.</summary>
-    [ObservableProperty]
-    private string _replacementsText;
-
     /// <summary>One "trigger => text" per line; a literal backslash-n makes a line break in the text.</summary>
-    [ObservableProperty]
-    private string _snippetsText;
-
-    [ObservableProperty]
-    private string _vocabularyText;
-
     [ObservableProperty]
     private string _apiKeyStatus;
 
@@ -201,9 +220,16 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _appDataText = DescribeAppData(appData);
         _logText = DescribeLogs();
         _cleanupTimeoutText = _draft.Cleanup.TimeoutMs.ToString();
-        _vocabularyText = string.Join(Environment.NewLine, _draft.Vocabulary.Spellings);
-        _replacementsText = VocabularyFormat.Format(_draft.Vocabulary.Replacements);
-        _snippetsText = VocabularyFormat.Format(_draft.Vocabulary.Snippets);
+        Spellings = new SpellingSection(() => Draft.Vocabulary, OnVocabularyChanged);
+        Replacements = new ReplacementSection(() => Draft.Vocabulary, OnVocabularyChanged);
+        Snippets = new SnippetSection(() => Draft.Vocabulary, OnVocabularyChanged);
+
+        // Rows and counts come from Refresh, so without this the page opens empty for somebody who
+        // already has a vocabulary — the lists would fill in only once something else changed them.
+        foreach (var section in Vocabularies)
+        {
+            section.Refresh();
+        }
         _historyMaxEntriesText = _draft.History.MaxEntries.ToString();
         _apiKeyStatus = DescribeApiKey();
         _updateStatus = updates.Describe();
@@ -574,6 +600,15 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [RelayCommand(CanExecute = nameof(CanSave))]
     private void Save()
     {
+        // A section still in text mode is flushed here, so somebody who typed into the box and pressed
+        // Save gets what they typed rather than having to press Done editing text first. A line that is
+        // not an entry stops the save instead of being dropped.
+        if (!ApplyVocabularyEdits())
+        {
+            Flash("One of the vocabulary boxes has a line that is not an entry.");
+            return;
+        }
+
         // CanSave has already checked all four, so these are only unwrapping what it validated.
         Draft.MinimumHoldMs = (int)NumberField.MinimumHold.Parse(MinimumHoldText).Value;
         Draft.MaxRecordingSeconds = (int)Math.Round(NumberField.RecordingLimit.Parse(MaxRecordingMinutesText).Value * 60);
@@ -586,8 +621,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         Draft.Cleanup.Model = string.IsNullOrWhiteSpace(Draft.Cleanup.Model)
             ? new CleanupSettings().Model
             : Draft.Cleanup.Model.Trim();
-
-        ApplyVocabularyEdits();
 
         if (_pendingApiKey is not null)
         {
@@ -770,13 +803,26 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            // Into the boxes rather than straight into settings: the user still has to press Save, and
-            // can see what arrived before they do.
-            Draft.Vocabulary = imported;
-            VocabularyText = string.Join(Environment.NewLine, imported.Spellings);
-            ReplacementsText = VocabularyFormat.Format(imported.Replacements);
-            SnippetsText = VocabularyFormat.Format(imported.Snippets);
-            Flash("Vocabulary imported. Save to keep it.");
+            // Into the draft rather than straight to disk: the user still has to press Save, and can
+            // see what arrived before they do.
+            //
+            // Through the same rules as everything else, because a file is the third way into these
+            // lists and used to be the one nobody checked. And any section still showing its text box
+            // is taken out of it first: leaving one open would mean the next Save parsed a box holding
+            // the vocabulary that has just been replaced, and put it back.
+            var review = VocabularyRules.Clean(imported);
+            Draft.Vocabulary = review.Vocabulary;
+
+            foreach (var section in Vocabularies)
+            {
+                section.LeaveTextMode();
+                section.Refresh();
+            }
+
+            OnVocabularyChanged(null);
+            Flash(review.Changed
+                ? "Vocabulary imported. " + string.Join(" ", review.Notes) + " Save to keep it."
+                : "Vocabulary imported. Save to keep it.");
         }
         catch (Exception ex)
         {
@@ -935,17 +981,36 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Turns the three text boxes into the draft's lists. Shared by Save and by Export.</summary>
-    private void ApplyVocabularyEdits()
+    /// <summary>
+    /// Flushes any section still showing its text box into the draft. False when one of them holds a
+    /// line that is not an entry, which is the whole reason this returns anything: Save has to refuse
+    /// rather than quietly drop the line, and the section is already saying which one it is.
+    /// </summary>
+    private bool ApplyVocabularyEdits()
     {
-        Draft.Vocabulary.Spellings = VocabularyText
-            .Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToArray();
-        Draft.Vocabulary.Replacements = VocabularyFormat.ParseReplacements(ReplacementsText);
-        Draft.Vocabulary.Snippets = VocabularyFormat.ParseSnippets(SnippetsText);
+        var ok = true;
 
-        // The prompt keeps its own copy, so an older build still sees the words.
-        Draft.Cleanup.Vocabulary = Draft.Vocabulary.Spellings;
+        foreach (var section in Vocabularies)
+        {
+            ok &= section.Commit();
+        }
+
+        return ok;
     }
+
+    /// <summary>A section changed the draft: refresh what depends on it, and say anything it asked to say.</summary>
+    private void OnVocabularyChanged(string? note)
+    {
+        OnPropertyChanged(nameof(VocabularySummary));
+        SaveCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(SaveBlockedBy));
+
+        if (note is not null)
+        {
+            Flash(note);
+        }
+    }
+
 
     private string DescribeApiKey()
     {

@@ -52,6 +52,10 @@ public static class Icons
 
     public static Geometry Minimize { get; } = Parse("M6,12 H18");
 
+    /// <summary>Edit a row. A pencil, drawn on the same 24-unit grid as the rest.</summary>
+    public static Geometry Pencil { get; } =
+        Parse("M4,20 L4,16 L16,4 A2.83,2.83 0 0 1 20,8 L8,20 Z M14,6 L18,10");
+
     public static Geometry Close { get; } = Parse("M6.5,6.5 L17.5,17.5 M17.5,6.5 L6.5,17.5");
 
     private static Geometry Parse(string data)

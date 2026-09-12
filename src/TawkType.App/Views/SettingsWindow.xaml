@@ -19,6 +19,98 @@
     <Window.Resources>
         <views:EqualsToVisibilityConverter x:Key="PageVisible" />
 
+        <!-- One vocabulary list, used three times. The three differ in their words and their dialogs,
+             not in their shape, so learning one teaches the other two. -->
+        <DataTemplate x:Key="VocabularySection">
+            <!-- MinWidth, not Width: the window can be dragged down to 720, which leaves this column
+                 narrower than a fixed 520 would insist on. MaxWidth is the one that must not be used
+                 for a container (gotcha 46) — it would shrink the section to its content. -->
+            <StackPanel MinWidth="460" HorizontalAlignment="Left" Margin="0,0,0,24">
+                <DockPanel Margin="0,0,0,2">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Ui.LinkButton}"
+                            Content="{Binding ToggleLabel}" Command="{Binding ToggleTextModeCommand}" />
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Ui.Hint}"
+                               VerticalAlignment="Center" Margin="0,0,12,0" Text="{Binding CountText}" />
+                    <TextBlock Style="{StaticResource Ui.SectionTitle}" Margin="0" Text="{Binding Title}" />
+                </DockPanel>
+
+                <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                           HorizontalAlignment="Left" Margin="0,0,0,10" Text="{Binding Hint}" />
+
+                <!-- The list. The default, and what the page is about. -->
+                <StackPanel Visibility="{Binding IsTextMode, Converter={StaticResource InverseBoolToVisible}}">
+                    <!-- Above the rows, not below: it is what a new user needs, and it must not walk
+                         down the page as the list grows. -->
+                    <Button Style="{StaticResource Ui.Button}" HorizontalAlignment="Left" Margin="0,0,0,8"
+                            Content="{Binding AddLabel}" Command="{Binding AddCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                    <Border Style="{StaticResource Ui.CardSurface}" Padding="14,12"
+                            Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisible}}">
+                        <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" Text="{Binding EmptyText}" />
+                    </Border>
+
+                    <!-- ItemsControl rather than ListBox: nothing here is selected, and a ListBox would
+                         bring its own ScrollViewer inside the page's shared one (gotcha 52). -->
+                    <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Ui.ListRow}" ToolTip="{Binding Tooltip}">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource Ui.RowIconButton}"
+                                                Tag="{x:Static views:Icons.Close}"
+                                                AutomationProperties.Name="{Binding RemoveName}"
+                                                ToolTip="{Binding RemoveName}"
+                                                Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=ContentControl}}"
+                                                CommandParameter="{Binding}" />
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource Ui.RowIconButton}"
+                                                Tag="{x:Static views:Icons.Pencil}"
+                                                AutomationProperties.Name="{Binding EditName}"
+                                                ToolTip="{Binding EditName}"
+                                                Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=ContentControl}}"
+                                                CommandParameter="{Binding}" />
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" MaxWidth="220" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Primary}"
+                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="  →  " VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Ui.TextMuted}"
+                                                       Visibility="{Binding HasSecondary, Converter={StaticResource BoolToVisible}}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Secondary}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Ui.TextMuted}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </Grid>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Bulk. Paste a list, sort it, keep it in a note. The syntax hint lives here and
+                     nowhere else, because here is the only place it is true and the only place it is
+                     needed. NoWrap and a horizontal scrollbar so a pasted column stays a column. -->
+                <StackPanel Visibility="{Binding IsTextMode, Converter={StaticResource BoolToVisible}}">
+                    <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="140"
+                             FontFamily="Consolas" FontSize="12.5" TextWrapping="NoWrap"
+                             HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                             Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                               HorizontalAlignment="Left" Margin="0,6,0,0" Text="{Binding TextHint}" />
+                    <TextBlock Style="{StaticResource Ui.FieldError}" TextWrapping="Wrap" MaxWidth="520"
+                               HorizontalAlignment="Left" Text="{Binding Problem}"
+                               Visibility="{Binding Problem, Converter={StaticResource NullToCollapsed}}" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+
         <!-- One row of a settings page: label, control, optional hint. -->
         <!-- Fixed, not MaxWidth: a field with no hint under it would otherwise shrink to its content
              and the combo's arrow would sit on top of the selected text. -->
@@ -675,29 +767,9 @@
                         <TextBlock Style="{StaticResource Ui.PageSubtitle}"
                                    Text="Words TawkType should get right, and text it can type for you. All of this works on this machine, with or without the Claude pass." />
 
-                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Spellings" />
-                        <StackPanel Style="{StaticResource Field}">
-                            <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="86"
-                                     Text="{Binding VocabularyText, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
-                                       Text="Names, products and acronyms, one per line, written the way you want them typed — TawkType, Jupitor Studio, GitHub. However they are heard, they come out like this." />
-                        </StackPanel>
-
-                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Replacements" />
-                        <StackPanel Style="{StaticResource Field}">
-                            <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="86"
-                                     Text="{Binding ReplacementsText, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
-                                       Text="One per line, as heard =&gt; typed. For the mishearings a spelling cannot fix, where what you say and what you want are different words: see sharp =&gt; C#" />
-                        </StackPanel>
-
-                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Snippets" />
-                        <StackPanel Style="{StaticResource Field}">
-                            <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="86"
-                                     Text="{Binding SnippetsText, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
-                                       Text="Saved text you insert by saying insert and the trigger: my signature =&gt; Michael Burns. Say &quot;insert my signature&quot;. Use \n for a line break. Snippets are typed exactly as written and are never sent for rewriting." />
-                        </StackPanel>
+                        <ContentControl Content="{Binding Spellings}" ContentTemplate="{StaticResource VocabularySection}" />
+                        <ContentControl Content="{Binding Replacements}" ContentTemplate="{StaticResource VocabularySection}" />
+                        <ContentControl Content="{Binding Snippets}" ContentTemplate="{StaticResource VocabularySection}" />
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                             <Button Content="Import…" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
@@ -705,6 +777,9 @@
                             <Button Content="Export…" Style="{StaticResource Ui.Button}"
                                     Command="{Binding ExportVocabularyCommand}" />
                         </StackPanel>
+                        <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
+                                   HorizontalAlignment="Left" Margin="0,8,0,0"
+                                   Text="Your vocabulary is kept in its own file, separate from the rest of your settings, so you can copy it to another machine or keep it in a note. Importing replaces all three lists, and nothing is saved until you press Save." />
                     </StackPanel>
 
                     <!-- ============ AI cleanup ============ -->
@@ -751,12 +826,17 @@
                                        Visibility="{Binding CleanupTimeoutError, Converter={StaticResource NullToCollapsed}}" />
                         </StackPanel>
 
+                        <!-- A summary, not a second editor. This was an editable comma-separated copy of
+                             the spellings on the Vocabulary page: one list with two boxes, and only one
+                             of them had any rules applied to it. -->
                         <StackPanel Style="{StaticResource Field}">
-                            <TextBlock Style="{StaticResource Ui.Label}" Text="Personal dictionary" />
-                            <TextBox Style="{StaticResource Ui.TextBox}"
-                                     Text="{Binding VocabularyText, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Style="{StaticResource Ui.Hint}"
-                                       Text="Names, jargon and acronyms the recogniser gets wrong, comma separated, spelled how you want them typed." />
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Your vocabulary" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="{Binding VocabularySummary}" />
+                            <Button Content="Open the Vocabulary page" Style="{StaticResource Ui.Button}"
+                                    HorizontalAlignment="Left" Margin="0,8,0,0"
+                                    Command="{Binding NavigateCommand}"
+                                    CommandParameter="{x:Static vm:SettingsPage.Vocabulary}" />
                         </StackPanel>
 
                         <StackPanel Style="{StaticResource Field}">
