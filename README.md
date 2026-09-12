@@ -336,14 +336,18 @@ Full list, with licences: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Licence
 
-**Source available, not open source.** See [LICENSE.md](LICENSE.md).
+**[Apache-2.0](LICENSE).** Open source: use it, modify it, redistribute it, build something else out
+of it, commercially or otherwise. Keep the copyright and licence notices, say which files you
+changed, and the patent grant in section 3 protects everyone including you.
 
-Use TawkType for anything you like — personally, at work, in a business of any size — free, with no
-limit on machines. Read the source, and build it for your own use: it is published so the privacy
-claims above can be checked rather than taken on trust.
+The source is public partly so the privacy claims above can be checked rather than believed, and
+partly so anyone who wants to take this further can.
 
-What the licence does not give you is the right to redistribute TawkType or to build something else
-out of it: no copies, no modified versions, no porting it, no taking parts of the source into another
-project. If you want to do something it does not allow, open an issue and ask.
+**Contributions are welcome.** Apache-2.0 section 5 means anything you deliberately submit for
+inclusion arrives under the same licence, so there is no CLA to sign. Open an issue first for
+anything large, so nobody writes something that was never going to be merged.
+
+Third-party components keep their own licences — see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [NOTICE](NOTICE).
 
 [tawktype.com](https://tawktype.com) · built by [Jupitor Studio](https://github.com/JupitorStudioDev).

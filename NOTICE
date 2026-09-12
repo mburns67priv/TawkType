@@ -1,0 +1,17 @@
+TawkType
+Copyright 2026 Jupitor Studio
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This product includes software developed by third parties, listed with their
+licences in THIRD-PARTY-NOTICES.md.
+
+Speech recognition models are not redistributed with this software. They are
+downloaded by the user from their publishers:
+
+  NVIDIA Parakeet TDT 0.6B v3, (C) NVIDIA Corporation, used unmodified under
+  Creative Commons Attribution 4.0 International (CC BY 4.0).
+  https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3
+
+  OpenAI Whisper, MIT.
+  https://huggingface.co/openai/whisper-large-v3-turbo

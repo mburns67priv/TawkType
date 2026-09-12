@@ -311,7 +311,7 @@
                                  repository: most people who run TawkType will never see the repository. -->
                             <Button Content="Licence" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
                                     Command="{Binding OpenLinkCommand}"
-                                    CommandParameter="https://github.com/JupitorStudioDev/TawkType/blob/main/LICENSE.md" />
+                                    CommandParameter="https://github.com/JupitorStudioDev/TawkType/blob/main/LICENSE" />
                             <Button Content="tawktype.com" Style="{StaticResource Ui.Button}"
                                     Command="{Binding OpenLinkCommand}"
                                     CommandParameter="https://tawktype.com" />

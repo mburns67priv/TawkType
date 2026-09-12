@@ -35,9 +35,14 @@ Windows only.
   window identity, installer, data folder. Nothing in the repository carries the old name, and the
   migration code that used to carry old data forward has been deleted — nothing was ever installed under the
   old name, so there was nothing to carry. See "The rename" below.
-- **It has a licence now, and it is not an open-source one.** `LICENSE.md`: use the application for
-  anything, free; read and build the source; no redistribution and no derivative works. Source
-  available, not open source — do not describe it as open source anywhere.
+- **It is open source under Apache-2.0.** `LICENSE` is the canonical text from apache.org, with
+  `NOTICE` beside it. Use, modify, redistribute, fork, commercially or otherwise, keeping the notices
+  and stating changed files. Contributions need no CLA: Apache-2.0 section 5 puts anything
+  deliberately submitted under the same licence.
+
+  It was briefly source-available instead — the same day — under a bespoke licence granting
+  unrestricted use but no derivative works. The owner changed his mind. If anyone wonders why the
+  history contains a licence that forbade forks, that is why; nothing was released under it.
 - **The install folder and the data folder differ by three letters.** The app installs to
   `%LOCALAPPDATA%\TawkTypeApp`; data lives in `%LOCALAPPDATA%\TawkType`. Velopack clears its own folder
   on every install, so those two must never converge — gotcha 19, and `DataFolderTests` reads the id
@@ -213,8 +218,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Uninstalling keeps the data by default | Up to 1.5 GB of models, the vocabulary, and every dictation ever made. Throwing that away on an assumption is worse than leaving a folder behind, and a reinstall then picks up where the user left off. |
 | A pure guard in front of every recursive delete | `DataRemoval.Check` refuses anything near the root of a drive, anything relative, the install folder, and any folder containing it. The data folder and the install folder differ by three letters (gotcha 19) and one caller runs during an uninstall with nobody watching, so the check is a tested function rather than an `if`. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
-| Source available, not open source | The source is published so the privacy claim can be checked rather than believed — that is most of the argument for a local dictation app. It is not published so somebody can ship a fork. Use is unrestricted and free, including commercially; distribution and derivative works are not granted. |
-| A bespoke licence rather than an off-the-shelf one | There is no well-known licence for "any use, no derivatives". PolyForm Strict looks like the fit and is **noncommercial** — its permitted purposes are personal use and noncommercial organisations. Noncommercial, Shield and Small-Business all permit derivative works; Internal-Use excludes personal use. Check the text before repeating any claim about which licence does what. |
+| Apache-2.0 | Open source, permissive, with an explicit patent grant and a requirement to mark changed files. Chosen over MIT for the patent clause, and over GPL-3.0 because the owner decided a closed fork was an acceptable price for being easy to adopt. Nothing in the dependency tree constrained the choice — every package is MIT or Apache-2.0, with no copyleft anywhere. |
+| The licence texts are fetched, never recalled | PolyForm Strict was recommended here as permitting commercial use. It does not: its permitted purposes are personal use and noncommercial organisations. That was a confident claim from memory, wrong, and acted on. Read the text — the Apache-2.0 in `LICENSE` is byte-for-byte from apache.org. |
 | The licence is reachable from inside the app | Settings → General → About has a Licence button. Most people who run TawkType will never see the repository, and a proprietary licence nobody can find is not much of one. |
 | First run saves each answer as it is given | The steps after it use them for real: the meter opens the device just chosen, the engine loads that language's model, the hook binds that key. A draft held back until Finish would have the user practise against the old settings — so there is no Cancel button, because there is nothing to roll back. |
 | No step is satisfied by the user agreeing to it | A wizard that collects settings can end with everything configured and nothing working. `SetupPlan` gates on observations instead: a level above the noise floor, a model that *loaded*, words back from a real dictation. "Ready" means it worked. |
@@ -708,10 +713,10 @@ site source and every snapshot from v2 on were already clean.
     four taskbar-debugging environment variables, a workflow comment, a worked example in the feature
     research, and a citation note in the review. Found by grepping case-insensitively across every
     file type rather than trusting the claim that none were left.
-34. Licensed it: `LICENSE.md`, source available rather than open source — unrestricted free use of
-    the application, no redistribution, no derivative works, name and mark reserved, contributions
-    assigned. README, `THIRD-PARTY-NOTICES.md` and the About panel say so and point at it. Written
-    rather than adopted, because the obvious off-the-shelf candidate turned out to be noncommercial.
+34. Licensed it: source available rather than open source — unrestricted free use of the
+    application, no redistribution, no derivative works, name and mark reserved, contributions
+    assigned. Written rather than adopted, because the obvious off-the-shelf candidate turned out to
+    be noncommercial. Superseded the same day by entry 37.
 35. Made it possible to take the data with the uninstall: a setting on Settings → General, a
     *Delete my data…* button beside it, `AppDataMaintenance` doing the work, and Velopack's
     `OnBeforeUninstallFastCallback` obeying the setting silently. `DataRemoval` guards both callers.
@@ -722,6 +727,12 @@ site source and every snapshot from v2 on were already clean.
     value on uninstall, because TawkType writes it rather than Velopack, so every sign-in afterwards
     would try to launch a deleted executable. The hook clears it now, whatever the user chose about
     their data.
+37. Made it open source after all, on the owner's decision: **Apache-2.0**, the canonical text from
+    apache.org with a `NOTICE` beside it, replacing the bespoke source-available licence from entry
+    34. Checked first that nothing in the tree constrained the choice — every dependency is MIT or
+    Apache-2.0, read out of the packages themselves rather than the notices file, with no copyleft
+    anywhere. The name and mark are no longer reserved by the licence, and the contribution
+    assignment is gone: Apache-2.0 section 5 handles inbound contributions without a CLA.
 
 ## Links
 
