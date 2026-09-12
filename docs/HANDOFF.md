@@ -413,7 +413,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
 6. **Whisper on a very short clip** is padded to 1.5 s in `WhisperTranscriber`; whisper.cpp rejects
    shorter input. Parakeet is padded to 0.5 s.
 7. ~~Clipboard paste mode restores only text.~~ Done — every format is copied aside and put back now.
-   See gotchas 53 to 56 for what that cost and what is still true.
+   See gotchas 53 to 57 for what that cost and what is still true.
 8. **Parakeet is CC-BY-4.0.** Attribution to NVIDIA belongs in the eventual About screen. Whisper is MIT.
 9. **The cleanup pass has never made a successful API call.** No key was available in the session that
    built it. It was verified as far as the API rejecting an invalid key in ~600 ms and the fallback
@@ -711,7 +711,27 @@ with a script. The script sees what it asks about; a person sees the thing that 
     skipped for the opposite reason: the system does not free them, so putting one back would give the
     owning application a handle it has stopped expecting.
 
-56. **The clipboard is the one shared thing a session is not sandboxed from.** Files, `%LOCALAPPDATA%`
+56. **`FileContents` cannot be copied aside, and its descriptor must go with it.** It is the half of
+    a documented pair with `FileGroupDescriptorW` that carries a file which is not a file — a mail
+    attachment, something inside a zip — and it is normally a `TYMED_ISTREAM`, so `GetClipboardData`
+    hands back nothing a `GlobalLock` can read. Found by the owner running `tools/TawkType.Clip` over a
+    file copied in Explorer, which is the only way it was ever going to be found.
+
+    Copying an ordinary file is unaffected: `CF_HDROP` carries the path, survives, and is what every
+    target uses for a real file. `DropOrphanedDescriptors` takes the descriptor back out of the
+    snapshot when the contents are lost, because restoring it alone leaves the clipboard advertising
+    files nobody can read — a mail client prefers the descriptor and would attach an empty file rather
+    than falling back to the `CF_HDROP` that did survive.
+
+    **A clipboard left in that state stays that way**, which is its own trap when testing: after a run
+    that lost `FileContents`, the clipboard has a descriptor and no contents, so the next run has
+    nothing left to lose and reports everything kept. Re-copy in Explorer before believing a second
+    reading.
+
+    The real fix is OLE — `OleGetClipboard` returns an `IDataObject` that can hold a stream — and it is
+    on the roadmap rather than in this pass.
+
+57. **The clipboard is the one shared thing a session is not sandboxed from.** Files, `%LOCALAPPDATA%`
     and `HKCU` are redirected into a session overlay (gotcha 28) — the clipboard is not. Running
     `tools/TawkType.Clip` without `--read` writes to the user's actual clipboard, and a bug in the
     restore destroys whatever they had copied, which may be the one thing they cannot copy again.
@@ -943,7 +963,13 @@ with a script. The script sees what it asks about; a person sees the thing that 
     bug in gotcha 54: the first version called `CF_BITMAP` lost when Windows rebuilds it, which would
     have cried wolf in the log on every paste with an image copied.
 
-    What is not closed is the settle time. Nothing tells an application's clipboard borrower when the
+    Two things are not closed. `FileContents` — a file that is not a file, such as a mail attachment —
+    is a stream rather than memory, so it cannot be copied aside at all; its descriptor is dropped with
+    it so the clipboard does not advertise files nobody can read (gotcha 56). Copying an ordinary file
+    is unaffected, because `CF_HDROP` survives and is what targets use for a real file. Doing better
+    means going through OLE.
+
+    And the settle time. Nothing tells an application's clipboard borrower when the
     target has actually pasted, so 200 ms is still a guess — deliberately unchanged, because changing
     a number nobody has measured is how the audio path went wrong three times (entry 41).
 

@@ -293,6 +293,21 @@ used for a paste is kept out of the local clipboard history as well
 Clipboard sync is otherwise a path by which dictated words leave the machine without anyone choosing
 it, which would make the claim on the badge false.
 
+**One thing really is lost: `FileContents`.** It is the half of a documented pair with
+`FileGroupDescriptorW` that carries a file which is not a file — a mail attachment, something inside a
+zip — and Microsoft describes it as normally a stream rather than memory, so there is nothing to copy
+aside and nothing to write back. Copying an ordinary file in Explorer is unaffected: `CF_HDROP` holds
+the path, survives, and is what every target uses for a real file.
+
+The descriptor is therefore dropped along with it. Restoring a descriptor whose contents are gone
+leaves the clipboard advertising files nobody can read, and a target that prefers the descriptor — a
+mail client attaching a file — would produce an empty attachment instead of falling back to the
+`CF_HDROP` that did survive. An offer that cannot be honoured is worse than no offer.
+
+The real fix for this is OLE: `OleGetClipboard` hands back an `IDataObject` that can carry a stream,
+where the Win32 clipboard API cannot. That is a considerably larger change to a path that works, so it
+is on the roadmap rather than in this pass.
+
 One thing the round trip does not preserve is the **order** of a format Windows synthesises. The
 copied formats go back in the order they were found, but a synthesised one is added after them: an
 image that arrived as `CF_BITMAP, CF_DIB` comes back as `CF_DIB, …, CF_BITMAP`. Order decides which
@@ -719,18 +734,23 @@ single-instance guard.
 
 Open, roughly in the order worth doing:
 
-1. **The filler regex still eats real words.** German "um" and a lower-case English "er" are removed as
+1. **`FileContents` through OLE.** The one thing a borrowed clipboard still loses. `OleGetClipboard`
+   returns an `IDataObject` that can hold a `TYMED_ISTREAM`, which the Win32 clipboard API cannot, so
+   copying the stream aside and handing it back is possible — it is COM work rather than a handle
+   copy. Until then a virtual file (a mail attachment, a file inside a zip) does not survive a pasted
+   dictation, and its descriptor is dropped rather than left dangling.
+2. **The filler regex still eats real words.** German "um" and a lower-case English "er" are removed as
    disfluencies. All-capitals words are safe now, which is why *"The ER is open"* works, but no
    capitalisation rule can reach the lower-case collisions — telling a filler from a word there needs
    to know the language. (Same review, finding 10, now partly closed.)
-2. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
+3. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
    it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
    Feature research §5's "later" half, and the only part of that document still open.
-3. **A local `ILlmClient`** (llama.cpp or ONNX), so the rewrite works offline and "nothing leaves this
+4. **A local `ILlmClient`** (llama.cpp or ONNX), so the rewrite works offline and "nothing leaves this
    machine" holds with cleanup switched on.
-4. **Streaming**: transcribe in one-second windows while the key is held, so text appears as it is
+5. **Streaming**: transcribe in one-second windows while the key is held, so text appears as it is
    spoken. Parakeet is a transducer, which suits this.
-5. **Command mode**: select text, hold a second key, speak an instruction, replace the selection.
-6. **Overlay polish**: an animated waveform in place of the level meter, respecting reduced motion.
-7. **Seed the recogniser with the vocabulary** — Whisper's `initial_prompt` takes a word list, so the
+6. **Command mode**: select text, hold a second key, speak an instruction, replace the selection.
+7. **Overlay polish**: an animated waveform in place of the level meter, respecting reduced motion.
+8. **Seed the recogniser with the vocabulary** — Whisper's `initial_prompt` takes a word list, so the
    names the user has taught TawkType could be got right before cleanup rather than after.

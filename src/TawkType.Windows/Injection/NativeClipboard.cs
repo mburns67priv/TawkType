@@ -175,6 +175,7 @@ internal static class NativeClipboard
             var captured = entries.Select(entry => entry.Format).ToHashSet();
             var lost = skipped.Where(skip => !CanBeSynthesisedFrom(skip, captured)).ToList();
 
+            DropOrphanedDescriptors(entries, lost);
             return new ClipboardSnapshot(entries, lost);
         }
         catch
@@ -240,6 +241,34 @@ internal static class NativeClipboard
         if (TrySetText(text, allowClipboardHistory) != ClipboardWrite.Written)
         {
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not put the text on the clipboard");
+        }
+    }
+
+    /// <summary>
+    /// Takes a file descriptor back out of the snapshot when its contents could not be copied.
+    ///
+    /// `FileContents` is how a file that is not a file travels — a mail attachment, something inside a
+    /// zip — and Microsoft describes it as normally a stream (`TYMED_ISTREAM`), not memory, so there is
+    /// nothing here to copy aside. Putting the descriptor back without it would leave the clipboard
+    /// advertising files whose contents nobody can read: a target that prefers the descriptor, which
+    /// is what a mail client does, would produce an empty attachment instead of falling back to the
+    /// `CF_HDROP` path that did survive. An offer that cannot be honoured is worse than no offer.
+    /// </summary>
+    private static void DropOrphanedDescriptors(List<ClipboardSnapshot.Entry> entries, List<uint> lost)
+    {
+        var contents = RegisterClipboardFormat("FileContents");
+        if (contents == 0 || !lost.Contains(contents))
+        {
+            return;
+        }
+
+        foreach (var name in new[] { "FileGroupDescriptorW", "FileGroupDescriptor" })
+        {
+            var descriptor = RegisterClipboardFormat(name);
+            if (descriptor != 0 && entries.RemoveAll(entry => entry.Format == descriptor) > 0)
+            {
+                lost.Add(descriptor);
+            }
         }
     }
 

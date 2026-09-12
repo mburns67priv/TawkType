@@ -39,7 +39,9 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 - **Your clipboard is borrowed, not taken.** Long or multi-line text is pasted rather than typed, and
   that needs your clipboard for a moment. Everything on it is copied aside first — the image, the file
   you copied in Explorer, the formatting on copied text, not just the plain words — and put back
-  afterwards. If you copy something yourself while a dictation is landing, yours wins and TawkType
+  afterwards. One thing does not survive: a file that is not really a file, such as a mail attachment
+  or something inside a zip, because Windows hands those over as a stream that cannot be copied aside.
+  Ordinary files are fine. If you copy something yourself while a dictation is landing, yours wins and TawkType
   leaves it alone.
 - **Nothing is lost.** Every dictation is kept locally, so one that went into the wrong window is a
   click away. Turn the log off and it means it — nothing keeps a second copy of your words.
