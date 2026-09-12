@@ -68,11 +68,18 @@
         <!-- The hint sits behind the box rather than above it: a 560px window has no row to spare, and
              the box is obviously a box without a label on top of it. -->
         <Grid Grid.Row="1" Margin="0,0,0,10">
-            <TextBox Style="{StaticResource Ui.TextBox}"
+            <TextBox x:Name="SearchBox" Style="{StaticResource Ui.TextBox}"
                      Text="{Binding Search, UpdateSourceTrigger=PropertyChanged, Delay=150}" />
-            <TextBlock Text="Search what you have said" IsHitTestVisible="False"
-                       Style="{StaticResource Meta}" VerticalAlignment="Center" Margin="12,0,0,0"
-                       Visibility="{Binding IsFiltered, Converter={StaticResource InverseBoolToVisible}}" />
+            <!-- The inset comes from the box, not from a number typed twice. See the same pattern on
+                 the Vocabulary page. -->
+            <Border IsHitTestVisible="False" BorderBrush="Transparent"
+                    BorderThickness="{Binding BorderThickness, ElementName=SearchBox}"
+                    Padding="{Binding Padding, ElementName=SearchBox}"
+                    Visibility="{Binding IsFiltered, Converter={StaticResource InverseBoolToVisible}}">
+                <TextBlock Text="Search what you have said" VerticalAlignment="Center"
+                           FontSize="{Binding FontSize, ElementName=SearchBox}"
+                           Foreground="{DynamicResource Ui.TextMuted}" />
+            </Border>
         </Grid>
 
         <Border Grid.Row="2" CornerRadius="{StaticResource Ui.CornerRadius}"

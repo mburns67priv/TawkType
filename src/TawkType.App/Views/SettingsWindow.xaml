@@ -891,9 +891,19 @@
                         <TextBox x:Name="VocabularySearch" Style="{StaticResource Ui.TextBox}"
                                  Text="{Binding ActiveList.Search, UpdateSourceTrigger=PropertyChanged, Delay=150}"
                                  KeyDown="OnVocabularySearchKeyDown" />
-                        <TextBlock Text="Search this list  (Ctrl+F)" IsHitTestVisible="False"
-                                   Style="{StaticResource Ui.Hint}" VerticalAlignment="Center" Margin="12,0,0,0"
-                                   Visibility="{Binding ActiveList.IsSearching, Converter={StaticResource InverseBoolToVisible}}" />
+                        <!-- The placeholder has to start exactly where the typed text does. Taking the
+                             inset from the box itself rather than repeating a number: a literal margin
+                             was wrong by a visible amount and would go wrong again the moment the style's
+                             padding changed. Ui.Hint is not used here either — it is a size smaller than
+                             the text that replaces it, and carries a margin of its own. -->
+                        <Border IsHitTestVisible="False" BorderBrush="Transparent"
+                                BorderThickness="{Binding BorderThickness, ElementName=VocabularySearch}"
+                                Padding="{Binding Padding, ElementName=VocabularySearch}"
+                                Visibility="{Binding ActiveList.IsSearching, Converter={StaticResource InverseBoolToVisible}}">
+                            <TextBlock Text="Search this list  (Ctrl+F)" VerticalAlignment="Center"
+                                       FontSize="{Binding FontSize, ElementName=VocabularySearch}"
+                                       Foreground="{DynamicResource Ui.TextMuted}" />
+                        </Border>
                     </Grid>
                 </DockPanel>
 

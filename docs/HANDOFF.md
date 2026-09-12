@@ -832,6 +832,20 @@ with a script. The script sees what it asks about; a person sees the thing that 
     but not at it, which is exactly the sort of result that gets waved through. Search from the named
     control, not from the page.
 
+63. **`TextBoxBase` applies `Padding` itself, so binding it to `PART_ContentHost`'s `Margin` insets
+    the text twice.** Every templated `TextBox` and `PasswordBox` here declared `Padding="9,7"` and
+    rendered its text 18px from the left. Nothing looked broken on its own — the boxes were simply
+    roomier than the style said — and it only surfaced when a placeholder was overlaid at the declared
+    padding and sat visibly left of the text it stood in for.
+
+    The templates set no `Margin` on the content host now; `Padding` does the job once. Diagnosing it
+    took an embarrassing amount of pixel forensics, and two of the measurements were of my own
+    scripting mistakes rather than the app — the lesson being that when a control does not sit where
+    the arithmetic says it should, the arithmetic is missing a term rather than the pixels lying.
+
+    `PrintWindow` does not capture the caret, so "where is the text origin" cannot be answered by
+    screenshotting an empty focused box. Type a character and measure that instead.
+
 ## Roadmap, in the order I would do it
 
 1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only

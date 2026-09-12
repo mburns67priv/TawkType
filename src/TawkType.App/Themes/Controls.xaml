@@ -118,7 +118,11 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{StaticResource Ui.CornerRadius}">
-                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                        <!-- No Margin here. TextBoxBase already applies Padding to the inner text view,
+                             so binding it here too inset the text twice: a box declaring 9px of padding
+                             rendered its text 18px in, and any overlay placed at the declared padding
+                             sat visibly left of the text it was standing in for. -->
+                        <ScrollViewer x:Name="PART_ContentHost"
                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                 </ControlTemplate>
@@ -138,7 +142,9 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{StaticResource Ui.CornerRadius}">
-                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+                        <!-- No Margin, for the same reason as Ui.TextBox above: Padding is already
+                             applied to the inner text view, and binding it here too inset it twice. -->
+                        <ScrollViewer x:Name="PART_ContentHost" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
@@ -162,7 +168,11 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{StaticResource Ui.CornerRadius}">
-                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                        <!-- No Margin here. TextBoxBase already applies Padding to the inner text view,
+                             so binding it here too inset the text twice: a box declaring 9px of padding
+                             rendered its text 18px in, and any overlay placed at the declared padding
+                             sat visibly left of the text it was standing in for. -->
+                        <ScrollViewer x:Name="PART_ContentHost"
                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                 </ControlTemplate>
