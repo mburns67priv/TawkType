@@ -501,9 +501,24 @@ public partial class App : Application
     /// </summary>
     private void ShowDictationBox()
     {
-        _dictationBox ??= new DictationBoxWindow(Services.GetRequiredService<DictationBoxViewModel>());
+        var viewModel = Services.GetRequiredService<DictationBoxViewModel>();
 
-        Services.GetRequiredService<DictationBoxViewModel>().Load(_undelivered);
+        if (_dictationBox is null)
+        {
+            // Clearing the box is a decision about the dictation being held for recovery, so the copy
+            // the app is keeping goes with it — and the bar stops saying there is something waiting.
+            // Leaving either behind would mean an empty box the bar still insists has text in it, and
+            // a reopen that brings the words back.
+            viewModel.Discarded += (_, _) =>
+            {
+                _undelivered = null;
+                Services.GetRequiredService<OverlayViewModel>().SetRecoverable(false);
+            };
+
+            _dictationBox = new DictationBoxWindow(viewModel);
+        }
+
+        viewModel.Load(_undelivered);
         _dictationBox.Show();
         _dictationBox.Activate();
     }

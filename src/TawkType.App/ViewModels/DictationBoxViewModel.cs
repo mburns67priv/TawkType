@@ -53,6 +53,12 @@ public sealed partial class DictationBoxViewModel(
     public event EventHandler? Finished;
 
     /// <summary>
+    /// The user is done with the failed dictation and does not want it kept. The app holds that
+    /// separately, and the bar is lit because of it, so both have to be told.
+    /// </summary>
+    public event EventHandler? Discarded;
+
+    /// <summary>
     /// Fills the box from the last dictation. Called every time it is opened rather than once, because
     /// the interesting case is the dictation that just failed, not the one it was opened with.
     /// </summary>
@@ -73,6 +79,31 @@ public sealed partial class DictationBoxViewModel(
         {
             Status = "Nothing dictated yet";
         }
+    }
+
+    /// <summary>
+    /// Empties the box and forgets the dictation that was in it.
+    ///
+    /// It clears more than the text box: the app is holding that dictation so the box can explain
+    /// itself later, and the bar is showing a lit button because of it. Clearing the words and leaving
+    /// those two would mean an empty box that the bar still insists has something in it, and reopening
+    /// would bring the text back.
+    ///
+    /// The history is not touched. It is the log of what was said, and this is a decision about one
+    /// copy of it — the one being held for recovery.
+    /// </summary>
+    [RelayCommand]
+    private void Clear()
+    {
+        Text = string.Empty;
+        HasProblem = false;
+        Headline = string.Empty;
+        Explanation = string.Empty;
+        _target = null;
+        CanSendBack = false;
+        Status = "Cleared";
+
+        Discarded?.Invoke(this, EventArgs.Empty);
     }
 
     [RelayCommand]

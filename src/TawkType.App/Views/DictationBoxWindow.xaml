@@ -59,6 +59,9 @@
                        FontSize="11.5" Foreground="{DynamicResource Ui.Accent}"
                        TextTrimming="CharacterEllipsis" />
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Clear" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                        ToolTip="Empty the box and forget this dictation. The history keeps it."
+                        Command="{Binding ClearCommand}" />
                 <Button Content="Close" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
                         IsCancel="True" Click="OnCloseClick" />
                 <Button Content="Copy" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
