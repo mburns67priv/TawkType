@@ -265,7 +265,7 @@ settings and models:
 | `apikey.dat` | Your Anthropic key, DPAPI-encrypted for your Windows account |
 | `history.jsonl` | Every dictation. **Plain text** — turn it off in Settings → History if that's not for you, and the file is deleted rather than merely hidden |
 | `models\` | Downloaded speech models |
-| `logs\tawktype.log` | Rolling 5 MB debug log. Records how long and how many characters, **never the words themselves** |
+| `logs\tawktype.log` | Debug log: two files, a little over 10 MB at most, then the older is overwritten. Records how long and how many characters, **never the words themselves**. Turn it off, or clear it now, in Settings → General — the history switch does not cover it |
 
 ## Uninstalling the app
 

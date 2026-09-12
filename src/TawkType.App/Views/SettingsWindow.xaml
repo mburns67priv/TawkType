@@ -326,6 +326,18 @@
                         <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
                                    Text="Off by default: uninstalling leaves your models, history and settings where they are, so reinstalling picks up where you left off. Tick it and an uninstall takes the lot." />
 
+                        <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Diagnostic log" />
+                        <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="A record of what TawkType did — how long each dictation was and how long it took, never a word of what you said. Two files, a little over 10 MB at most, then the oldest is overwritten. The history switch above does not cover this one." />
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,10"
+                                  IsChecked="{Binding Draft.WriteDiagnosticLog}"
+                                  Content="Keep a diagnostic log" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Clear the log now" Style="{StaticResource Ui.Button}"
+                                    Command="{Binding PurgeLogsCommand}" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,8,0,0" Text="{Binding LogText}" />
+
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Startup" />
                         <CheckBox Style="{StaticResource Ui.CheckBox}"
                                   IsChecked="{Binding StartWithWindows}"

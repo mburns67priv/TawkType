@@ -96,6 +96,19 @@ public sealed class TawkTypeSettings
     /// </summary>
     public int MaxRecordingSeconds { get; set; } = 300;
 
+    /// <summary>
+    /// Whether to write the diagnostic log at all.
+    ///
+    /// It never records what was said — only that a dictation happened, how long it was and how long
+    /// it took — but it is still a record of when somebody was at their machine and talking, and the
+    /// History switch does not cover it. On by default: it is the only thing that explains a failure
+    /// after the fact, and it is capped at two files.
+    ///
+    /// A plain bool rather than a nested section on purpose: a new section needs adding to
+    /// <see cref="Clone"/> by hand or the Settings window edits live settings in place (gotcha 11).
+    /// </summary>
+    public bool WriteDiagnosticLog { get; set; } = true;
+
     /// <summary>The dictation log and its always-on-screen window.</summary>
     public HistorySettings History { get; set; } = new();
 

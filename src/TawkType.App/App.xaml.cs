@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using H.NotifyIcon;
 using CommunityToolkit.Mvvm.Input;
@@ -38,6 +39,7 @@ public partial class App : Application
     private readonly CancellationTokenSource _shutdown = new();
     private IHost? _host;
     private TaskbarIcon? _tray;
+    private FileLoggerProvider? _fileLog;
     private OverlayWindow? _overlay;
     private SettingsWindow? _settingsWindow;
     private HistoryWindow? _historyWindow;
@@ -89,7 +91,10 @@ public partial class App : Application
             {
                 logging.ClearProviders();
                 logging.AddDebug();
-                logging.AddProvider(new FileLoggerProvider(Path.Combine(SettingsStore.AppDataDirectory, "logs")));
+                _fileLog = new FileLoggerProvider(
+                    Path.Combine(SettingsStore.AppDataDirectory, "logs"),
+                    DiagnosticLogWanted());
+                logging.AddProvider(_fileLog);
                 logging.SetMinimumLevel(LogLevel.Debug);
             })
             .ConfigureServices(ConfigureServices)
@@ -177,7 +182,16 @@ public partial class App : Application
         // The tooltip names the key the user chose, so it is built here rather than written in XAML,
         // and rebuilt whenever they change it.
         RefreshTrayTooltip();
-        Services.GetRequiredService<SettingsStore>().Changed += (_, _) => Dispatcher.BeginInvoke(RefreshTrayTooltip);
+        Services.GetRequiredService<SettingsStore>().Changed += (_, _) => Dispatcher.BeginInvoke(() =>
+        {
+            RefreshTrayTooltip();
+
+            // Switching the log off takes effect on the next line written, not the next start.
+            if (_fileLog is not null)
+            {
+                _fileLog.Enabled = Services.GetRequiredService<SettingsStore>().Current.WriteDiagnosticLog;
+            }
+        });
 
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
 
@@ -526,6 +540,34 @@ public partial class App : Application
         viewModel.Load(_undelivered);
         _dictationBox.Show();
         _dictationBox.Activate();
+    }
+
+    /// <summary>
+    /// Whether the diagnostic log is wanted, read straight out of the settings file.
+    ///
+    /// The logger is built before the DI container, so there is no <c>SettingsStore</c> to ask yet —
+    /// and constructing a second one to find out would run the migration, which writes. Reading the one
+    /// boolean here is what makes "off" mean that no line is ever written, rather than a handful at
+    /// every start before the real setting arrives. Anything unreadable answers yes, because a missing
+    /// log is worse than an unwanted one when something has already gone wrong.
+    /// </summary>
+    private static bool DiagnosticLogWanted()
+    {
+        try
+        {
+            if (!File.Exists(SettingsStore.DefaultPath))
+            {
+                return true;
+            }
+
+            using var document = JsonDocument.Parse(File.ReadAllText(SettingsStore.DefaultPath));
+            return !document.RootElement.TryGetProperty("WriteDiagnosticLog", out var value)
+                || value.ValueKind != JsonValueKind.False;
+        }
+        catch
+        {
+            return true;
+        }
     }
 
     private void OnApplyUpdateClick(object sender, RoutedEventArgs e)

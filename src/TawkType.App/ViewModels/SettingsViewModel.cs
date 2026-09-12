@@ -95,6 +95,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _appDataText;
 
+    /// <summary>What the log is using, so "Clear the log now" says what it would get back.</summary>
+    [ObservableProperty]
+    private string _logText;
+
     /// <summary>What the active engine needs, and whether it already has it.</summary>
     [ObservableProperty]
     private string _activeModelText = string.Empty;
@@ -196,6 +200,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _selectedInputDevice = _draft.InputDeviceName ?? InputDevices[0];
         _modelStorageText = models.Describe();
         _appDataText = DescribeAppData(appData);
+        _logText = DescribeLogs();
         _cleanupTimeoutText = _draft.Cleanup.TimeoutMs.ToString();
         _vocabularyText = string.Join(Environment.NewLine, _draft.Vocabulary.Spellings);
         _replacementsText = VocabularyFormat.Format(_draft.Vocabulary.Replacements);
@@ -832,9 +837,36 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         if (await _appData.DeleteWithConfirmationAsync(owner))
         {
             AppDataText = DescribeAppData(_appData);
+            LogText = DescribeLogs();
             RefreshModels();
             Flash("Deleted. TawkType is back to how it started.");
         }
+    }
+
+    /// <summary>
+    /// Clears the log files. No confirmation: the log holds no work of the user's, only a record that
+    /// TawkType ran, and it is capped and overwritten anyway — asking would be a dialog in front of
+    /// tidying up. Deleting the history asks, because that is the user's own words.
+    /// </summary>
+    [RelayCommand]
+    private void PurgeLogs()
+    {
+        var (bytes, failures) = _appData.PurgeLogs();
+        LogText = DescribeLogs();
+
+        Flash(failures > 0
+            ? $"Cleared {ModelStorage.FormatSize(bytes)}; {failures} file(s) were in use."
+            : bytes > 0
+                ? $"Log cleared — {ModelStorage.FormatSize(bytes)} freed."
+                : "There was nothing in the log.");
+    }
+
+    private static string DescribeLogs()
+    {
+        var bytes = AppDataMaintenance.LogBytes;
+        return bytes == 0
+            ? "The log is empty."
+            : $"{ModelStorage.FormatSize(bytes)} in {AppDataMaintenance.LogsDirectory}";
     }
 
     private static string DescribeAppData(AppDataMaintenance appData)

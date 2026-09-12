@@ -83,6 +83,73 @@ public sealed class AppDataMaintenance
     /// </summary>
     public static string? InstallDirectory => Path.GetDirectoryName(Environment.ProcessPath);
 
+    /// <summary>The logs folder. Inside the data folder, so deleting the data takes it too.</summary>
+    public static string LogsDirectory => Path.Combine(DataDirectory, "logs");
+
+    /// <summary>How much the log is using right now, for a line under the button that clears it.</summary>
+    public static long LogBytes
+    {
+        get
+        {
+            if (!Directory.Exists(LogsDirectory))
+            {
+                return 0;
+            }
+
+            long total = 0;
+            foreach (var file in Directory.EnumerateFiles(LogsDirectory))
+            {
+                try
+                {
+                    total += new FileInfo(file).Length;
+                }
+                catch
+                {
+                    // A file that vanished between the listing and the measuring. It is a hint, not an audit.
+                }
+            }
+
+            return total;
+        }
+    }
+
+    /// <summary>
+    /// Deletes the log files. Returns how many bytes went, and how many files would not go.
+    ///
+    /// A plain file enumeration rather than a folder delete, so this needs no
+    /// <see cref="DataRemoval.Check"/>: nothing recursive happens and the folder itself stays, which
+    /// matters because the logger keeps writing into it. It appends and closes per line rather than
+    /// holding the file open, so a purge lands between writes; anything still locked is reported
+    /// instead of being retried, because the next rotation clears it anyway.
+    /// </summary>
+    public (long Bytes, int Failures) PurgeLogs()
+    {
+        long freed = 0;
+        var failures = 0;
+
+        if (!Directory.Exists(LogsDirectory))
+        {
+            return (0, 0);
+        }
+
+        foreach (var file in Directory.EnumerateFiles(LogsDirectory))
+        {
+            try
+            {
+                var size = new FileInfo(file).Length;
+                File.Delete(file);
+                freed += size;
+            }
+            catch
+            {
+                failures++;
+            }
+        }
+
+        _logger.LogInformation("Cleared the log ({Size})", ModelStorage.FormatSize(freed));
+        return (freed, failures);
+    }
+
     public AppDataContents Describe()
     {
         var models = 0;

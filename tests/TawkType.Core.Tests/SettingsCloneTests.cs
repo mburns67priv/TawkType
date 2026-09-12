@@ -4,6 +4,23 @@ namespace TawkType.Core.Tests;
 
 public sealed class SettingsCloneTests
 {
+    /// <summary>
+    /// The diagnostic log is on unless the user says otherwise: it is the only thing that explains a
+    /// failure after the fact, it never records a word of what was said, and it is capped at two files.
+    /// Being a plain bool rather than a section is also what keeps it out of gotcha 11's way.
+    /// </summary>
+    [Fact]
+    public void The_diagnostic_log_is_on_by_default_and_copied_by_value()
+    {
+        var original = new TawkTypeSettings();
+        Assert.True(original.WriteDiagnosticLog);
+
+        var copy = original.Clone();
+        copy.WriteDiagnosticLog = false;
+
+        Assert.True(original.WriteDiagnosticLog);
+    }
+
     [Fact]
     public void Clone_does_not_share_the_cleanup_section()
     {

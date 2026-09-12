@@ -185,9 +185,15 @@ TawkType* on Settings → General. Velopack's uninstall hook reads that one sett
 folder silently; everything else about the question is asked in the application, because the hook is
 not allowed to ask anything. `docs/ARCHITECTURE.md` has the shape of it.
 
-- `logs\tawktype.log` — rolling 5 MB. Debug level. Every dictation logs how many characters, how
-  many audio seconds and how many ms — **never the text**. That was false until `77adef3`; both
-  transcribers logged the recognised words at Debug, so turning history off left a second plaintext
+- `logs\tawktype.log` — **two files, a little over 10 MB at most.** Past 5 MB the live file is
+  rolled onto `tawktype.log.1`, overwriting the previous one; nothing else is kept and nothing grows
+  beyond that pair. "Rolling 5 MB", as this said until somebody asked, was half the footprint.
+  `WriteDiagnosticLog` turns it off — and off means no line is written, because the setting is read
+  out of the settings file before the logger is built — while *Clear the log now* on
+  Settings → General empties it on demand. **The History switch does not cover it**: with history off,
+  the log still records that dictations happened and how long they took. Debug level. Every dictation
+  logs how many characters, how many audio seconds and how many ms — **never the text**. That was
+  false until `77adef3`; both transcribers logged the recognised words at Debug, so turning history off left a second plaintext
   archive of everything the user had said.
 
 On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothing is re-downloaded.
@@ -229,6 +235,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Emptying the clipboard and then failing is its own outcome | `ClipboardWrite` has three values, not two. A write that never opened the clipboard must not write anything back; a write that emptied it and then failed has already lost the user's content and must. Collapsing them either strands a loss or adds a duplicate to the user's clipboard history. |
 | One message-only window, on its own STA thread, for every clipboard call | Microsoft documents that opening the clipboard with a null owner makes `EmptyClipboard` set the owner to null, "this causes `SetClipboardData` to fail" — so a real handle is not optional. An owner window is also sent messages, so its thread has to pump: not a pool thread, and not the UI thread, which must not block behind a clipboard another process is holding open. |
 | Nothing TawkType writes may reach the cloud clipboard | Clipboard sync uploads whatever lands on the clipboard to the user's Microsoft account, and dictations land on the clipboard. That is words leaving the machine with nobody choosing it, which would make the badge's claim false. The transient paste text is kept out of the local history too; text copied for the user to paste themselves stays in it, because they are going to need it. |
+| The log can be switched off, and is on until it is | It is the only thing that explains a failure after the fact, and it never records a word of what was said — so defaulting it off would cost every future diagnosis to protect nothing much. But it is still a record of when somebody was at their machine and talking, the History switch does not cover it, and "turn logging off" is a reasonable thing to want. Off means no line is written: the setting is read straight out of `settings.json` before the logger exists, rather than after the container is built, which would leak a handful of lines at every start. |
+| Clearing the log does not ask | It holds no work of the user's, it is capped at two files and overwritten anyway, so a confirmation would be a dialog in front of tidying up. Deleting the history still asks, because that is the user's own words — the same line drawn in "deleting one entry does not ask; Clear still does". |
 | The recording limit finishes rather than cancels | A key left under a book should not record all afternoon, but throwing the audio away would punish the user for the accident. Whatever was said still arrives. |
 | Sounds use `SystemSounds`, off by default | They respect whatever scheme the user has chosen, silence included, and they need no asset files. |
 | The dictation box never opens itself | It appears after a failed delivery, which is exactly when the user is mid-sentence in something else. A window arriving over that would be a worse interruption than the failure, and it would take the focus the rest of the app works so hard never to touch. The bar reports it; the user opens it. |
@@ -1006,6 +1014,19 @@ with a script. The script sees what it asks about; a person sees the thing that 
     does only for a *staged update*, never for the running one. Both the claim and the tooltip were
     wrong in the same ten minutes; the wording here was what sent a session looking in the tray for a
     version that is only ever in Settings → General → About.
+
+50. Gave the diagnostic log a switch and a *Clear the log now* button, on the owner's request after
+    asking how large it could grow. The answer was worth writing down: **two files and a little over
+    10 MB**, not the "rolling 5 MB" this document claimed — the `.1` the rotation leaves behind is
+    never deleted, so the footprint is double what the sentence implied. That line is corrected above.
+
+    `WriteDiagnosticLog` is a plain top-level bool, deliberately not a section, so it cannot become
+    the next instance of gotcha 11. Off means *nothing is written*: `DiagnosticLogWanted()` reads the
+    one boolean out of `settings.json` before the host is built, because the logger is constructed
+    before the container that would otherwise answer the question — and constructing a second
+    `SettingsStore` to ask would run the migration, which writes. Toggling it applies on the next line
+    rather than the next start, through the same `SettingsStore.Changed` subscription the tray tooltip
+    now uses.
 
 ## Links
 
