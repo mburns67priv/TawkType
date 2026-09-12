@@ -36,6 +36,11 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
   text, and whether the target window is running as administrator — synthetic keystrokes to an elevated
   window are discarded by Windows without any error. If it can't type, the text goes to your clipboard
   and the bar says *Copied — ready to paste*.
+- **Your clipboard is borrowed, not taken.** Long or multi-line text is pasted rather than typed, and
+  that needs your clipboard for a moment. Everything on it is copied aside first — the image, the file
+  you copied in Explorer, the formatting on copied text, not just the plain words — and put back
+  afterwards. If you copy something yourself while a dictation is landing, yours wins and TawkType
+  leaves it alone.
 - **Nothing is lost.** Every dictation is kept locally, so one that went into the wrong window is a
   click away. Turn the log off and it means it — nothing keeps a second copy of your words.
 - **History that corrects things.** Search what you have said, edit a past dictation, run cleanup over
@@ -233,6 +238,13 @@ contents of your screen, the text around your cursor, or your history.
 **Settings → General** shows the current state in plain sentences and carries both switches — the
 history and the rewrite, independently. The same summary is on the status bar's badge as you work, and
 the bar says *Rewriting with Claude* during the one step that leaves your machine.
+
+**Windows' own cloud clipboard is an exception TawkType closes for you.** If you have clipboard sync
+switched on, anything that reaches your clipboard is uploaded to your Microsoft account and pushed to
+your other devices — and dictations reach your clipboard, both when a long one is pasted and when one
+that could not be typed is copied for you. TawkType marks everything it writes as *do not upload*, so
+that does not happen. The transient text used for a paste is kept out of the local clipboard history
+(Win+V) as well; text copied for you to paste yourself stays in it, because you are going to need it.
 
 The badge describes what will happen rather than what is ticked. Three things have to be true before
 anything is sent: the rewrite is on, the active mode permits it (*Literal* never does), and a key is

@@ -8,5 +8,11 @@ namespace TawkType.Windows.Injection;
 /// </summary>
 public sealed class WindowsClipboard : IClipboard
 {
-    public void SetText(string text) => NativeClipboard.SetText(text);
+    /// <summary>
+    /// Text the user is meant to paste themselves — a dictation that could not be delivered. It stays
+    /// in Windows' clipboard history, because they may well need it more than once and taking it out
+    /// of Win+V would be a surprise. It is still kept off the cloud clipboard: syncing a dictation to
+    /// the user's other devices would be words leaving this machine without anyone choosing it.
+    /// </summary>
+    public void SetText(string text) => NativeClipboard.SetText(text, allowClipboardHistory: true);
 }

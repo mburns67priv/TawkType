@@ -33,7 +33,7 @@ Windows only.
 - **The update path works, and now says so.** An installed copy polls the release feed, downloads a
   delta (0.1 MB between recent versions) and applies it on the next start. Until v0.7.2 it did all of
   that in silence; it now puts a button on the bar, an item on the tray menu, and a line in Settings.
-- **Builds clean** with `dotnet build`, **416 unit tests pass** with `dotnet test` in about two seconds.
+- **Builds clean** with `dotnet build`, **425 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware, from an installed build.** Parakeet, 8 s of speech, typed into
   another window; the history has the receipts. Overlay, tray, settings, first run, model download and
   the live waveform are all verified on the owner's machine rather than in a session sandbox.
@@ -75,9 +75,14 @@ Windows only.
   rejected key (see "Gotchas" 9) — **nobody has yet seen a real rewrite**.
 - **The installed build's taskbar icon is fixed** as of 0.2.8, after a long hunt. The answer is in
   "Gotchas" 20, and it is not what anyone would guess.
-- **The review in `docs/REVIEW-2026-09-11.md` is mostly addressed.** Findings 1–5, 7 and 8 are closed;
-  10, 11 and 14 are partly closed. **Finding 6, the clipboard, is the largest still fully open**, and
-  it matters more now that multiline results always paste. That doc carries a status table.
+- **The clipboard is borrowed, not taken.** A pasted dictation copies every format aside — image,
+  copied file, formatting — and puts it back, unless the user has copied something in the meantime, in
+  which case theirs wins. Review finding 6, and the largest thing that was open. `tools/TawkType.Clip`
+  proves the round trip against a real clipboard; it has been run, and six formats came back byte for
+  byte. What is still unsolved is knowing when the target actually *consumed* the clipboard.
+- **The review in `docs/REVIEW-2026-09-11.md` is mostly addressed.** Findings 1–5, 7 and 8 are closed,
+  and 6 is closed but for the settle-time race; 10, 11 and 14 are partly closed. **Finding 9, the
+  NAudio lifetime, is now the largest fully open one.** That doc carries a status table.
 - **`docs/FEATURE-RESEARCH-2026-09-11.md` §1–§8 are built**, except §5's per-application defaults,
   which the section itself puts later. **Every section of that document is now built.**
 - **There is a first run** (§8): seven steps ending in a real dictation into a box TawkType owns. It
@@ -127,9 +132,11 @@ src/TawkType.App             WPF tray app (namespace TawkType.Desktop): App.xaml
 tools/TawkType.Bench         transcribes a WAV with one or both engines, prints latency side by side
 tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
+tools/TawkType.Clip          borrows the clipboard the way a pasted dictation does, and says whether
+                            every format came back; --read just lists what is on it
 tools/TawkType.Mic           what the microphone actually produces, in the units the meter is calibrated on
 tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/TawkType.Core.Tests    xUnit, 416 tests. One file per behaviour; the names are the specification.
+tests/TawkType.Core.Tests    xUnit, 425 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -139,10 +146,12 @@ docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessmen
 
 ```bash
 dotnet run --project src/TawkType.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 416 tests, ~2 s
+dotnet test                                   # 425 tests, ~2 s
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Mic -- 10          # speak for 10s; prints RMS, dBFS and the verdict
+dotnet run --project tools/TawkType.Clip -- --read     # what is on the clipboard; --read writes nothing
+dotnet run --project tools/TawkType.Clip               # the full borrow-and-return, over your real clipboard
 dotnet run --project tools/TawkType.Brand      # regenerate icon + exports after brand changes
 ```
 
@@ -213,6 +222,12 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Snippets need the word "insert" | Left implicit, a signature or an address expands in the middle of an ordinary sentence. They also skip the LLM pass entirely: a model asked to tidy up a signature will do exactly that. |
 | Vocabulary is a text box, and its own file | These lists are written in bursts, usually pasted from somewhere, and plain text can be selected, sorted, diffed and kept in a note — a grid of rows with add/remove buttons cannot. The export is separate from `settings.json` because it is the user's own work, not window positions. |
 | A bad number says so instead of being dropped or clamped | Save used to ignore an unusable value silently: the box kept what was typed, the setting did not change, and the window closed looking like it had worked. Clamping would be worse, since a value the user never chose would be saved under their name. `NumberField` holds the range and the message; Save waits. |
+| The clipboard is borrowed and given back, in full | Pasting needs the user's clipboard for a fifth of a second, and the clipboard has no undo. Keeping only the text meant every pasted dictation silently destroyed an image, a copied file, or the formatting on copied text — and finding 3 made that *more* common by sending every multiline result down this path. `ClipboardSnapshot` copies the bytes of every memory-backed format; the few that are not memory come back by Windows' own synthesis from the ones that are. |
+| It is only put back if it is still ours | `GetClipboardSequenceNumber` says whether anything has touched the clipboard since we wrote to it. Restoring unconditionally meant that copying something during the 200 ms settle had it taken away again a moment later — the user's own action, undone by a background feature. Somebody else's clipboard is not ours to replace. |
+| A clipboard found empty is left empty | Otherwise every pasted dictation quietly left the transcript behind for the next Ctrl+V, which is the whole day's speech sitting in whatever the user pastes into next. |
+| Emptying the clipboard and then failing is its own outcome | `ClipboardWrite` has three values, not two. A write that never opened the clipboard must not write anything back; a write that emptied it and then failed has already lost the user's content and must. Collapsing them either strands a loss or adds a duplicate to the user's clipboard history. |
+| One message-only window, on its own STA thread, for every clipboard call | Microsoft documents that opening the clipboard with a null owner makes `EmptyClipboard` set the owner to null, "this causes `SetClipboardData` to fail" — so a real handle is not optional. An owner window is also sent messages, so its thread has to pump: not a pool thread, and not the UI thread, which must not block behind a clipboard another process is holding open. |
+| Nothing TawkType writes may reach the cloud clipboard | Clipboard sync uploads whatever lands on the clipboard to the user's Microsoft account, and dictations land on the clipboard. That is words leaving the machine with nobody choosing it, which would make the badge's claim false. The transient paste text is kept out of the local history too; text copied for the user to paste themselves stays in it, because they are going to need it. |
 | The recording limit finishes rather than cancels | A key left under a book should not record all afternoon, but throwing the audio away would punish the user for the accident. Whatever was said still arrives. |
 | Sounds use `SystemSounds`, off by default | They respect whatever scheme the user has chosen, silence included, and they need no asset files. |
 | The dictation box never opens itself | It appears after a failed delivery, which is exactly when the user is mid-sentence in something else. A window arriving over that would be a worse interruption than the failure, and it would take the focus the rest of the app works so hard never to touch. The bar reports it; the user opens it. |
@@ -397,8 +412,8 @@ with a script. The script sees what it asks about; a person sees the thing that 
 5. **Rebuilding the app fails while it is running** (DLLs locked). Quit from the tray first.
 6. **Whisper on a very short clip** is padded to 1.5 s in `WhisperTranscriber`; whisper.cpp rejects
    shorter input. Parakeet is padded to 0.5 s.
-7. **Clipboard paste mode restores only text.** If the user had an image on the clipboard when a long
-   dictation pasted, it is gone. Documented in `ClipboardPasteInjector`.
+7. ~~Clipboard paste mode restores only text.~~ Done — every format is copied aside and put back now.
+   See gotchas 53 to 55 for what that cost and what is still true.
 8. **Parakeet is CC-BY-4.0.** Attribution to NVIDIA belongs in the eventual About screen. Whisper is MIT.
 9. **The cleanup pass has never made a successful API call.** No key was available in the session that
    built it. It was verified as far as the API rejecting an invalid key in ~600 ms and the fallback
@@ -665,6 +680,30 @@ with a script. The script sees what it asks about; a person sees the thing that 
     rail, and it opens part way down — or past its end, if it is shorter. Both windows call
     `ScrollToTop()` when the page changes. Any new stacked-page window needs the same.
 
+53. **Opening the clipboard with a null owner is a documented way to break `SetClipboardData`.**
+    Microsoft is explicit: "If an application calls `OpenClipboard` with hwnd set to `NULL`,
+    `EmptyClipboard` sets the clipboard owner to `NULL`; this causes `SetClipboardData` to fail."
+    `NativeClipboard` did exactly that for its whole life and pasting worked anyway on this machine —
+    which is the trap, not the reprieve. It now opens with a real message-only window from
+    `ClipboardOwner`, and the round trip was measured working that way. Do not go back to a null owner
+    because it "seems fine": what you would be relying on is undocumented behaviour that Windows is
+    free to stop.
+
+54. **Not every clipboard format's handle is memory, and that is fine.** `CF_BITMAP`,
+    `CF_ENHMETAFILE`, `CF_PALETTE` and the `CF_DSP*` display formats are GDI handles, so there is
+    nothing to `GlobalLock` and copy aside. They are skipped deliberately: Windows synthesises them
+    from the memory-backed formats, so restoring `CF_DIB` brings `CF_BITMAP` and `CF_PALETTE` back
+    with it and an image survives. Adding them to the copy list would not preserve more, it would hand
+    the system handles it does not own. Private formats (`CF_PRIVATEFIRST`..`CF_PRIVATELAST`) are
+    skipped for the opposite reason: the system does not free them, so putting one back would give the
+    owning application a handle it has stopped expecting.
+
+55. **The clipboard is the one shared thing a session is not sandboxed from.** Files, `%LOCALAPPDATA%`
+    and `HKCU` are redirected into a session overlay (gotcha 28) — the clipboard is not. Running
+    `tools/TawkType.Clip` without `--read` writes to the user's actual clipboard, and a bug in the
+    restore destroys whatever they had copied, which may be the one thing they cannot copy again.
+    `--read` only enumerates. Ask before running the rest.
+
 ## Roadmap, in the order I would do it
 
 1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only
@@ -687,13 +726,15 @@ with a script. The script sees what it asks about; a person sees the thing that 
    - **An update that announces itself.** v0.7.2 is the first build that can; proving it needs the one
      after.
 
-3. **Close review finding 6, the clipboard.** The restore races the paste and only text is put back,
-   so an image or formatted content is destroyed by a dictation — more likely now that multiline
-   results always paste. It is the largest fully-open finding and it is written up with a reproduction.
-
-   Then the rest of finding 10: the filler regex still removes German "um" and a lower-case English
-   "er". All-capitals words are protected, which is why *"The ER is open"* survives, but a
+3. **The rest of review finding 10.** The filler regex still removes German "um" and a lower-case
+   English "er". All-capitals words are protected, which is why *"The ER is open"* survives, but a
    capitalisation rule cannot reach the lower-case collisions — that needs the language.
+
+   Finding 6, the clipboard, is otherwise done. What is left of it is one thing: nothing establishes
+   that the target has *consumed* the clipboard, so the 200 ms settle is a guess in both directions —
+   restore too early and the target pastes the previous content instead. The way out is delayed
+   rendering, where `WM_RENDERFORMAT` says exactly when the data was asked for. It is a real change to
+   a path that works, so it is worth doing deliberately rather than as a tidy-up.
 4. **Tune `CleanupPrompt`** against real rewrites, once item 1 has produced some. Still true: nobody has
    seen a successful call (gotcha 9), so every judgement about rewrite quality is currently a guess.
 5. **Finish the brand assets**: high-contrast tray variants, outlined SVG wordmarks, and a licence and
@@ -873,6 +914,22 @@ with a script. The script sees what it asks about; a person sees the thing that 
 47. Cleaned up three identifiers that had reached the user: the settings nav rows read their whole
     record to screen readers and the pill's position picker showed `BottomCenter` (gotcha 42, second
     instance), and the theme hint still promised a behaviour that had changed twenty minutes earlier.
+
+48. Closed review finding 6: the clipboard is borrowed and given back rather than overwritten. Every
+    format is copied aside instead of the text alone, so an image, a copied file or the formatting on
+    copied text survives a dictation; the restore is guarded by the clipboard sequence number, so a
+    copy the user makes while a dictation is landing is never taken away again; it runs in a `finally`,
+    so a failed paste no longer strands the transcript there; and a clipboard found empty is left
+    empty instead of keeping the day's speech for the next Ctrl+V. The Win32 side moved onto a
+    message-only owner window on its own STA thread, which is what the documentation has required all
+    along (gotcha 53), and everything TawkType writes is now marked as not for the cloud clipboard —
+    clipboard sync was a path by which dictated words could leave the machine with nobody choosing it.
+    `ClipboardRestore` holds the decision as a pure reducer with 9 tests; `tools/TawkType.Clip` proves
+    the rest against a real clipboard, and was run: six formats out and back, byte for byte.
+
+    What is not closed is the settle time. Nothing tells an application's clipboard borrower when the
+    target has actually pasted, so 200 ms is still a guess — deliberately unchanged, because changing
+    a number nobody has measured is how the audio path went wrong three times (entry 41).
 
 ## Links
 

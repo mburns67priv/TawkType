@@ -79,7 +79,7 @@ Every stage is an interface so each can be swapped independently:
 | `ITranscriber` | router → Parakeet (sherpa-onnx) or Whisper.net | streaming partials while the key is held, Parakeet on GPU via a CUDA sherpa-onnx build |
 | `ITextCleaner` | regex fillers, the local phrase book, then an optional Claude rewrite | tone chosen per foreground app; a local model behind the same `ILlmClient` |
 | `ILlmClient` | `ClaudeLlmClient` (Anthropic SDK) | llama.cpp / ONNX for an offline rewrite |
-| `ITextInjector` | SendInput / clipboard, fitted to the caret | UI Automation `TextPattern` insertion rather than synthetic keys |
+| `ITextInjector` | SendInput, or a borrowed-and-returned clipboard, fitted to the caret | delayed rendering, so the restore waits for the paste rather than guessing |
 | `IDictationHistory` | JSONL under the profile: append, search, edit, delete | pinning, re-inject a past dictation |
 | `IFocusProbe` | UI Automation: can text land here, and what is either side of the caret | a cheaper native path for the common controls |
 | `IWindowActivator` | `SetForegroundWindow` + settle poll | nothing planned; it exists for the dictation box |
@@ -253,6 +253,54 @@ with the reason. Nothing is lost, and the history records it with `CopiedNotType
 `tools/TawkType.Focus` prints the verdict once a second so the behaviour can be checked against real
 applications; that part cannot be unit tested, because it depends on what each application chooses to
 expose.
+
+## Borrowing the clipboard
+
+Long text and anything with a line break is pasted rather than typed, which means taking the user's
+clipboard for about a fifth of a second. The clipboard is a single shared resource with no undo, so
+this is the one delivery path that can destroy something the user cannot get back — and the first
+version did, invisibly, every time.
+
+The rule is that the clipboard is **borrowed**: whatever is on it is copied aside, and put back.
+
+- **Every format, not just the text.** `ClipboardSnapshot` copies the bytes of each format whose
+  handle is memory — which in practice is all of them: images travel as `CF_DIB`, copied files as
+  `CF_HDROP`, styled text as *HTML Format* and RTF. The handful that are not memory (`CF_BITMAP`,
+  `CF_ENHMETAFILE`, `CF_PALETTE` and the display formats) are skipped because Windows synthesises them
+  back from the ones that are, so an image survives that list rather than being lost to it.
+- **It is only put back if it is still ours.** `GetClipboardSequenceNumber` says whether anything has
+  touched the clipboard since we wrote to it. If something has, the user copied something while a
+  dictation was landing; theirs is newer and TawkType leaves it alone. The old code restored
+  unconditionally and took that copy away again.
+- **An empty clipboard is a state too.** Found empty, it is left empty — otherwise every pasted
+  dictation quietly left its transcript behind for the next Ctrl+V.
+- **The restore is in a `finally`.** A paste that throws used to skip it and strand the transcript
+  there.
+- **Emptied-and-failed is not the same as untouched.** `ClipboardWrite` distinguishes the three
+  outcomes, because a write that emptied the clipboard and then failed has already lost the user's
+  content and must restore, while one that never opened it must not write at all.
+
+`ClipboardRestore.Decide` is the pure reducer holding those rules, and it is where the tests are. The
+Win32 side sits behind `ClipboardOwner`: a message-only window on its own STA thread, which every
+clipboard call is marshalled onto. That window is not optional — Microsoft documents that opening the
+clipboard with a null owner makes `EmptyClipboard` set the owner to null, "this causes
+`SetClipboardData` to fail" — and a clipboard owner is sent messages, so the thread holding it has to
+pump.
+
+Nothing TawkType puts on the clipboard may be uploaded to the cloud clipboard, and the transient text
+used for a paste is kept out of the local clipboard history as well
+(`CanUploadToCloudClipboard`, `CanIncludeInClipboardHistory`, `ExcludeClipboardContentFromMonitorProcessing`).
+Clipboard sync is otherwise a path by which dictated words leave the machine without anyone choosing
+it, which would make the claim on the badge false.
+
+**What is still unsolved** is knowing when the target has actually consumed the clipboard. The 200 ms
+settle is a guess, and restoring too early means the target pastes the *previous* content instead. The
+way out is delayed rendering — set the format with a null handle and let `WM_RENDERFORMAT` say exactly
+when the data was asked for — which is a bigger change to a path that works.
+
+`tools/TawkType.Clip` does the whole round trip against the real clipboard, minus the Ctrl+V, and
+reports whether every format came back byte for byte. Like the focus probe, this part cannot be unit
+tested: which formats an application publishes is a fact about that application.
 
 ## Modes
 
@@ -664,22 +712,18 @@ single-instance guard.
 
 Open, roughly in the order worth doing:
 
-1. **Clipboard hardening.** The restore races the paste, and only text is put back — an image or
-   formatted content on the clipboard does not survive a dictation. More results go through the
-   clipboard now that multiline text always pastes, so this is the most user-visible thing left.
-   (`docs/REVIEW-2026-09-11.md`, finding 6.)
-2. **The filler regex still eats real words.** German "um" and a lower-case English "er" are removed as
+1. **The filler regex still eats real words.** German "um" and a lower-case English "er" are removed as
    disfluencies. All-capitals words are safe now, which is why *"The ER is open"* works, but no
    capitalisation rule can reach the lower-case collisions — telling a filler from a word there needs
    to know the language. (Same review, finding 10, now partly closed.)
-3. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
+2. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
    it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
    Feature research §5's "later" half, and the only part of that document still open.
-4. **A local `ILlmClient`** (llama.cpp or ONNX), so the rewrite works offline and "nothing leaves this
+3. **A local `ILlmClient`** (llama.cpp or ONNX), so the rewrite works offline and "nothing leaves this
    machine" holds with cleanup switched on.
-5. **Streaming**: transcribe in one-second windows while the key is held, so text appears as it is
+4. **Streaming**: transcribe in one-second windows while the key is held, so text appears as it is
    spoken. Parakeet is a transducer, which suits this.
-6. **Command mode**: select text, hold a second key, speak an instruction, replace the selection.
-7. **Overlay polish**: an animated waveform in place of the level meter, respecting reduced motion.
-8. **Seed the recogniser with the vocabulary** — Whisper's `initial_prompt` takes a word list, so the
+5. **Command mode**: select text, hold a second key, speak an instruction, replace the selection.
+6. **Overlay polish**: an animated waveform in place of the level meter, respecting reduced motion.
+7. **Seed the recogniser with the vocabulary** — Whisper's `initial_prompt` takes a word list, so the
    names the user has taught TawkType could be got right before cleanup rather than after.
