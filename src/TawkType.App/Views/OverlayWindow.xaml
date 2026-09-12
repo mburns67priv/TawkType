@@ -179,10 +179,14 @@
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10"
                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Visibility="{Binding IsListening, Converter={StaticResource NotBoolToVis}}">
-                        <views:BrandMark Width="26" Height="26" Margin="0,0,12,0" VerticalAlignment="Center">
+                        <!-- Outlined here, and only here. Filled, it was a grey slab among line icons
+                             with the violet bars muddying into it; as an outline it reads as the mark
+                             and lets the state colour do the talking. -->
+                        <views:BrandMark Width="23" Height="23" Margin="0,0,11,0" VerticalAlignment="Center"
+                                         BubbleStroke="#8A90A8" BubbleStrokeThickness="1.6">
                             <views:BrandMark.Style>
                                 <Style TargetType="views:BrandMark">
-                                    <Setter Property="BubbleBrush" Value="#8A90A8" />
+                                    <Setter Property="BubbleBrush" Value="Transparent" />
                                     <Setter Property="BarsBrush" Value="{StaticResource State.Transcribing}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding StateKey}" Value="Injecting">

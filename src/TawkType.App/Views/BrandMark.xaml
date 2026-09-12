@@ -8,7 +8,10 @@
     <Viewbox Stretch="Uniform">
         <Canvas Width="24" Height="24">
             <Path Data="{StaticResource Brand.BubbleGeometry}"
-                  Fill="{Binding BubbleBrush, RelativeSource={RelativeSource AncestorType=local:BrandMark}}" />
+                  Fill="{Binding BubbleBrush, RelativeSource={RelativeSource AncestorType=local:BrandMark}}"
+                  Stroke="{Binding BubbleStroke, RelativeSource={RelativeSource AncestorType=local:BrandMark}}"
+                  StrokeThickness="{Binding BubbleStrokeThickness, RelativeSource={RelativeSource AncestorType=local:BrandMark}}"
+                  StrokeLineJoin="Round" />
             <Path Data="{StaticResource Brand.BarsGeometry}"
                   Fill="{Binding BarsBrush, RelativeSource={RelativeSource AncestorType=local:BrandMark}}" />
         </Canvas>
