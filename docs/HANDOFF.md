@@ -78,8 +78,9 @@ Windows only.
 - **The clipboard is borrowed, not taken.** A pasted dictation copies every format aside — image,
   copied file, formatting — and puts it back, unless the user has copied something in the meantime, in
   which case theirs wins. Review finding 6, and the largest thing that was open. `tools/TawkType.Clip`
-  proves the round trip against a real clipboard; it has been run, and six formats came back byte for
-  byte. What is still unsolved is knowing when the target actually *consumed* the clipboard.
+  proves the round trip against a real clipboard; it has been run over text, a screenshot and a file
+  copied in Explorer, and **the image and the file both still pasted afterwards** — which is the proof,
+  where matching byte counts are only evidence. What is still unsolved is knowing when the target actually *consumed* the clipboard.
 - **The review in `docs/REVIEW-2026-09-11.md` is mostly addressed.** Findings 1–5, 7 and 8 are closed,
   and 6 is closed but for the settle-time race; 10, 11 and 14 are partly closed. **Finding 9, the
   NAudio lifetime, is now the largest fully open one.** That doc carries a status table.
@@ -958,10 +959,16 @@ with a script. The script sees what it asks about; a person sees the thing that 
     along (gotcha 53), and everything TawkType writes is now marked as not for the cloud clipboard —
     clipboard sync was a path by which dictated words could leave the machine with nobody choosing it.
     `ClipboardRestore` holds the decision as a pure reducer with 9 tests; `tools/TawkType.Clip` proves
-    the rest against a real clipboard, and was run twice: six text formats out and back byte for byte, and then a screenshot — 4.6 MB
-    across `CF_DIB`, `CF_DIBV5` and PNG — likewise. The screenshot run is also what found the reporting
-    bug in gotcha 54: the first version called `CF_BITMAP` lost when Windows rebuilds it, which would
-    have cried wolf in the log on every paste with an image copied.
+    the rest against a real clipboard, and was run three times: six text formats, then a screenshot —
+    4.6 MB across `CF_DIB`, `CF_DIBV5` and PNG — then a file copied in Explorer. **After each of those
+    the owner pasted the image and the file by hand, and both arrived.** That is the confirmation; the
+    byte counts only said the bytes came back, not that any application could still use them.
+
+    Three runs produced three reporting defects and not one defect in what the clipboard code did:
+    `CF_BITMAP` called lost when Windows rebuilds it, a withheld descriptor called unreadable when it
+    copies perfectly, and a round trip called faithful when the format order had moved. Every one of
+    them would have reached the log on an ordinary day. A harness that prints what it actually sees is
+    what caught them, the same way the automation script caught gotcha 42.
 
     Two things are not closed. `FileContents` — a file that is not a file, such as a mail attachment —
     is a stream rather than memory, so it cannot be copied aside at all; its descriptor is dropped with
