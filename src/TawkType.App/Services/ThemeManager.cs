@@ -42,11 +42,23 @@ public sealed class ThemeManager : IDisposable
     }
 
     /// <summary>Applies the configured theme. Cheap and idempotent: a no-op when nothing changed.</summary>
-    public void Apply()
-    {
-        var wanted = _settings.Current.Appearance.Theme;
-        var resolved = wanted == AppTheme.System ? DetectWindowsTheme() : wanted;
+    public void Apply() => ApplyResolved(Resolve(_settings.Current.Appearance.Theme));
 
+    /// <summary>
+    /// Applies a theme that has not been saved, so the Settings window can show what it looks like
+    /// rather than asking the user to commit to it first. Choosing a theme from a list is exactly the
+    /// decision nobody can make without seeing it.
+    ///
+    /// <see cref="Apply"/> puts it back: it resolves the *saved* setting, and is what Cancel and a
+    /// closed window fall back to.
+    /// </summary>
+    public void Preview(AppTheme theme) => ApplyResolved(Resolve(theme));
+
+    private static AppTheme Resolve(AppTheme wanted)
+        => wanted == AppTheme.System ? DetectWindowsTheme() : wanted;
+
+    private void ApplyResolved(AppTheme resolved)
+    {
         if (resolved == _applied)
         {
             return;

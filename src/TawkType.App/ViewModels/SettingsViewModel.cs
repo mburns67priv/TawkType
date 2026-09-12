@@ -35,6 +35,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly AppDataMaintenance _appData;
     private readonly IApiKeyStore _apiKeys;
     private readonly ILlmClient _llm;
+    private readonly ThemeManager _theme;
+
+    /// <summary>Whether Save ever ran. A window closed without it has to put the theme back.</summary>
+    private bool _saved;
     private readonly IDictationHistory _history;
     private readonly UpdateService _updates;
 
@@ -160,6 +164,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         IApiKeyStore apiKeys,
         ILlmClient llm,
         IDictationHistory history,
+        ThemeManager theme,
         UpdateService updates)
     {
         _store = store;
@@ -167,6 +172,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _appData = appData;
         _apiKeys = apiKeys;
         _llm = llm;
+        _theme = theme;
         _history = history;
         _updates = updates;
 
@@ -430,6 +436,28 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// The theme, applied the moment it is picked rather than on Save. Nobody can choose between
+    /// light and dark from two words in a list; the whole question is what it looks like.
+    ///
+    /// Closing without saving puts it back — see <see cref="Dispose"/>.
+    /// </summary>
+    public AppTheme SelectedTheme
+    {
+        get => Draft.Appearance.Theme;
+        set
+        {
+            if (value == Draft.Appearance.Theme)
+            {
+                return;
+            }
+
+            Draft.Appearance.Theme = value;
+            _theme.Preview(value);
+            OnPropertyChanged();
+        }
+    }
+
     public string SettingsPath => _store.Path;
 
     public string HistoryPath => _history.Path;
@@ -442,6 +470,13 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         _history.Changed -= OnHistoryChanged;
         _updates.Changed -= OnUpdatesChanged;
+
+        // Cancel, Escape or the close button: the previewed theme was never agreed to, so it goes
+        // back to whatever is on disk. Apply() reads the saved setting, which is exactly that.
+        if (!_saved)
+        {
+            _theme.Apply();
+        }
     }
 
     /// <summary>
@@ -489,6 +524,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
 
         _store.Save(Draft);
+        _saved = true;
         Saved?.Invoke(this, EventArgs.Empty);
     }
 

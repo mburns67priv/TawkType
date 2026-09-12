@@ -616,8 +616,10 @@
 
                         <StackPanel Style="{StaticResource Field}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Theme" />
+                            <!-- Bound through the view model rather than straight at the draft, so
+                                 picking one applies it immediately. -->
                             <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding Themes}"
-                                      SelectedItem="{Binding Draft.Appearance.Theme}" />
+                                      SelectedItem="{Binding SelectedTheme}" />
                             <TextBlock Style="{StaticResource Ui.Hint}"
                                        Text="System follows the Windows app theme, and keeps following it if you change it. Applied when you save." />
                         </StackPanel>
