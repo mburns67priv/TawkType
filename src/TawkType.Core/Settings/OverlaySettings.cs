@@ -10,6 +10,29 @@ public enum OverlayPosition
     TopLeft,
 }
 
+/// <summary>
+/// Names for the positions, because the picker was showing the enum itself: "BottomCenter" is a C#
+/// identifier that had escaped into the interface. Same fault as gotcha 42, and the same fix — except
+/// an enum cannot override ToString, so the combo needs items of its own.
+/// </summary>
+public sealed record OverlayPositionChoice(OverlayPosition Position, string Name)
+{
+    public static IReadOnlyList<OverlayPositionChoice> All { get; } =
+    [
+        new(OverlayPosition.BottomCenter, "Bottom centre"),
+        new(OverlayPosition.BottomRight, "Bottom right"),
+        new(OverlayPosition.BottomLeft, "Bottom left"),
+        new(OverlayPosition.TopCenter, "Top centre"),
+        new(OverlayPosition.TopRight, "Top right"),
+        new(OverlayPosition.TopLeft, "Top left"),
+    ];
+
+    public static OverlayPositionChoice For(OverlayPosition position)
+        => All.FirstOrDefault(choice => choice.Position == position) ?? All[0];
+
+    public override string ToString() => Name;
+}
+
 /// <summary>The floating status pill. It is click-through and never takes focus in any of these modes.</summary>
 public sealed class OverlaySettings
 {

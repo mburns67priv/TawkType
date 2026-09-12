@@ -293,7 +293,23 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     public IReadOnlyList<string> InputDevices { get; }
 
-    public IReadOnlyList<OverlayPosition> OverlayPositions { get; } = Enum.GetValues<OverlayPosition>();
+    public IReadOnlyList<OverlayPositionChoice> OverlayPositions { get; } = OverlayPositionChoice.All;
+
+    /// <summary>The pill's corner, as a named choice rather than as the enum's identifier.</summary>
+    public OverlayPositionChoice SelectedOverlayPosition
+    {
+        get => OverlayPositionChoice.For(Draft.Overlay.Position);
+        set
+        {
+            if (value is null || value.Position == Draft.Overlay.Position)
+            {
+                return;
+            }
+
+            Draft.Overlay.Position = value.Position;
+            OnPropertyChanged();
+        }
+    }
 
     public IReadOnlyList<AppTheme> Themes { get; } = Enum.GetValues<AppTheme>();
 

@@ -9,6 +9,14 @@ namespace TawkType.Desktop.ViewModels;
 /// <param name="Blurb">One-line description, shown on the home card only.</param>
 public sealed record NavPage(SettingsPage Page, string Title, string Blurb, Geometry Icon)
 {
+    /// <summary>
+    /// What UI Automation reads for a nav row, which is what a screen reader says out loud. Without
+    /// it, every row announced the whole record — "NavPage { Page = Appearance, Title = Appearance,
+    /// Blurb = Theme and the status pill, Icon = M12,3A9,9,0,1,0… }", icon path data included.
+    /// Gotcha 42, found a second time while driving the window with an automation script.
+    /// </summary>
+    public override string ToString() => Title;
+
     public static IReadOnlyList<NavPage> All { get; } =
     [
         new(SettingsPage.General, "General", "Overview and your stats", Icons.Home),

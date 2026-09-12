@@ -621,7 +621,7 @@
                             <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding Themes}"
                                       SelectedItem="{Binding SelectedTheme}" />
                             <TextBlock Style="{StaticResource Ui.Hint}"
-                                       Text="System follows the Windows app theme, and keeps following it if you change it. Applied when you save." />
+                                       Text="System follows the Windows app theme, and keeps following it if you change it. The theme changes as you pick it; Cancel puts it back." />
                         </StackPanel>
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Status pill" />
@@ -634,7 +634,7 @@
                         <StackPanel Style="{StaticResource Field}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Position" />
                             <ComboBox Style="{StaticResource Ui.ComboBox}" ItemsSource="{Binding OverlayPositions}"
-                                      SelectedItem="{Binding Draft.Overlay.Position}" />
+                                      SelectedItem="{Binding SelectedOverlayPosition}" />
                             <TextBlock Style="{StaticResource Ui.Hint}"
                                        Text="The pill rests dimmed showing your hotkey, and returns to the front the moment you start speaking. It is click-through and never takes focus, so whatever you clicked into keeps the caret." />
                         </StackPanel>
