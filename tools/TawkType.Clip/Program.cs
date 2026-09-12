@@ -1,4 +1,4 @@
-﻿using TawkType.Windows.Injection;
+using TawkType.Windows.Injection;
 
 // What a pasted dictation does to the clipboard, minus the Ctrl+V — which is the only part that needs
 // somebody's keyboard and somebody's window. Copy something first: an image, a file in Explorer,
@@ -24,7 +24,7 @@ if (before.Count == 0)
 
 foreach (var format in before)
 {
-    Console.WriteLine($"  {(format.Copied ? "kept" : "LOST"),-5} {format.Name,-32} {Bytes(format)}");
+    Console.WriteLine($"  {Fate(format.Fate),-11} {format.Name,-32} {Bytes(format)}");
 }
 
 if (readOnly)
@@ -51,7 +51,7 @@ if (report.Differences.Count == 0)
 {
     Console.WriteLine(report.SnapshotComplete
         ? "The clipboard came back exactly as it was found."
-        : "The clipboard came back, but something on it could not be copied aside — see LOST above.");
+        : "Every format came back, but something on it could not be copied aside — see LOST above.");
 }
 else
 {
@@ -67,5 +67,16 @@ Console.WriteLine("Paste somewhere now to confirm it by hand. Nothing here sent 
 
 return report.Faithful ? 0 : 1;
 
-static string Bytes(ClipboardFormatReport format) =>
-    format.Copied ? $"{format.Bytes:n0} bytes" : "not memory-backed";
+static string Fate(ClipboardFormatFate fate) => fate switch
+{
+    ClipboardFormatFate.Copied => "kept",
+    ClipboardFormatFate.Synthesised => "synthesised",
+    _ => "LOST",
+};
+
+static string Bytes(ClipboardFormatReport format) => format.Fate switch
+{
+    ClipboardFormatFate.Copied => $"{format.Bytes:n0} bytes",
+    ClipboardFormatFate.Synthesised => "not memory-backed; Windows rebuilds it",
+    _ => "not memory-backed; nothing rebuilds it",
+};

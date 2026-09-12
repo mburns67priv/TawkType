@@ -293,6 +293,13 @@ used for a paste is kept out of the local clipboard history as well
 Clipboard sync is otherwise a path by which dictated words leave the machine without anyone choosing
 it, which would make the claim on the badge false.
 
+One thing the round trip does not preserve is the **order** of a format Windows synthesises. The
+copied formats go back in the order they were found, but a synthesised one is added after them: an
+image that arrived as `CF_BITMAP, CF_DIB` comes back as `CF_DIB, …, CF_BITMAP`. Order decides which
+format a pasting application picks, so this is not nothing — but `CF_DIB` first is the order Microsoft
+asks for, and it cannot be changed from this side anyway, since the format is not ours to place.
+`tools/TawkType.Clip` reports it rather than calling the round trip perfect.
+
 **What is still unsolved** is knowing when the target has actually consumed the clipboard. The 200 ms
 settle is a guess, and restoring too early means the target pastes the *previous* content instead. The
 way out is delayed rendering — set the format with a null handle and let `WM_RENDERFORMAT` say exactly

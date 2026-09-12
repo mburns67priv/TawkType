@@ -3,8 +3,21 @@ using TawkType.Core.Text;
 
 namespace TawkType.Windows.Injection;
 
+/// <summary>What becomes of one format when the clipboard is borrowed.</summary>
+public enum ClipboardFormatFate
+{
+    /// <summary>Copied aside, byte for byte, and written back.</summary>
+    Copied,
+
+    /// <summary>Not copied, and not needed: Windows regenerates it from one that was.</summary>
+    Synthesised,
+
+    /// <summary>Not copied, and nothing will bring it back. A metafile is the realistic case.</summary>
+    Lost,
+}
+
 /// <summary>What is on the clipboard, in one format.</summary>
-public sealed record ClipboardFormatReport(uint Format, string Name, int Bytes, bool Copied);
+public sealed record ClipboardFormatReport(uint Format, string Name, int Bytes, ClipboardFormatFate Fate);
 
 /// <summary>What happened when the clipboard was borrowed and given back.</summary>
 public sealed record ClipboardRoundTripReport(
@@ -35,13 +48,16 @@ public static class ClipboardDiagnostics
     {
         var snapshot = NativeClipboard.Capture();
         var kept = snapshot.Entries.ToDictionary(entry => entry.Format, entry => entry.Bytes.Length);
+        var lost = snapshot.Lost.ToHashSet();
 
         return NativeClipboard.ListFormats()
             .Select(format => new ClipboardFormatReport(
                 format,
                 NameOf(format),
                 kept.TryGetValue(format, out var bytes) ? bytes : 0,
-                kept.ContainsKey(format)))
+                kept.ContainsKey(format) ? ClipboardFormatFate.Copied
+                    : lost.Contains(format) ? ClipboardFormatFate.Lost
+                    : ClipboardFormatFate.Synthesised))
             .ToList();
     }
 
@@ -111,6 +127,18 @@ public static class ClipboardDiagnostics
         foreach (var report in after.Where(report => !beforeFormats.Contains(report.Format)))
         {
             differences.Add($"{report.Name} appeared");
+        }
+
+        // Order is not decoration: an application pasting takes the first format it recognises, which
+        // is why the most descriptive one is meant to be first. The formats we copy keep their order,
+        // but one Windows synthesises is added after them rather than where it used to be — which for
+        // an image means CF_DIB is now offered ahead of CF_BITMAP, the order the documentation asks
+        // for anyway. Reported rather than fixed, because it cannot be fixed from this side.
+        if (differences.Count == 0 && !before.Select(r => r.Format).SequenceEqual(after.Select(r => r.Format)))
+        {
+            differences.Add(
+                "same formats, different order: "
+                + string.Join(", ", before.Select(r => r.Name)) + " → " + string.Join(", ", after.Select(r => r.Name)));
         }
 
         return differences;

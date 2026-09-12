@@ -147,7 +147,7 @@ internal static class NativeClipboard
         try
         {
             var entries = new List<ClipboardSnapshot.Entry>();
-            var complete = true;
+            var skipped = new List<uint>();
             var total = 0;
 
             uint format = 0;
@@ -157,14 +157,14 @@ internal static class NativeClipboard
                 {
                     // Not ours to copy. Private formats are not freed by the system either, so putting
                     // one back would hand the owning application a handle it no longer expects.
-                    complete = false;
+                    skipped.Add(format);
                     continue;
                 }
 
                 var bytes = Read(format);
                 if (bytes is null || bytes.Length > MaxFormatBytes || total + bytes.Length > MaxTotalBytes)
                 {
-                    complete = false;
+                    skipped.Add(format);
                     continue;
                 }
 
@@ -172,7 +172,10 @@ internal static class NativeClipboard
                 entries.Add(new ClipboardSnapshot.Entry(format, bytes));
             }
 
-            return new ClipboardSnapshot(entries, complete);
+            var captured = entries.Select(entry => entry.Format).ToHashSet();
+            var lost = skipped.Where(skip => !CanBeSynthesisedFrom(skip, captured)).ToList();
+
+            return new ClipboardSnapshot(entries, lost);
         }
         catch
         {
@@ -241,6 +244,22 @@ internal static class NativeClipboard
     }
 
     private static bool IsPrivate(uint format) => format is >= 0x0200 and <= 0x02FF;
+
+    /// <summary>
+    /// Whether Windows will put a format we did not copy back on the clipboard by itself, given what we
+    /// did copy. Skipping a format is only a loss if the answer is no — measured on a real screenshot:
+    /// CF_BITMAP was skipped, CF_DIB was kept, and the clipboard came back with CF_BITMAP on it.
+    /// The table is the documented one at
+    /// https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-formats.
+    /// </summary>
+    private static bool CanBeSynthesisedFrom(uint format, IReadOnlySet<uint> captured) => format switch
+    {
+        2 or 9 => captured.Contains(8) || captured.Contains(17),   // CF_BITMAP, CF_PALETTE ← CF_DIB / CF_DIBV5
+
+        // CF_METAFILEPICT comes from CF_ENHMETAFILE and vice versa, and neither of them is memory we
+        // can copy, so a metafile on the clipboard really is lost. It is the one format that is.
+        _ => false,
+    };
 
     private static string? DecodeUnicodeText(byte[] bytes)
     {

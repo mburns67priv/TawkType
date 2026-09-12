@@ -77,9 +77,12 @@ public sealed class ClipboardPasteInjector : ITextInjector
         if (!borrowed.IsComplete)
         {
             // The user is about to lose something. It is in the log rather than on screen because the
-            // alternative is a dialog over whatever they are dictating into.
+            // alternative is a dialog over whatever they are dictating into — and it fires only on a
+            // real loss, not on the formats Windows regenerates by itself, or it would fire on every
+            // screenshot and stop being worth reading.
             _logger.LogWarning(
-                "Some clipboard content could not be copied aside and will not survive this paste ({Formats} formats, {Bytes} bytes kept)",
+                "Clipboard formats {Lost} cannot be copied aside and will not survive this paste ({Formats} formats, {Bytes} bytes kept)",
+                string.Join(", ", borrowed.Lost),
                 borrowed.Entries.Count,
                 borrowed.TotalBytes);
         }

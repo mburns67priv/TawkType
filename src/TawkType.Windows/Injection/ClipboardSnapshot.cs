@@ -11,18 +11,28 @@
 internal sealed class ClipboardSnapshot
 {
     /// <summary>A clipboard that could not be read at all. Restoring it does nothing.</summary>
-    public static readonly ClipboardSnapshot Unreadable = new(Array.Empty<Entry>(), complete: false);
+    public static readonly ClipboardSnapshot Unreadable = new(Array.Empty<Entry>(), Array.Empty<uint>());
 
-    public ClipboardSnapshot(IReadOnlyList<Entry> entries, bool complete)
+    public ClipboardSnapshot(IReadOnlyList<Entry> entries, IReadOnlyList<uint> lost)
     {
         Entries = entries;
-        IsComplete = complete;
+        Lost = lost;
     }
 
     public IReadOnlyList<Entry> Entries { get; }
 
-    /// <summary>Whether everything on the clipboard was copied. False means a restore will not be faithful.</summary>
-    public bool IsComplete { get; }
+    /// <summary>
+    /// Formats that were on the clipboard, were not copied, and will not come back on their own.
+    ///
+    /// Not every format that is skipped belongs here. Windows synthesises CF_BITMAP and CF_PALETTE from
+    /// the CF_DIB we do keep, so an image is whole again after a restore even though two of its formats
+    /// were never copied — counting those as losses would put a warning in the log every time somebody
+    /// pasted a dictation with a screenshot on their clipboard, which is how a warning stops being read.
+    /// </summary>
+    public IReadOnlyList<uint> Lost { get; }
+
+    /// <summary>Whether everything on the clipboard will survive the round trip.</summary>
+    public bool IsComplete => Lost.Count == 0;
 
     /// <summary>Whether there is anything to put back.</summary>
     public bool HasContent => Entries.Count > 0;

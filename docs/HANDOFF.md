@@ -413,7 +413,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
 6. **Whisper on a very short clip** is padded to 1.5 s in `WhisperTranscriber`; whisper.cpp rejects
    shorter input. Parakeet is padded to 0.5 s.
 7. ~~Clipboard paste mode restores only text.~~ Done — every format is copied aside and put back now.
-   See gotchas 53 to 55 for what that cost and what is still true.
+   See gotchas 53 to 56 for what that cost and what is still true.
 8. **Parakeet is CC-BY-4.0.** Attribution to NVIDIA belongs in the eventual About screen. Whisper is MIT.
 9. **The cleanup pass has never made a successful API call.** No key was available in the session that
    built it. It was verified as far as the API rejecting an invalid key in ~600 ms and the fallback
@@ -689,7 +689,20 @@ with a script. The script sees what it asks about; a person sees the thing that 
     because it "seems fine": what you would be relying on is undocumented behaviour that Windows is
     free to stop.
 
-54. **Not every clipboard format's handle is memory, and that is fine.** `CF_BITMAP`,
+54. **A skipped clipboard format is not necessarily a lost one.** Windows synthesises `CF_BITMAP` and
+    `CF_PALETTE` from the `CF_DIB` we do copy, so an image is whole after a restore even though two of
+    its formats were never touched. Counting those as losses — which the first version did — put
+    "could not be copied aside" in front of the owner the first time he ran the tool over a
+    screenshot, and would have written the same warning to the log on every paste with an image on the
+    clipboard, which is how a warning stops being read. `CanBeSynthesisedFrom` holds the documented
+    table. A metafile is the one thing genuinely lost: `CF_ENHMETAFILE` and `CF_METAFILEPICT` are
+    synthesised only from each other, and neither is memory.
+
+    A synthesised format also comes back **last** rather than where it was. Order decides which format
+    a pasting application picks, so it is worth knowing; `CF_DIB` ahead of `CF_BITMAP` is the order the
+    documentation asks for anyway, and it cannot be controlled from this side.
+
+55. **Not every clipboard format's handle is memory, and that is fine.** `CF_BITMAP`,
     `CF_ENHMETAFILE`, `CF_PALETTE` and the `CF_DSP*` display formats are GDI handles, so there is
     nothing to `GlobalLock` and copy aside. They are skipped deliberately: Windows synthesises them
     from the memory-backed formats, so restoring `CF_DIB` brings `CF_BITMAP` and `CF_PALETTE` back
@@ -698,7 +711,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     skipped for the opposite reason: the system does not free them, so putting one back would give the
     owning application a handle it has stopped expecting.
 
-55. **The clipboard is the one shared thing a session is not sandboxed from.** Files, `%LOCALAPPDATA%`
+56. **The clipboard is the one shared thing a session is not sandboxed from.** Files, `%LOCALAPPDATA%`
     and `HKCU` are redirected into a session overlay (gotcha 28) — the clipboard is not. Running
     `tools/TawkType.Clip` without `--read` writes to the user's actual clipboard, and a bug in the
     restore destroys whatever they had copied, which may be the one thing they cannot copy again.
@@ -925,7 +938,10 @@ with a script. The script sees what it asks about; a person sees the thing that 
     along (gotcha 53), and everything TawkType writes is now marked as not for the cloud clipboard —
     clipboard sync was a path by which dictated words could leave the machine with nobody choosing it.
     `ClipboardRestore` holds the decision as a pure reducer with 9 tests; `tools/TawkType.Clip` proves
-    the rest against a real clipboard, and was run: six formats out and back, byte for byte.
+    the rest against a real clipboard, and was run twice: six text formats out and back byte for byte, and then a screenshot — 4.6 MB
+    across `CF_DIB`, `CF_DIBV5` and PNG — likewise. The screenshot run is also what found the reporting
+    bug in gotcha 54: the first version called `CF_BITMAP` lost when Windows rebuilds it, which would
+    have cried wolf in the log on every paste with an image copied.
 
     What is not closed is the settle time. Nothing tells an application's clipboard borrower when the
     target has actually pasted, so 200 ms is still a guess — deliberately unchanged, because changing
