@@ -346,6 +346,11 @@
                                    Text="The hotkey only works while TawkType is running." />
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Updates" />
+                        <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Text="Off by default. TawkType works entirely on this machine, so it does not reach the internet unless you ask it to — and an automatic check is a connection to GitHub on a schedule you did not choose. It sends nothing about you either way, and Check now always works." />
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,10"
+                                  IsChecked="{Binding Draft.CheckForUpdatesAutomatically}"
+                                  Content="Check for updates automatically" />
                         <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,10" Text="{Binding UpdateStatus}" />
                         <StackPanel Orientation="Horizontal">
                             <Button Content="Check now" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"

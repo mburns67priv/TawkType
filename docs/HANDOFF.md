@@ -30,6 +30,11 @@ Windows only.
   and it is now done. The owner installed it, ran first run, dictated, and spent an evening reporting
   what was wrong with it — which is where most of v0.7.1 and all of v0.7.2 came from. Everything below
   under "what a real install proved" is no longer theoretical.
+- **It does not touch the network unless the user asks.** `CheckForUpdatesAutomatically` is **off by
+  default**, so an installed copy no longer polls the release feed on its own. That was the last thing
+  in the application that reached out with nobody asking — recognition and every post-processing step
+  are local, the rewrite was already opt-in, and a model download has always been a deliberate act.
+  *Check now* is unaffected: pressing it is the asking.
 - **The update path works, and now says so.** An installed copy polls the release feed, downloads a
   delta (0.1 MB between recent versions) and applies it on the next start. Until v0.7.2 it did all of
   that in silence; it now puts a button on the bar, an item on the tray menu, and a line in Settings.
@@ -229,6 +234,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Snippets need the word "insert" | Left implicit, a signature or an address expands in the middle of an ordinary sentence. They also skip the LLM pass entirely: a model asked to tidy up a signature will do exactly that. |
 | Vocabulary is a text box, and its own file | These lists are written in bursts, usually pasted from somewhere, and plain text can be selected, sorted, diffed and kept in a note — a grid of rows with add/remove buttons cannot. The export is separate from `settings.json` because it is the user's own work, not window positions. |
 | A bad number says so instead of being dropped or clamped | Save used to ignore an unusable value silently: the box kept what was typed, the setting did not change, and the window closed looking like it had worked. Clamping would be worse, since a value the user never chose would be saved under their name. `NumberField` holds the range and the message; Save waits. |
+| TawkType checks for updates only when asked | The application is local: speech recognition, the phrase book, the modes and the caret fitting all run here and need nothing. An automatic check is then the one connection nobody chose — it sends nothing about the user, but it happens on a schedule they did not set and tells whoever is listening that this machine runs TawkType. Off by default makes "it connects when you choose" true on a machine that never opens Settings, which is the only place that claim is worth anything. `CheckAsync` itself is never gated, because pressing *Check now* is the choosing. |
+| Turning automatic checks on checks immediately | The loop wakes every six hours, so switching it on and being told nothing for the rest of the afternoon would read as broken. The `SettingsStore.Changed` handler spots the transition and runs one check there and then. |
 | The clipboard is borrowed and given back, in full | Pasting needs the user's clipboard for a fifth of a second, and the clipboard has no undo. Keeping only the text meant every pasted dictation silently destroyed an image, a copied file, or the formatting on copied text — and finding 3 made that *more* common by sending every multiline result down this path. `ClipboardSnapshot` copies the bytes of every memory-backed format; the few that are not memory come back by Windows' own synthesis from the ones that are. |
 | It is only put back if it is still ours | `GetClipboardSequenceNumber` says whether anything has touched the clipboard since we wrote to it. Restoring unconditionally meant that copying something during the 200 ms settle had it taken away again a moment later — the user's own action, undone by a background feature. Somebody else's clipboard is not ours to replace. |
 | A clipboard found empty is left empty | Otherwise every pasted dictation quietly left the transcript behind for the next Ctrl+V, which is the whole day's speech sitting in whatever the user pastes into next. |
@@ -1027,6 +1034,22 @@ with a script. The script sees what it asks about; a person sees the thing that 
     `SettingsStore` to ask would run the migration, which writes. Toggling it applies on the next line
     rather than the next start, through the same `SettingsStore.Changed` subscription the tray tooltip
     now uses.
+
+51. Turned automatic update checking off by default, on the owner's decision to make TawkType local
+    unless the user chooses otherwise. It was the last thing in the application that reached the
+    network with nobody asking: a check one minute after launch and every six hours after that, to a
+    public GitHub feed. It sends nothing about the user, but "connects only when you choose" cannot be
+    true of a copy that polls on a timer nobody set.
+
+    `CheckForUpdatesAutomatically` gates the loop rather than stopping it, read fresh on every round,
+    so switching it on works without a restart — and the settings handler runs one check the moment it
+    is switched on, since waiting six hours to see anything happen reads as broken. `CheckAsync` is
+    never gated: *Check now* is the asking.
+
+    The README's front page said the Claude rewrite was "the only thing that can ever leave your
+    computer", which was never quite true — the model download and the update check are both network
+    calls, they simply carry nothing about the user. It now names all three, says which of them is off
+    by default, and says that only the rewrite sends anything that was dictated.
 
 ## Links
 

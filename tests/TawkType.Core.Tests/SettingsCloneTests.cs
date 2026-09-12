@@ -21,6 +21,18 @@ public sealed class SettingsCloneTests
         Assert.True(original.WriteDiagnosticLog);
     }
 
+    /// <summary>
+    /// Off, and it has to stay off. TawkType recognises speech, applies the phrase book, picks a mode
+    /// and fits text to the caret without a network, so the one thing that would reach out on its own
+    /// is this check — and a default of on would make "it connects when you choose" untrue on every
+    /// machine that never opened Settings.
+    /// </summary>
+    [Fact]
+    public void Automatic_update_checks_are_off_by_default()
+    {
+        Assert.False(new TawkTypeSettings().CheckForUpdatesAutomatically);
+    }
+
     [Fact]
     public void Clone_does_not_share_the_cleanup_section()
     {

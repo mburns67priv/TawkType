@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using TawkType.Core.Abstractions;
 using Velopack;
 using Velopack.Sources;
 
@@ -24,6 +25,12 @@ public enum UpdateState
 /// <summary>
 /// Checks GitHub Releases for a newer build and stages it. Updates are downloaded quietly in the
 /// background and applied on the next start, so a dictation is never interrupted by an update.
+///
+/// **The automatic half is off unless the user turns it on.** This is the only part of TawkType that
+/// would otherwise reach the network with nobody asking: recognition and every post-processing step
+/// run on the machine, and the Claude rewrite is already opt-in. A check sends nothing about the user,
+/// but it is still a connection on a schedule they did not choose, so it waits to be asked.
+/// <see cref="CheckAsync"/> itself is never gated — pressing *Check now* is the asking.
 /// </summary>
 public sealed class UpdateService
 {
@@ -40,13 +47,15 @@ public sealed class UpdateService
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
 
     private readonly ILogger<UpdateService> _logger;
+    private readonly ISettingsProvider _settings;
     private readonly UpdateManager? _manager;
 
     private UpdateInfo? _staged;
 
-    public UpdateService(ILogger<UpdateService> logger)
+    public UpdateService(ILogger<UpdateService> logger, ISettingsProvider settings)
     {
         _logger = logger;
+        _settings = settings;
 
         try
         {
@@ -74,6 +83,9 @@ public sealed class UpdateService
     /// <summary>False when running from `dotnet run` or a plain publish, where updating means nothing.</summary>
     public bool IsInstalled => _manager?.IsInstalled == true;
 
+    /// <summary>Whether the user has allowed TawkType to check on its own. Read live, not cached.</summary>
+    public bool ChecksAutomatically => _settings.Current.CheckForUpdatesAutomatically;
+
     public string Describe() => State switch
     {
         UpdateState.Checking => "Checking for updates…",
@@ -82,10 +94,19 @@ public sealed class UpdateService
         UpdateState.UpToDate => $"TawkType {CurrentVersion} is up to date.",
         UpdateState.NotInstalled => $"TawkType {CurrentVersion}, running from a local build. Updates apply to installed copies.",
         UpdateState.Failed => "Could not check for updates. TawkType carries on working.",
+
+        // The resting state says which of the two it is, because "TawkType 0.7.3" alone reads like a
+        // version label and leaves somebody waiting for an update that is never going to be looked for.
+        _ when !ChecksAutomatically =>
+            $"TawkType {CurrentVersion}. It does not look for updates on its own — use Check now.",
         _ => $"TawkType {CurrentVersion}",
     };
 
-    /// <summary>Checks now, then every few hours for as long as the app runs.</summary>
+    /// <summary>
+    /// The background loop: a minute after launch, then every few hours for as long as the app runs —
+    /// and only on the rounds where the user has allowed automatic checks. It keeps running either way
+    /// so that switching them on takes effect without a restart.
+    /// </summary>
     public async Task RunInBackgroundAsync(CancellationToken cancellationToken)
     {
         if (_manager?.IsInstalled != true)
@@ -100,7 +121,13 @@ public sealed class UpdateService
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                await CheckAsync(cancellationToken).ConfigureAwait(false);
+                // Read every time round rather than once at the top: the loop outlives the settings
+                // window, so switching this off has to stop the next check, not the next launch.
+                if (ChecksAutomatically)
+                {
+                    await CheckAsync(cancellationToken).ConfigureAwait(false);
+                }
+
                 await Task.Delay(CheckInterval, cancellationToken).ConfigureAwait(false);
             }
         }

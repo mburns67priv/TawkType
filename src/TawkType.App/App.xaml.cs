@@ -40,6 +40,9 @@ public partial class App : Application
     private IHost? _host;
     private TaskbarIcon? _tray;
     private FileLoggerProvider? _fileLog;
+
+    /// <summary>What the automatic-update setting was last time it was looked at, to spot it being turned on.</summary>
+    private bool _checkedAutomatically;
     private OverlayWindow? _overlay;
     private SettingsWindow? _settingsWindow;
     private HistoryWindow? _historyWindow;
@@ -191,7 +194,19 @@ public partial class App : Application
             {
                 _fileLog.Enabled = Services.GetRequiredService<SettingsStore>().Current.WriteDiagnosticLog;
             }
+
+            // Turning automatic checks on is itself the user asking, so it checks there and then
+            // rather than leaving them to wonder for up to six hours whether anything happened.
+            var checksNow = updates.ChecksAutomatically;
+            if (checksNow && !_checkedAutomatically)
+            {
+                _ = updates.CheckAsync(_shutdown.Token);
+            }
+
+            _checkedAutomatically = checksNow;
         });
+
+        _checkedAutomatically = updates.ChecksAutomatically;
 
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
 

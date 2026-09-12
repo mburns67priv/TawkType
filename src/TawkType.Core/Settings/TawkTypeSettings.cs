@@ -97,6 +97,23 @@ public sealed class TawkTypeSettings
     public int MaxRecordingSeconds { get; set; } = 300;
 
     /// <summary>
+    /// Whether TawkType may check for updates on its own.
+    ///
+    /// **Off by default**, and that is the point: recognition, the phrase book, the modes and the
+    /// caret fitting all run here, so the application should reach the network when the user asks and
+    /// not before. An automatic check is a connection to GitHub that nobody asked for, on a schedule
+    /// nobody chose, and it tells whoever is listening that this machine is running TawkType.
+    ///
+    /// It sends nothing about the user — no account, no telemetry, no dictation — and *Check now* in
+    /// Settings works whatever this says, because pressing it is the user asking.
+    ///
+    /// A plain bool rather than a nested section, for the same reason as
+    /// <see cref="WriteDiagnosticLog"/>: a section has to be added to <see cref="Clone"/> by hand
+    /// (gotcha 11).
+    /// </summary>
+    public bool CheckForUpdatesAutomatically { get; set; }
+
+    /// <summary>
     /// Whether to write the diagnostic log at all.
     ///
     /// It never records what was said — only that a dictation happened, how long it was and how long

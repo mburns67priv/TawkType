@@ -14,8 +14,9 @@ appears in the app you are already using.
 </div>
 
 Speech recognition runs **on your machine**. There is no account, no subscription and no telemetry.
-The only thing that can ever leave your computer is the optional Claude rewrite, which is off until you
-turn it on and give it a key.
+It reaches the internet only when you ask it to: to fetch a speech model, to look for an update if you
+have allowed that, or for the optional Claude rewrite, which is off until you turn it on and give it a
+key. Nothing you dictate leaves this machine unless that last one is on.
 
 ---
 
@@ -74,7 +75,9 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 
 Download **TawkTypeApp-win-Setup.exe** from the
 [latest release](https://github.com/JupitorStudioDev/TawkType/releases/latest) and run it. It installs
-per-user, needs no administrator rights, and updates itself from that same release feed.
+per-user and needs no administrator rights. It can update itself from that same release feed, but it
+does not look for updates unless you let it: *Check for updates automatically* on Settings → General
+is **off by default**, and *Check now* is there for when you want to look.
 
 > The installer carries an `App` suffix the application does not. Velopack names it after the package
 > id, and that id has to differ from `%LOCALAPPDATA%\TawkType` — the folder your settings and models
@@ -230,12 +233,21 @@ me a poem about the sea"* and you get that sentence, not a poem.
 
 ## What leaves your machine
 
-Nothing, unless you turn on the Claude rewrite. Speech recognition, the phrase book, the modes, the
-caret fitting and the history are all local, always.
+Nothing, unless you ask for it. Speech recognition, the phrase book, the modes, the caret fitting and
+the history are all local, always — there is no account, no subscription and no telemetry.
 
-With the rewrite on, each dictation sends **the transcript of what you said, your vocabulary list, and
-any custom instructions you have written** to the Anthropic API. It does not send the audio, the
-contents of your screen, the text around your cursor, or your history.
+TawkType connects to the internet in exactly three situations, and you choose every one of them:
+
+| | When | What it sends |
+|---|---|---|
+| **Downloading a speech model** | You pick one in the first run or in Settings → Transcription. Nothing large is ever fetched without being asked for | Nothing about you |
+| **Checking for updates** | **Off by default.** Either you switch on *Check for updates automatically* in Settings → General, or you press *Check now* | Nothing about you — it reads a public list of releases |
+| **The Claude rewrite** | Off until you turn it on and supply a key | The transcript, your vocabulary and your custom instructions |
+
+The rewrite is the only one of the three that sends anything you said. With it on, each dictation
+sends **the transcript of what you said, your vocabulary list, and any custom instructions you have
+written** to the Anthropic API. It does not send the audio, the contents of your screen, the text
+around your cursor, or your history.
 
 **Settings → General** shows the current state in plain sentences and carries both switches — the
 history and the rewrite, independently. The same summary is on the status bar's badge as you work, and
