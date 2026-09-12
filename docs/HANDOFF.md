@@ -785,6 +785,15 @@ with a script. The script sees what it asks about; a person sees the thing that 
    who want the rewrite.
 10. **Command mode**: hold a second key, speak an instruction, replace the selected text.
 
+11. **Put the changes in the release notes.** Every GitHub Release carries the same boilerplate — how
+    to install, the SmartScreen warning, the runtime — and says nothing about what changed. The tag
+    messages do carry it: `v0.7.3` is annotated with what that release fixed. `gh release create` takes
+    `--notes-from-tag`, so this is close to a one-line change in `.github/workflows/release.yml`, with
+    the boilerplate moved into the tag template or appended after it.
+
+    **Deliberately deferred** — the owner's call, with fixes outstanding. It is written down here so it
+    is not rediscovered as a surprise, not because it is due.
+
 ## Session log (what was actually done, in order)
 
 1. Researched Wispr Flow and engine options; profiled the machine; chose .NET 8 + WPF.
