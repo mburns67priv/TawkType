@@ -179,26 +179,40 @@
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10"
                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Visibility="{Binding IsListening, Converter={StaticResource NotBoolToVis}}">
-                        <!-- Outlined here, and only here. Filled, it was a grey slab among line icons
-                             with the violet bars muddying into it; as an outline it reads as the mark
-                             and lets the state colour do the talking. -->
-                        <views:BrandMark Width="23" Height="23" Margin="0,0,11,0" VerticalAlignment="Center"
-                                         BubbleStroke="#8A90A8" BubbleStrokeThickness="1.6">
-                            <views:BrandMark.Style>
-                                <Style TargetType="views:BrandMark">
-                                    <Setter Property="BubbleBrush" Value="Transparent" />
-                                    <Setter Property="BarsBrush" Value="{StaticResource State.Transcribing}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding StateKey}" Value="Injecting">
-                                            <Setter Property="BarsBrush" Value="{StaticResource State.Injecting}" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding StateKey}" Value="Error">
-                                            <Setter Property="BarsBrush" Value="{StaticResource State.Error}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </views:BrandMark.Style>
-                        </views:BrandMark>
+                        <!-- The app icon, not a hand-coloured copy of the mark.
+                             It was drawn in XAML so its bars could take the state colour, but the ring
+                             around the bar, the status text and the waveform all say the state too -
+                             this was the third copy of that signal and the one that kept looking wrong.
+                             Using the icon means the bar carries the same thing as the taskbar, the
+                             tray and the Start menu, and there is nothing left to tint. -->
+                        <!-- Just the bubble, tinted. The full mark carries a voice and an I-beam
+                             inside it, and at this size that interior detail turns to mush; the app
+                             icon's gradient chip did not survive the downscale either. The silhouette
+                             alone reads as a speech bubble instantly, and tinting the whole shape is
+                             far more legible than tinting three bars two pixels wide. -->
+                        <Viewbox Width="21" Height="21" Margin="0,0,11,0" VerticalAlignment="Center">
+                            <Path Data="{StaticResource Brand.BubbleGeometry}">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Setter Property="Fill" Value="#8A90A8" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding StateKey}" Value="Transcribing">
+                                                <Setter Property="Fill" Value="{StaticResource State.Transcribing}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StateKey}" Value="Polishing">
+                                                <Setter Property="Fill" Value="{StaticResource State.Transcribing}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StateKey}" Value="Injecting">
+                                                <Setter Property="Fill" Value="{StaticResource State.Injecting}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StateKey}" Value="Error">
+                                                <Setter Property="Fill" Value="{StaticResource State.Error}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                        </Viewbox>
 
                         <TextBlock Text="{Binding StatusText}" Style="{StaticResource StateLabel}"
                                    MaxWidth="250" TextTrimming="CharacterEllipsis" />
