@@ -174,10 +174,12 @@ After that, hold Right Ctrl and talk.
 <img src="docs/images/bar-resting.png" width="433" alt="The status bar at rest">
 
 It sits on screen, dimmed, showing your hotkey; the moment you speak it comes back to full strength with
-a live level meter and a timer. Its toolbar has Settings, History and Copy last dictation, plus a
-recovery button that appears only when a dictation failed to land. The active mode's name sits on the
-right — a mode you cannot see is a mode you will be surprised by. Drag the bar anywhere; it remembers
-where, per monitor.
+a live level meter and a timer. Its toolbar has Settings, History, Copy last dictation and the
+dictation box — which lights up when a dictation is waiting in it. A **Local** or **Cloud** badge and
+the active mode's name sit on the right: a mode you cannot see is a mode you will be surprised by, and
+the same goes for where your words are going. Drag the bar anywhere; it remembers where, per monitor.
+
+Prefer it solid rather than faded between dictations? **Settings → Appearance**.
 
 **It never takes focus.** The window is `WS_EX_NOACTIVATE`, so Windows delivers your clicks but never
 activates it. Press a button or drag it and your caret stays exactly where it was.

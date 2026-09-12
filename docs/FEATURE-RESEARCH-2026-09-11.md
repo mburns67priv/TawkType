@@ -13,7 +13,9 @@ carried across the TawkType rename so its citations still resolve, and its vocab
 used the app's short-lived previous name — has been changed, because that name belongs to somebody
 else and is not written down here any more.
 
-This section records what has since been built, so nobody re-plans something that is finished or
+**Every section of this document is built**, bar one deliberate omission: §5's per-application
+defaults, which the section itself places later and which is now the last item of its kind on the
+roadmap. What follows records how each was answered, so nobody re-plans something that is finished or
 assumes something is finished because the rest is.
 
 | § | Subject | State |

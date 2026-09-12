@@ -1,7 +1,9 @@
 # TawkType — handoff
 
-Written 2026-09-10 at the end of the first build session; updated through 2026-09-11 after the
-review, the feature passes, first run, the licence and the uninstall work. Read this first; then `README.md` for usage, `docs/ARCHITECTURE.md` for design,
+Written 2026-09-10 at the end of the first build session. Updated through 2026-09-11, which is the
+day TawkType was first installed and used by a person rather than driven by a script: the review and
+feature passes, first run, the licence, the uninstall question, visible privacy, and then a run of
+fixes that came straight out of somebody actually using it. v0.6.0 through v0.7.2 shipped that day. Read this first; then `README.md` for usage, `docs/ARCHITECTURE.md` for design,
 `branding/BRAND.md` for the identity. `docs/REVIEW-2026-09-11.md` and
 `docs/FEATURE-RESEARCH-2026-09-11.md` are the two assessments that drove most of what follows.
 
@@ -21,16 +23,20 @@ Windows only.
 
 ## State of the code
 
-- **Branch `main`, clean tree, pushed.** `v0.5.0` is the only release and the only tag — everything
-  earlier was deleted, releases and tags alike, because nothing had ever been installed from them.
-  **Main is four commits ahead of that tag**: first run, the name sweep, the licence, and the
-  uninstall data question. A release cut from `main` today would be the first to contain any of them.
-- **Nothing here has ever been run outside a developer checkout.** That, not the release, is what is
-  overdue, and three separate things now depend on it: the taskbar icon (gotcha 20), the first run's
-  practice dictation, and the uninstall hook. See the roadmap.
+- **Branch `main`, clean tree, pushed. `v0.7.2` is the current release.** Tags run v0.5.0, v0.6.0,
+  v0.6.1, v0.7.0, v0.7.1, v0.7.2 — everything before v0.5.0 was deleted, which was free exactly once
+  and never will be again (gotcha 44).
+- **It is installed, and it is in use.** That sentence was the first roadmap item for three sessions
+  and it is now done. The owner installed it, ran first run, dictated, and spent an evening reporting
+  what was wrong with it — which is where most of v0.7.1 and all of v0.7.2 came from. Everything below
+  under "what a real install proved" is no longer theoretical.
+- **The update path works, and now says so.** An installed copy polls the release feed, downloads a
+  delta (0.1 MB between recent versions) and applies it on the next start. Until v0.7.2 it did all of
+  that in silence; it now puts a button on the bar, an item on the tray menu, and a line in Settings.
 - **Builds clean** with `dotnet build`, **416 unit tests pass** with `dotnet test` in about two seconds.
-- **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
-  with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
+- **Works end to end on real hardware, from an installed build.** Parakeet, 8 s of speech, typed into
+  another window; the history has the receipts. Overlay, tray, settings, first run, model download and
+  the live waveform are all verified on the owner's machine rather than in a session sandbox.
 - **Renamed to TawkType, completely.** Name, mark, palette, namespaces, projects, solution, assembly,
   window identity, installer, data folder. Nothing in the repository carries the old name, and the
   migration code that used to carry old data forward has been deleted — nothing was ever installed under the
@@ -77,9 +83,9 @@ Windows only.
 - **There is a first run** (§8): seven steps ending in a real dictation into a box TawkType owns. It
   saves each answer as it is given, because the later steps use them, and no step is satisfied by the
   user agreeing to it — the microphone gate wants a level, the model gate wants an engine that
-  *loaded*, and the last gate wants words back from the pipeline. **The practice dictation is the one
-  part nobody has watched work**: an agent session has no voice. Everything else in the flow was
-  driven and screenshotted, including the download and the warm-up.
+  *loaded*, and the last gate wants words back from the pipeline. **Confirmed on a real install**: it
+  opened by itself on a machine with no settings file, heard a real voice, downloaded and loaded the
+  model, and ended in a dictation.
 - **Uninstalling can take the data with it, if the user says so in advance.** A setting on
   Settings → General, obeyed silently by Velopack's uninstall hook — which may show no UI and is
   killed after 30 seconds, so the question cannot be asked during the uninstall itself. A
@@ -342,6 +348,39 @@ site source and every snapshot from v2 on were already clean.
   and the repository is the owner's, so the cost is low, but it is a deliberate decision rather than
   tidying: **ask before doing it.**
 
+## What a real install proved, and what it broke
+
+The first evening of somebody using TawkType produced more defects than the previous three sessions of
+building it, and none of them were the ones that had been worried about. Worth reading before assuming
+anything here is finished.
+
+**Confirmed working, on hardware, from an installed build:** first run opens by itself on a machine
+with no `settings.json`; the microphone step hears a real voice; the model downloads and loads; a
+dictation lands in another window; the history records it; the update path downloads a delta and
+applies it on restart.
+
+**What that evening found, in the order it was found:**
+
+- The first-run microphone card was sized to its message, so the level meter shrank when the message
+  got shorter (gotcha 46, third instance).
+- The waveform never moved. Three fixes before the right one — see session log 40 and 41. The lesson
+  is measure the hardware, do not reason about it.
+- A working headset was reported as **silent**, because the thresholds came from a comment rather than
+  a measurement.
+- "Check now" for updates greyed the button and said nothing, and "Restart and update" never appeared
+  at all — a computed property bound in XAML that never raised a change (gotcha 50).
+- A staged update announced itself nowhere, so it applied silently whenever the app next restarted.
+- An expanded history row had no way back to the list.
+- Settings pages shared one scroll offset, so a short page opened part way down.
+- The theme only applied on Save, which is no way to choose a theme.
+- The pill's resting transparency had no control at all, and changing it did not reach a pill that was
+  already resting.
+- Three C# identifiers were on screen or being read to screen readers (gotcha 42, second instance).
+- The mark on the bar looked wrong at 21px, and took three attempts to get right.
+
+Not one of those is in a test, and not one would have been found by another session of driving the app
+with a script. The script sees what it asks about; a person sees the thing that looks wrong.
+
 ## Gotchas the next person will hit
 
 1. ~~Repo folder is still named `Murmur`.~~ Done — it is `~/source/repos/TawkType` now.
@@ -536,6 +575,13 @@ site source and every snapshot from v2 on were already clean.
     reader and every test script. `DictationMode` overrides `ToString()`; do the same for anything
     else that ends up in a list.
 
+    It happened again, and was only noticed because an automation script printed what it saw: every
+    settings nav row announced `NavPage { Page = Appearance, Title = Appearance, Blurb = Theme and the
+    status pill, Icon = M12,3A9,9,0,1,0… }`, icon path data included. `NavPage` overrides `ToString()`
+    now. The related trap is an **enum** in a picker — it cannot override anything, so the pill's
+    position combo was showing `BottomCenter` to the user. That one needs a wrapper type with a name,
+    which is what `OverlayPositionChoice` is.
+
 43. **A re-run of the release workflow used to fail on its own release.** The delta step fetches the
     most recent release for packaging; on a re-run that is the version being built, so vpk refused
     with "there is a release equal or greater to the current version" — naming a package the job had
@@ -599,51 +645,70 @@ site source and every snapshot from v2 on were already clean.
     script with the Write tool and run it by path — the Python file itself is fine, it is the heredoc
     that is not.
 
+50. **A computed property bound in XAML is a dead binding unless something raises it.** Settings bound
+    a button's visibility to `CanRestartForUpdate`, a plain `=>` property over the update service's
+    state. Nothing ever raised `PropertyChanged` for it, so the button never appeared however the
+    check went, and the in-app update path was unreachable for its whole life. The status line beside
+    it was bound to a property nothing assigned at all, which at least fails visibly.
+
+    The rule: a computed property over somebody else's state needs whoever owns that state to tell it.
+    `UpdateService` had been raising `Changed` on every transition the entire time; nobody subscribed.
+
+51. **WPF decodes the largest frame of a multi-frame `.ico`.** `tawktype.ico` carries ten sizes from
+    16 to 256. An `<Image Source="…ico" Width="22">` decodes the 256 and squashes it, which looks
+    soft and muddy. `DecodePixelWidth` on a `BitmapImage` picks the nearest frame instead. Worth
+    knowing even though the bar ended up not using the icon at all: a gradient chip does not survive
+    being shown at 22px however cleanly it is resampled, and the answer there was to draw less.
+
+52. **The settings pages and the first-run steps each share one `ScrollViewer`.** They are stacked and
+    switched by visibility, so they share its offset: scroll down one page, pick another from the nav
+    rail, and it opens part way down — or past its end, if it is shorter. Both windows call
+    `ScrollToTop()` when the page changes. Any new stacked-page window needs the same.
+
 ## Roadmap, in the order I would do it
 
-1. **Cut a release from `main` and install it.** Nothing has ever been installed from any release, so
-   this is a first install with no old copy to remove — and `main` is four commits past `v0.5.0`, so
-   the tag contains none of the work below.
+1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only
+   major feature nobody has ever seen work: no successful API call has been made from this codebase
+   (gotcha 9). `tools/TawkType.Clean` with a real key answers it in one command, and until it does,
+   every judgement about `CleanupPrompt` — the style instructions, the vocabulary block, the two-second
+   timeout — is a guess. The privacy badge's Cloud state has never been seen either, for the same
+   reason.
 
-   Three code paths have never executed anywhere, and one install exercises all three:
+2. **Finish verifying the install.** Most of it is done now, but three paths have still never run:
 
-   - **The taskbar icon** (gotcha 20). Fixed by a long hunt, never once tested against a real install.
-     Re-check it particularly because the manifest's assembly identity changed with the name sweep —
-     the only identity string that has moved since that fix was made.
-   - **The first run's practice dictation.** Every other step was driven and screenshotted here; that
-     one needs a voice. A clean machine with no `settings.json` opens setup by itself.
-   - **The uninstall hook.** Tick *Delete all of this if I uninstall TawkType* in Settings, uninstall,
-     and read `%TEMP%\TawkType\uninstall.log`. Then install again, leave the box unticked, uninstall,
-     and check the data folder survived — that is the default and the more important half.
+   - **The uninstall hook**, both halves. Tick *Delete all of this if I uninstall TawkType* in
+     Settings, uninstall, and read `%TEMP%\TawkType\uninstall.log`. Then install again, leave the box
+     unticked, uninstall, and check the data folder survived — that is the default and the more
+     important half. The hook also clears the start-with-Windows registry value, which nothing did
+     before v0.6.1.
+   - **The taskbar icon** (gotcha 20). Fixed by a long hunt and never confirmed against a real
+     install. Worth a look now that one exists, particularly because the manifest's assembly identity
+     changed during the name sweep — the only identity string that has moved since that fix.
+   - **An update that announces itself.** v0.7.2 is the first build that can; proving it needs the one
+     after.
 
-   Plus what an install has always been for: the Start Menu entry, the tray, downloading a model, and
-   a dictation landing in another application.
-
-   An agent session cannot do any of it. Writes under `%LOCALAPPDATA%` and `HKCU` go into a
-   per-session overlay (gotcha 28), so everything verified here was verified there and nowhere else.
-
-2. **Close review finding 6, the clipboard.** The restore races the paste and only text is put back,
+3. **Close review finding 6, the clipboard.** The restore races the paste and only text is put back,
    so an image or formatted content is destroyed by a dictation — more likely now that multiline
    results always paste. It is the largest fully-open finding and it is written up with a reproduction.
 
    Then the rest of finding 10: the filler regex still removes German "um" and a lower-case English
    "er". All-capitals words are protected, which is why *"The ER is open"* survives, but a
    capitalisation rule cannot reach the lower-case collisions — that needs the language.
-3. **Prove the rewrite on real dictation** and tune `CleanupPrompt` against it. Still true: nobody has
+4. **Tune `CleanupPrompt`** against real rewrites, once item 1 has produced some. Still true: nobody has
    seen a successful call (gotcha 9), so every judgement about rewrite quality is currently a guess.
-4. **Finish the brand assets**: high-contrast tray variants, outlined SVG wordmarks, and a licence and
+5. **Finish the brand assets**: high-contrast tray variants, outlined SVG wordmarks, and a licence and
    trademark check on the name. The domain is bought; availability was never established.
-5. **Bring Remember… to the dictation box.** It is in the history window; the box is the other place
+6. **Bring Remember… to the dictation box.** It is in the history window; the box is the other place
    the wrong words are already on screen.
-6. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
+7. **Per-app modes**: read the foreground window's process name at release time and pick a mode from
    it. `FocusTarget.ProcessName` is already captured at key-down, so this is a map and a settings page.
    Feature research §5 calls it the "later" half of modes, and it is now the only part of that
    document left to build.
-7. **Streaming partials** while the key is held. Parakeet is a transducer; it suits this.
-8. **Local `ILlmClient`** so the rewrite works offline and "nothing leaves this machine" holds with
+8. **Streaming partials** while the key is held. Parakeet is a transducer; it suits this.
+9. **Local `ILlmClient`** so the rewrite works offline and "nothing leaves this machine" holds with
    cleanup switched on — which would also make the bar's privacy badge read Local again for people
    who want the rewrite.
-9. **Command mode**: hold a second key, speak an instruction, replace the selected text.
+10. **Command mode**: hold a second key, speak an instruction, replace the selected text.
 
 ## Session log (what was actually done, in order)
 
@@ -783,6 +848,31 @@ site source and every snapshot from v2 on were already clean.
     guessed against the same assumption; thresholds calibrated to one measured headset; and finally a
     meter that measures for itself. Only the fourth is right for anybody else's hardware, and the
     measurement that made it possible took one console tool and ten seconds of somebody talking.
+42. Shipped v0.6.0, v0.6.1, v0.7.0, v0.7.1 and v0.7.2 in one evening, each one carrying what the last
+    one's use had turned up. The release workflow behaved throughout: tag, build, test, pack, publish,
+    with a 0.1 MB delta between versions rather than the compounding history of the v0.3.0 era.
+43. Made the update visible. The check reported nothing at all — `UpdateStatus` was bound and never
+    assigned, and `CanRestartForUpdate` never raised a change, so "Restart and update" had never once
+    appeared (gotcha 50). Then went further than the binding: a staged update now puts a button on the
+    bar, an item on the tray menu and the version in the tray tooltip, because a status line in a
+    settings page nobody has open is not being told.
+44. Fixed what an evening of use found in the windows: the history's expanded row had no way back to
+    the list (a Close button and Escape); the settings pages shared one scroll offset (gotcha 52); the
+    theme only applied on Save, which is no way to choose a theme — it previews as you pick and Cancel
+    puts it back; and the pill's resting transparency had no control at all, plus changing it did not
+    reach a pill that was already resting.
+45. Took three developer items off the tray menu on the owner's instruction, then put the dictation
+    box button back on the bar permanently — it had been hidden unless a delivery had failed, which
+    left no visible way into a window that is also a scratchpad. It lights amber when something is
+    actually waiting. The box gained a Clear button that forgets the held dictation and turns that
+    light off, without touching the history.
+46. Spent three attempts on a 21px glyph. The brand mark filled was a pale slab among line icons; the
+    app icon was a gradient chip that no amount of correct resampling saves at that size (gotcha 51);
+    the answer was the speech bubble silhouette alone, tinted by what TawkType is doing. Drawing less
+    was the fix, and the owner suggested it.
+47. Cleaned up three identifiers that had reached the user: the settings nav rows read their whole
+    record to screen readers and the pill's position picker showed `BottomCenter` (gotcha 42, second
+    instance), and the theme hint still promised a behaviour that had changed twenty minutes earlier.
 
 ## Links
 
