@@ -23,6 +23,10 @@ public sealed class SpellingSection(Func<VocabularySettings> vocabulary, Action<
 
     public override string TextHint => "One per line.";
 
+    public override string PrimaryHeader => "Word";
+
+    public override string? SecondaryHeader => null;
+
     protected override IEnumerable<VocabularyRow> BuildRows()
         => vocabulary().Spellings.Select((word, i) => new VocabularyRow(this, i, word, null, null));
 
@@ -93,6 +97,10 @@ public sealed class ReplacementSection(Func<VocabularySettings> vocabulary, Acti
 
     public override string TextHint => $"One per line, as heard {VocabularyFormat.Separator} typed.";
 
+    public override string PrimaryHeader => "When you hear";
+
+    public override string? SecondaryHeader => "Type this instead";
+
     protected override IEnumerable<VocabularyRow> BuildRows()
         => vocabulary().Replacements.Select((r, i) => new VocabularyRow(this, i, r.From, r.To, null));
 
@@ -158,6 +166,10 @@ public sealed class SnippetSection(Func<VocabularySettings> vocabulary, Action<s
 
     public override string TextHint =>
         $"One per line, as trigger {VocabularyFormat.Separator} text, with \\n for a line break.";
+
+    public override string PrimaryHeader => "Say";
+
+    public override string? SecondaryHeader => "Types";
 
     protected override IEnumerable<VocabularyRow> BuildRows()
         => vocabulary().Snippets.Select((s, i) => new VocabularyRow(

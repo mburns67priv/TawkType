@@ -106,7 +106,37 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     public SnippetSection Snippets { get; }
 
-    private IEnumerable<VocabularySection> Vocabularies => [Spellings, Replacements, Snippets];
+    private IEnumerable<VocabularySection> Vocabularies => VocabularyLists;
+
+    /// <summary>The three, in the order the tabs show them.</summary>
+    public VocabularySection[] VocabularyLists { get; }
+
+    /// <summary>
+    /// The one list on screen. Three stacked lists were fine at three entries each and unreadable at
+    /// eighty: the sections ended up miles apart, the footer below the horizon, and finding an entry
+    /// meant scrolling past the other two.
+    /// </summary>
+    [ObservableProperty]
+    private VocabularySection _activeList = null!;
+
+    [RelayCommand]
+    private void SelectVocabularyList(VocabularySection? section)
+    {
+        if (section is not null)
+        {
+            ActiveList = section;
+        }
+    }
+
+    partial void OnActiveListChanged(VocabularySection? oldValue, VocabularySection newValue)
+    {
+        if (oldValue is not null)
+        {
+            oldValue.IsActive = false;
+        }
+
+        newValue.IsActive = true;
+    }
 
     /// <summary>
     /// What the AI cleanup page says about the vocabulary, which it sends with every rewrite. It used
@@ -224,12 +254,16 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         Replacements = new ReplacementSection(() => Draft.Vocabulary, OnVocabularyChanged);
         Snippets = new SnippetSection(() => Draft.Vocabulary, OnVocabularyChanged);
 
+        VocabularyLists = [Spellings, Replacements, Snippets];
+
         // Rows and counts come from Refresh, so without this the page opens empty for somebody who
         // already has a vocabulary — the lists would fill in only once something else changed them.
-        foreach (var section in Vocabularies)
+        foreach (var section in VocabularyLists)
         {
             section.Refresh();
         }
+
+        ActiveList = Spellings;
         _historyMaxEntriesText = _draft.History.MaxEntries.ToString();
         _apiKeyStatus = DescribeApiKey();
         _updateStatus = updates.Describe();

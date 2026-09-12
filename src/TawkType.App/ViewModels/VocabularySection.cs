@@ -7,6 +7,14 @@ using TawkType.Desktop.Views;
 
 namespace TawkType.Desktop.ViewModels;
 
+/// <summary>How the list is shown. Never how it is stored — see <see cref="VocabularySection.Sort"/>.</summary>
+public enum VocabularySort
+{
+    AsEntered,
+    Ascending,
+    Descending,
+}
+
 /// <summary>
 /// One entry as the list shows it.
 ///
@@ -111,31 +119,147 @@ public abstract partial class VocabularySection : ObservableObject
     [ObservableProperty]
     private bool _isEmpty = true;
 
+    /// <summary>True when this is the list on screen. The others are not rendered at all.</summary>
+    [ObservableProperty]
+    private bool _isActive;
+
+    /// <summary>
+    /// Filters the rows shown. The stored list is untouched — which is why text mode is refused while
+    /// this is set: a text box showing only the matching lines, committed, would replace the whole
+    /// list with them and delete everything that did not match, silently.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSearching))]
+    [NotifyPropertyChangedFor(nameof(CanEditAsText))]
+    [NotifyPropertyChangedFor(nameof(TextModeBlockedReason))]
+    [NotifyPropertyChangedFor(nameof(EmptySearchText))]
+    private string _search = string.Empty;
+
+    /// <summary>How the rows are ordered on screen. A view, never written to the vocabulary.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SortLabel))]
+    [NotifyPropertyChangedFor(nameof(IsSorted))]
+    private VocabularySort _sort;
+
+    /// <summary>How many entries the list actually holds, whatever the search is showing.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TabLabel))]
+    private int _total;
+
+    public bool IsSearching => Search.Length > 0;
+
+    public bool IsSorted => Sort != VocabularySort.AsEntered;
+
+    /// <summary>Blocked while searching, because committing a filtered box would delete the rest.</summary>
+    public bool CanEditAsText => !IsSearching;
+
+    public string? TextModeBlockedReason
+        => IsSearching ? "Clear the search first — text mode shows the whole list." : null;
+
+    public string TabLabel => IsSearching ? $"{Title}  {Rows.Count}/{Total}" : $"{Title}  {Total}";
+
+    public string EmptySearchText => $"No {Plural} match “{Search}”.";
+
+    public string SortLabel => Sort switch
+    {
+        VocabularySort.Ascending => "A to Z",
+        VocabularySort.Descending => "Z to A",
+        _ => "As entered",
+    };
+
+    /// <summary>What the two columns are called. The dialogs' words, so one idea has one vocabulary.</summary>
+    public abstract string PrimaryHeader { get; }
+
+    public abstract string? SecondaryHeader { get; }
+
+    /// <summary>
+    /// The header band and every row share these, which is what lines them up. Star widths at equal
+    /// ratios align exactly; SharedSizeGroup does not work on star columns, so do not reach for it.
+    /// </summary>
+    public GridLength PrimaryWidth => new(1, GridUnitType.Star);
+
+    public GridLength SecondaryWidth
+        => SecondaryHeader is null ? new GridLength(0) : new GridLength(1.4, GridUnitType.Star);
+
     public string ToggleLabel => IsTextMode ? "Done editing text" : "Edit as text";
 
     /// <summary>Rebuilds the rows and the count from the draft. Called after anything changes the list.</summary>
     public void Refresh()
     {
+        // Built first, so every row carries its position in the stored list. Filtering and sorting are
+        // applied to the rows afterwards and never to the source: Index has to keep pointing at the
+        // real entry or Edit and Remove would act on whatever happened to be in that slot.
+        var all = BuildRows().ToList();
+        Total = all.Count;
+
+        IEnumerable<VocabularyRow> shown = all;
+
+        if (IsSearching)
+        {
+            shown = shown.Where(row => Matches(row, Search));
+        }
+
+        shown = Sort switch
+        {
+            VocabularySort.Ascending => shown.OrderBy(row => row.Primary, StringComparer.CurrentCultureIgnoreCase),
+            VocabularySort.Descending => shown.OrderByDescending(row => row.Primary, StringComparer.CurrentCultureIgnoreCase),
+            _ => shown,
+        };
+
         Rows.Clear();
-        foreach (var row in BuildRows())
+        foreach (var row in shown)
         {
             Rows.Add(row);
         }
 
-        IsEmpty = Rows.Count == 0;
-        CountText = Rows.Count switch
+        IsEmpty = Total == 0;
+        NoMatches = Total > 0 && Rows.Count == 0;
+
+        CountText = Total switch
         {
             0 => $"no {Plural} yet",
             1 => $"1 {Singular}",
-            _ => $"{Rows.Count} {Plural}",
+            _ => $"{Total} {Plural}",
         };
+
+        OnPropertyChanged(nameof(TabLabel));
     }
+
+    /// <summary>True when the list holds something but the search has hidden all of it.</summary>
+    [ObservableProperty]
+    private bool _noMatches;
+
+    private static bool Matches(VocabularyRow row, string search)
+        => row.Primary.Contains(search, StringComparison.CurrentCultureIgnoreCase)
+            || (row.Secondary?.Contains(search, StringComparison.CurrentCultureIgnoreCase) ?? false);
+
+    partial void OnSearchChanged(string value) => Refresh();
+
+    partial void OnSortChanged(VocabularySort value) => Refresh();
+
+    /// <summary>As entered, then A to Z, then back. Never touches the stored order.</summary>
+    [RelayCommand]
+    private void CycleSort()
+        => Sort = Sort switch
+        {
+            VocabularySort.AsEntered => VocabularySort.Ascending,
+            VocabularySort.Ascending => VocabularySort.Descending,
+            _ => VocabularySort.AsEntered,
+        };
+
+    [RelayCommand]
+    private void ClearSearch() => Search = string.Empty;
 
     [RelayCommand]
     private void ToggleTextMode()
     {
         if (!IsTextMode)
         {
+            if (IsSearching)
+            {
+                return;
+            }
+
             Text = FormatText();
             Problem = null;
             IsTextMode = true;
@@ -182,11 +306,17 @@ public abstract partial class VocabularySection : ObservableObject
     [RelayCommand]
     private void Add(Window? owner)
     {
-        if (ShowAddDialog(owner))
+        if (!ShowAddDialog(owner))
         {
-            Refresh();
-            Announce(null);
+            return;
         }
+
+        // Otherwise they add an entry and watch nothing happen, because it does not match the search.
+        var wasSearching = IsSearching;
+        Search = string.Empty;
+
+        Refresh();
+        Announce(wasSearching ? $"Search cleared so you can see the new {Singular}." : null);
     }
 
     [RelayCommand]

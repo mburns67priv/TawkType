@@ -18,97 +18,8 @@
         FontSize="13">
     <Window.Resources>
         <views:EqualsToVisibilityConverter x:Key="PageVisible" />
+        <views:NotEqualsToVisibilityConverter x:Key="PageHidden" />
 
-        <!-- One vocabulary list, used three times. The three differ in their words and their dialogs,
-             not in their shape, so learning one teaches the other two. -->
-        <DataTemplate x:Key="VocabularySection">
-            <!-- MinWidth, not Width: the window can be dragged down to 720, which leaves this column
-                 narrower than a fixed 520 would insist on. MaxWidth is the one that must not be used
-                 for a container (gotcha 46) — it would shrink the section to its content. -->
-            <StackPanel MinWidth="460" HorizontalAlignment="Left" Margin="0,0,0,24">
-                <DockPanel Margin="0,0,0,2">
-                    <Button DockPanel.Dock="Right" Style="{StaticResource Ui.LinkButton}"
-                            Content="{Binding ToggleLabel}" Command="{Binding ToggleTextModeCommand}" />
-                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Ui.Hint}"
-                               VerticalAlignment="Center" Margin="0,0,12,0" Text="{Binding CountText}" />
-                    <TextBlock Style="{StaticResource Ui.SectionTitle}" Margin="0" Text="{Binding Title}" />
-                </DockPanel>
-
-                <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
-                           HorizontalAlignment="Left" Margin="0,0,0,10" Text="{Binding Hint}" />
-
-                <!-- The list. The default, and what the page is about. -->
-                <StackPanel Visibility="{Binding IsTextMode, Converter={StaticResource InverseBoolToVisible}}">
-                    <!-- Above the rows, not below: it is what a new user needs, and it must not walk
-                         down the page as the list grows. -->
-                    <Button Style="{StaticResource Ui.Button}" HorizontalAlignment="Left" Margin="0,0,0,8"
-                            Content="{Binding AddLabel}" Command="{Binding AddCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
-
-                    <Border Style="{StaticResource Ui.CardSurface}" Padding="14,12"
-                            Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisible}}">
-                        <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" Text="{Binding EmptyText}" />
-                    </Border>
-
-                    <!-- ItemsControl rather than ListBox: nothing here is selected, and a ListBox would
-                         bring its own ScrollViewer inside the page's shared one (gotcha 52). -->
-                    <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource Ui.ListRow}" ToolTip="{Binding Tooltip}">
-                                    <DockPanel>
-                                        <Button DockPanel.Dock="Right" Style="{StaticResource Ui.RowIconButton}"
-                                                Tag="{x:Static views:Icons.Close}"
-                                                AutomationProperties.Name="{Binding RemoveName}"
-                                                ToolTip="{Binding RemoveName}"
-                                                Command="{Binding Section.RemoveCommand}"
-                                                CommandParameter="{Binding}" />
-                                        <Button DockPanel.Dock="Right" Style="{StaticResource Ui.RowIconButton}"
-                                                Tag="{x:Static views:Icons.Pencil}"
-                                                AutomationProperties.Name="{Binding EditName}"
-                                                ToolTip="{Binding EditName}"
-                                                Command="{Binding Section.EditCommand}"
-                                                CommandParameter="{Binding}" />
-
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" MaxWidth="220" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="{Binding Primary}"
-                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="1" Text="  →  " VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource Ui.TextMuted}"
-                                                       Visibility="{Binding HasSecondary, Converter={StaticResource BoolToVisible}}" />
-                                            <TextBlock Grid.Column="2" Text="{Binding Secondary}"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource Ui.TextMuted}"
-                                                       TextTrimming="CharacterEllipsis" />
-                                        </Grid>
-                                    </DockPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-
-                <!-- Bulk. Paste a list, sort it, keep it in a note. The syntax hint lives here and
-                     nowhere else, because here is the only place it is true and the only place it is
-                     needed. NoWrap and a horizontal scrollbar so a pasted column stays a column. -->
-                <StackPanel Visibility="{Binding IsTextMode, Converter={StaticResource BoolToVisible}}">
-                    <TextBox Style="{StaticResource Ui.MultilineTextBox}" MinHeight="140"
-                             FontFamily="Consolas" FontSize="12.5" TextWrapping="NoWrap"
-                             HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                             Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
-                               HorizontalAlignment="Left" Margin="0,6,0,0" Text="{Binding TextHint}" />
-                    <TextBlock Style="{StaticResource Ui.FieldError}" TextWrapping="Wrap" MaxWidth="520"
-                               HorizontalAlignment="Left" Text="{Binding Problem}"
-                               Visibility="{Binding Problem, Converter={StaticResource NullToCollapsed}}" />
-                </StackPanel>
-            </StackPanel>
-        </DataTemplate>
 
 
         <!-- One row of a settings page: label, control, optional hint. -->
@@ -228,7 +139,9 @@
             <!-- One scroll region for every page, which is why changing page has to reset it: the
                  pages share this viewer's offset, so arriving at a short page half way down is the
                  previous page's scroll position, not this one's. -->
-            <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" Padding="28,24,28,24">
+            <Grid>
+            <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" Padding="28,24,28,24"
+                          Visibility="{Binding SelectedPage, Converter={StaticResource PageHidden}, ConverterParameter=Vocabulary}">
                 <Grid>
 
                     <!-- ============ General ============ -->
@@ -761,27 +674,6 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- ============ Vocabulary ============ -->
-                    <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Vocabulary}">
-                        <TextBlock Style="{StaticResource Ui.PageTitle}" Text="Vocabulary" />
-                        <TextBlock Style="{StaticResource Ui.PageSubtitle}"
-                                   Text="Words TawkType should get right, and text it can type for you. All of this works on this machine, with or without the Claude pass." />
-
-                        <ContentControl Content="{Binding Spellings}" ContentTemplate="{StaticResource VocabularySection}" />
-                        <ContentControl Content="{Binding Replacements}" ContentTemplate="{StaticResource VocabularySection}" />
-                        <ContentControl Content="{Binding Snippets}" ContentTemplate="{StaticResource VocabularySection}" />
-
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                            <Button Content="Import…" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
-                                    Command="{Binding ImportVocabularyCommand}" />
-                            <Button Content="Export…" Style="{StaticResource Ui.Button}"
-                                    Command="{Binding ExportVocabularyCommand}" />
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" MaxWidth="520"
-                                   HorizontalAlignment="Left" Margin="0,8,0,0"
-                                   Text="Your vocabulary is kept in its own file, separate from the rest of your settings, so you can copy it to another machine or keep it in a note. Importing replaces all three lists, and nothing is saved until you press Save." />
-                    </StackPanel>
-
                     <!-- ============ AI cleanup ============ -->
                     <StackPanel Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Cleanup}">
                         <TextBlock Style="{StaticResource Ui.PageTitle}" Text="AI cleanup" />
@@ -918,6 +810,232 @@
 
                 </Grid>
             </ScrollViewer>
+
+            <!-- ============ Vocabulary ============
+                 Outside PageScroll on purpose. This page owns its own layout, so the table can be the
+                 one thing that scrolls: fixed bands, one * row, one list. That is the shape the
+                 history window was rebuilt into after a list and a detail pane fought over 560px and
+                 the list collapsed to a sliver (gotcha 52), and it is also what lets the ListBox
+                 virtualise — an ItemsControl inside a shared scroller is measured at infinite height
+                 and cannot virtualise however it is configured. -->
+            <Grid x:Name="VocabularyPage" Margin="28,24,28,20"
+                  Visibility="{Binding SelectedPage, Converter={StaticResource PageVisible}, ConverterParameter=Vocabulary}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" MinHeight="120" />
+                </Grid.RowDefinitions>
+
+                <!-- Import and Export belong to the page, not to a list, and a control at the bottom of
+                     a page that grows without limit has a built-in expiry date. -->
+                <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Import…" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                                Command="{Binding ImportVocabularyCommand}"
+                                ToolTip="Replaces all three lists. Your vocabulary is kept in its own file, so you can copy it to another machine or keep it in a note." />
+                        <Button Content="Export…" Style="{StaticResource Ui.Button}"
+                                Command="{Binding ExportVocabularyCommand}"
+                                ToolTip="Writes all three lists to a file of their own, separate from the rest of your settings." />
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Ui.PageTitle}" Margin="0" VerticalAlignment="Center"
+                               Text="Vocabulary" />
+                </DockPanel>
+
+                <!-- Three is the right count for tabs, and the counts live in the labels, so "how much
+                     is in there" needs no other control. -->
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding VocabularyLists}" Focusable="False"
+                              Margin="0,0,0,10">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding TabLabel}"
+                                    Command="{Binding DataContext.SelectVocabularyListCommand,
+                                                      RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource Ui.Tab}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource Ui.NavSelected}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Ui.Accent}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Grid.Row="2" Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                           MinHeight="30" Margin="0,0,0,10" Text="{Binding ActiveList.Hint}" />
+
+                <DockPanel Grid.Row="3" Margin="0,0,0,10">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Ui.LinkButton}"
+                            Content="{Binding ActiveList.ToggleLabel}"
+                            Command="{Binding ActiveList.ToggleTextModeCommand}"
+                            IsEnabled="{Binding ActiveList.CanEditAsText}"
+                            ToolTip="{Binding ActiveList.TextModeBlockedReason}" />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Ui.Button}" Margin="0,0,8,0"
+                            Content="{Binding ActiveList.AddLabel}"
+                            Command="{Binding ActiveList.AddCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <Grid Margin="0,0,12,0"
+                          Visibility="{Binding ActiveList.IsTextMode, Converter={StaticResource InverseBoolToVisible}}">
+                        <TextBox x:Name="VocabularySearch" Style="{StaticResource Ui.TextBox}"
+                                 Text="{Binding ActiveList.Search, UpdateSourceTrigger=PropertyChanged, Delay=150}"
+                                 KeyDown="OnVocabularySearchKeyDown" />
+                        <TextBlock Text="Search this list  (Ctrl+F)" IsHitTestVisible="False"
+                                   Style="{StaticResource Ui.Hint}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Visibility="{Binding ActiveList.IsSearching, Converter={StaticResource InverseBoolToVisible}}" />
+                    </Grid>
+                </DockPanel>
+
+                <!-- The list and the text box are never on screen together, so there is never more than
+                     one scroll region here either. -->
+                <Grid Grid.Row="4" MaxWidth="900" HorizontalAlignment="Stretch">
+                    <Border Visibility="{Binding ActiveList.IsTextMode, Converter={StaticResource InverseBoolToVisible}}"
+                            CornerRadius="{StaticResource Ui.CornerRadius}"
+                            BorderBrush="{DynamicResource Ui.Border}" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- The header band and every row share the same column widths, which is what
+                                 lines them up. The right margin reserves the scrollbar's gutter so the
+                                 header does not shift by 12px the moment the list gets long. -->
+                            <Border Grid.Row="0" Background="{DynamicResource Ui.Card}"
+                                    BorderBrush="{DynamicResource Ui.Border}" BorderThickness="0,0,0,1"
+                                    Margin="0,0,12,0" Padding="10,0" Height="30">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="{Binding ActiveList.PrimaryWidth}" MinWidth="120" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="{Binding ActiveList.SecondaryWidth}" />
+                                        <ColumnDefinition Width="64" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                            Style="{StaticResource Ui.LinkButton}"
+                                            Command="{Binding ActiveList.CycleSortCommand}"
+                                            ToolTip="Sort this list on screen. It does not change the order your vocabulary is saved in.">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding ActiveList.PrimaryHeader}" />
+                                            <TextBlock Margin="6,0,0,0" Text="{Binding ActiveList.SortLabel}"
+                                                       Foreground="{DynamicResource Ui.Accent}"
+                                                       Visibility="{Binding ActiveList.IsSorted, Converter={StaticResource BoolToVisible}}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="11.5"
+                                               Foreground="{DynamicResource Ui.TextMuted}"
+                                               Text="{Binding ActiveList.SecondaryHeader}" />
+                                </Grid>
+                            </Border>
+
+                            <!-- The one scroll region on this page. -->
+                            <ListBox Grid.Row="1" ItemsSource="{Binding ActiveList.Rows}"
+                                     Background="Transparent" BorderThickness="0"
+                                     ItemContainerStyle="{StaticResource Ui.VocabularyItem}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                     VirtualizingPanel.IsVirtualizing="True"
+                                     VirtualizingPanel.VirtualizationMode="Recycling"
+                                     KeyDown="OnVocabularyListKeyDown"
+                                     MouseDoubleClick="OnVocabularyListDoubleClick">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ToolTip="{Binding Tooltip}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{Binding Section.PrimaryWidth}" MinWidth="120" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="{Binding Section.SecondaryWidth}" />
+                                                <ColumnDefinition Width="64" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" Text="{Binding Primary}"
+                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="  →  " VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Ui.TextMuted}"
+                                                       Visibility="{Binding HasSecondary, Converter={StaticResource BoolToVisible}}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Secondary}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Ui.TextMuted}"
+                                                       TextTrimming="CharacterEllipsis" />
+
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal"
+                                                        HorizontalAlignment="Right">
+                                                <Button Style="{StaticResource Ui.RowIconButton}"
+                                                        Tag="{x:Static views:Icons.Pencil}"
+                                                        AutomationProperties.Name="{Binding EditName}"
+                                                        ToolTip="{Binding EditName}"
+                                                        Command="{Binding Section.EditCommand}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Style="{StaticResource Ui.RowIconButton}"
+                                                        Tag="{x:Static views:Icons.Close}"
+                                                        AutomationProperties.Name="{Binding RemoveName}"
+                                                        ToolTip="{Binding RemoveName}"
+                                                        Command="{Binding Section.RemoveCommand}"
+                                                        CommandParameter="{Binding}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!-- Nothing in the list at all. -->
+                            <StackPanel Grid.Row="1" Margin="24" VerticalAlignment="Center"
+                                        Visibility="{Binding ActiveList.IsEmpty, Converter={StaticResource BoolToVisible}}">
+                                <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                           HorizontalAlignment="Center" TextAlignment="Center"
+                                           Text="{Binding ActiveList.EmptyText}" />
+                            </StackPanel>
+
+                            <!-- Something in the list, but the search has hidden all of it. -->
+                            <StackPanel Grid.Row="1" Margin="24" VerticalAlignment="Center"
+                                        Visibility="{Binding ActiveList.NoMatches, Converter={StaticResource BoolToVisible}}">
+                                <TextBlock Style="{StaticResource Ui.Hint}" HorizontalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           Text="{Binding ActiveList.EmptySearchText}" />
+                                <Button Content="Clear search" Style="{StaticResource Ui.Button}"
+                                        HorizontalAlignment="Center" Margin="0,10,0,0"
+                                        Command="{Binding ActiveList.ClearSearchCommand}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Bulk. Paste a list, sort it, keep it in a note. No Height setter (gotcha 16). -->
+                    <Grid Visibility="{Binding ActiveList.IsTextMode, Converter={StaticResource BoolToVisible}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBox Grid.Row="0" Style="{StaticResource Ui.MultilineTextBox}"
+                                 FontFamily="Consolas" FontSize="12.5" TextWrapping="NoWrap"
+                                 HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                 Text="{Binding ActiveList.Text, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel Grid.Row="1">
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                       Text="{Binding ActiveList.TextHint}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Visibility="{Binding ActiveList.IsSorted, Converter={StaticResource BoolToVisible}}"
+                                       Text="This is your own order. The sort is only how the list is shown." />
+                            <TextBlock Style="{StaticResource Ui.FieldError}" TextWrapping="Wrap"
+                                       Text="{Binding ActiveList.Problem}"
+                                       Visibility="{Binding ActiveList.Problem, Converter={StaticResource NullToCollapsed}}" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            </Grid>
         </DockPanel>
     </Grid>
 </Window>

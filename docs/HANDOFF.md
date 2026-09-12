@@ -234,6 +234,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | The phrase book runs again after the rewrite | The model is deliberately given the raw transcript, so it has no idea what the user has corrected and cheerfully undoes it. Re-applying afterwards is the only ordering where both features work. |
 | A snippet's text is exempt from every pass after it | It is saved text, typed as written — that is the promise in the README, in the settings hint, and in `PhraseBook`'s own comment, which said "nothing after this should be rewriting it" directly above the code that went on to rewrite it. The replacement and spelling passes ran over the freshly inserted text, so a user's own correction rule could rewrite their signature, and the closing `Trim` took the blank line a signature usually ends with. Each snippet now goes in as a private-use placeholder character, the other passes run, the text is trimmed, and only then does the snippet text go back. A digit or a word would not do as a placeholder: a replacement can match either. |
 | Snippets need the word "insert" | Left implicit, a signature or an address expands in the middle of an ordinary sentence. They also skip the LLM pass entirely: a model asked to tidy up a signature will do exactly that. |
+| One vocabulary list at a time, behind tabs, in its own scroll region | Three stacked lists were fine at three entries each and unusable at eighty: the sections ended up miles apart, finding one meant scrolling past the other two, and Import and Export sat below a horizon that moved further away with every entry. Tabs carry the counts, so "how much is in there" needs no other control. The page is **lifted out of the settings pages' shared `ScrollViewer`**, which is collapsed rather than covered while it shows — that is what leaves exactly one scroll region on screen, and it is also the only way the list can virtualise, since an `ItemsControl` inside a shared scroller is measured at infinite height and cannot. |
+| Sorting the vocabulary is a view, never a write | The stored order is the user's own, it round-trips through the text box, and `PhraseBook` sorts longest-first at apply time so the order has no effect on behaviour. Sorting the saved list would be a change nobody asked for; sorting the screen is just looking. Text mode always shows stored order and says so while a sort is on. |
 | Vocabulary is a list first, and a text box when you ask | **Supersedes the row below, which is kept because its reasoning still holds for half the job.** Entries are added and edited in dialogs with real fields: nobody remembers `=>`, and `
 ` for a line break in a signature is worse — a snippet is now typed into a real multi-line box. But the paste-sort-diff argument was never wrong, so every section still has *Edit as text*, and the text is a view onto the list rather than a second copy of it. Entering formats from the list; leaving parses back and **refuses while a line is not an entry**, because a projection that drops a line loses a rule the user wrote and has no reason to look for. |
 | ~~Vocabulary is a text box, and its own file~~ | These lists are written in bursts, usually pasted from somewhere, and plain text can be selected, sorted, diffed and kept in a note — a grid of rows with add/remove buttons cannot. The export is separate from `settings.json` because it is the user's own work, not window positions. |
@@ -811,6 +813,18 @@ with a script. The script sees what it asks about; a person sees the thing that 
     ancestor's `DataContext` is a guess about a tree somebody will later change, and WPF does not
     report the guess being wrong. Give the item what it needs.
 
+60. **A filtered text box is a delete button.** *Edit as text* formats the rows that are **shown**, so
+    with a search live it would show only the matching lines — and committing that replaces the whole
+    list with them, silently deleting everything that did not match. Text mode is refused while a
+    search is set, with a tooltip saying why. The same shape of trap waits anywhere a bulk editor is
+    put behind a filter.
+
+61. **Escape in a settings search box closes the window and discards every unsaved edit.**
+    `SettingsWindow.OnKeyDown` closes on Escape by design (gotcha 24), and Escape in a child text box
+    bubbles straight to it. Clearing a search must set `e.Handled = true` or it throws away work on
+    every page, with nothing on screen having warned anybody. The same is true of any new control in
+    that window that wants Escape for itself — the combo box dropdown is the older precedent.
+
 ## Roadmap, in the order I would do it
 
 1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only
@@ -1194,6 +1208,29 @@ with a script. The script sees what it asks about; a person sees the thing that 
     went into a dialog that was still open behind the search. The plan cited gotcha 38 by number and
     the code-behind carries a comment about it, and it still happened three times. If a UIA script
     seems to prove a window is not opening, check the owner's descendants before believing it.
+
+58. Rebuilt the vocabulary page again, for scale, after the owner pointed out that each list might
+    hold dozens of entries and three stacked lists on one scrolling page do not. The designer's
+    follow-up is appended to `docs/VOCABULARY-REDESIGN-2026-09-12.md`: tabs so one list shows at a
+    time, a fixed header and toolbar, and a single scrolling table under them — the shape the history
+    window was rebuilt into, for the same reason.
+
+    The structural move is that the page now sits **outside** `PageScroll`, which is collapsed while
+    it shows. That keeps exactly one scroll region on screen and is what lets the list virtualise: an
+    `ItemsControl` inside a shared scroller is measured at infinite height and cannot virtualise
+    however it is configured, which is the part of the original plan that was reasoned from the
+    container rather than from the requirement. `ItemsControl` became a virtualising `ListBox`, which
+    also brings keyboard traversal, Enter to edit and Delete to remove.
+
+    Search filters the list on screen and the tab labels answer for the others — `Replacements 0/1`
+    while a search is live, so the user can see where their entry is without leaving the tab. Sorting
+    is a view and never a write. Two data-loss traps came out of the review and are now gotchas 60 and
+    61: a filtered text box is a delete button, and Escape in a search box closes Settings.
+
+    The designer's own post-mortem is worth reading: it had designed one section beautifully and never
+    drawn three of them full, and had cut the search box to a later slice gated on "once it holds more
+    than about twenty entries" — a control that materialises when a list grows is a control nobody
+    finds.
 
 ## Links
 

@@ -34,6 +34,23 @@ public sealed class EqualsToVisibilityConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+/// <summary>
+/// The mirror of <see cref="EqualsToVisibilityConverter"/>: collapsed on a match.
+///
+/// The Vocabulary page owns its own layout and sits outside the pages' shared ScrollViewer, so that
+/// scroller has to be collapsed rather than merely covered while it is showing — a ScrollViewer that
+/// is still measured is still a second scroll region, which is the bug the history window was built
+/// out of (gotcha 52).
+/// </summary>
+public sealed class NotEqualsToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => Equals(value?.ToString(), parameter?.ToString()) ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 /// <summary>Collapsed when true, visible when false. The mirror of BoolToVisibilityConverter.</summary>
 public sealed class InverseBoolToVisibilityConverter : IValueConverter
 {
