@@ -30,6 +30,52 @@ public class DeliveryTests
         Assert.True(Delivery.ShouldPaste(text, TextInjectionMode.TypeUnicode));
     }
 
+    /// <summary>
+    /// The route carries the reason so the log can say it. One function decides both, because a log
+    /// line that disagreed with what actually happened would be worse than none — and the 400-character
+    /// threshold is invisible from outside, so "why did that paste?" has no other answer.
+    /// </summary>
+    [Theory]
+    [InlineData("a sentence", TextInjectionMode.Auto, DeliveryRoute.Typed)]
+    [InlineData("a sentence", TextInjectionMode.TypeUnicode, DeliveryRoute.Typed)]
+    [InlineData("a sentence", TextInjectionMode.Paste, DeliveryRoute.PastedByChoice)]
+    [InlineData("two\nlines", TextInjectionMode.Auto, DeliveryRoute.PastedAsMultiline)]
+    [InlineData("two\nlines", TextInjectionMode.TypeUnicode, DeliveryRoute.PastedAsMultiline)]
+    [InlineData("two\nlines", TextInjectionMode.Paste, DeliveryRoute.PastedByChoice)]
+    public void The_route_says_why_it_went_that_way(string text, TextInjectionMode mode, DeliveryRoute expected)
+    {
+        Assert.Equal(expected, Delivery.Route(text, mode));
+    }
+
+    [Fact]
+    public void Long_single_line_text_pastes_only_where_length_is_allowed_to_decide()
+    {
+        var long_ = new string('x', Delivery.PasteThresholdChars + 1);
+
+        Assert.Equal(DeliveryRoute.PastedAsLong, Delivery.Route(long_, TextInjectionMode.Auto));
+
+        // Asking to type means typing, however long it is. Only a line break overrides that.
+        Assert.Equal(DeliveryRoute.Typed, Delivery.Route(long_, TextInjectionMode.TypeUnicode));
+    }
+
+    /// <summary>The threshold is a boundary, and a boundary is where the off-by-one lives.</summary>
+    [Fact]
+    public void Exactly_the_threshold_is_still_typed()
+    {
+        Assert.Equal(
+            DeliveryRoute.Typed,
+            Delivery.Route(new string('x', Delivery.PasteThresholdChars), TextInjectionMode.Auto));
+    }
+
+    [Fact]
+    public void Every_route_has_something_to_say_for_itself()
+    {
+        foreach (var route in Enum.GetValues<DeliveryRoute>())
+        {
+            Assert.False(string.IsNullOrWhiteSpace(Delivery.Describe(route)));
+        }
+    }
+
     [Fact]
     public void Short_single_line_text_is_still_typed()
     {

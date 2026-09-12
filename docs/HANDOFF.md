@@ -197,7 +197,8 @@ not allowed to ask anything. `docs/ARCHITECTURE.md` has the shape of it.
   out of the settings file before the logger is built — while *Clear the log now* on
   Settings → General empties it on demand. **The History switch does not cover it**: with history off,
   the log still records that dictations happened and how long they took. Debug level. Every dictation
-  logs how many characters, how many audio seconds and how many ms — **never the text**. That was
+  logs how many characters, how many audio seconds and how many ms, and a Debug line saying whether it
+  was typed or pasted and why — **never the text**. That was
   false until `77adef3`; both transcribers logged the recognised words at Debug, so turning history off left a second plaintext
   archive of everything the user had said.
 
@@ -1050,6 +1051,21 @@ with a script. The script sees what it asks about; a person sees the thing that 
     computer", which was never quite true — the model download and the update check are both network
     calls, they simply carry nothing about the user. It now names all three, says which of them is off
     by default, and says that only the rewrite sends anything that was dictated.
+
+52. Made the log say whether a dictation was typed or pasted, and why. The engine's line calls both
+    of them `Typed` — that field is `DictationDelivery`, and it means "it reached the focused window",
+    not "it was delivered by keystrokes" — so nothing anywhere recorded which of the two paths ran.
+    Asked while about to test the 400-character threshold, which is the case where it matters and the
+    one nobody can see from outside.
+
+    Worth noting why the question came up at all: fixing the clipboard removed the only symptom. A
+    paste used to announce itself by trampling whatever the user had copied. Now it borrows and gives
+    back faithfully, so it leaves no trace — a fix that quietly took away the evidence somebody was
+    relying on.
+
+    `Delivery.Route` returns the reason rather than a bool, and `ShouldPaste` is defined in terms of
+    it, so the log cannot disagree with what actually happened. `Delivery.Describe` puts it in words
+    for the log only; it would need gotcha 42's treatment before it went anywhere near the UI.
 
 ## Links
 

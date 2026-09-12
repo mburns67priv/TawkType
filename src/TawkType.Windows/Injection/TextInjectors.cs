@@ -147,18 +147,32 @@ public sealed class AutoTextInjector : ITextInjector
     private readonly ISettingsProvider _settings;
     private readonly UnicodeTypingInjector _typing;
     private readonly ClipboardPasteInjector _paste;
+    private readonly ILogger<AutoTextInjector> _logger;
 
-    public AutoTextInjector(ISettingsProvider settings, UnicodeTypingInjector typing, ClipboardPasteInjector paste)
+    public AutoTextInjector(
+        ISettingsProvider settings,
+        UnicodeTypingInjector typing,
+        ClipboardPasteInjector paste,
+        ILogger<AutoTextInjector> logger)
     {
         _settings = settings;
         _typing = typing;
         _paste = paste;
+        _logger = logger;
     }
 
     public Task InjectAsync(string text, CancellationToken cancellationToken = default)
     {
-        return Delivery.ShouldPaste(text, _settings.Current.InjectionMode)
-            ? _paste.InjectAsync(text, cancellationToken)
-            : _typing.InjectAsync(text, cancellationToken);
+        var route = Delivery.Route(text, _settings.Current.InjectionMode);
+
+        // Which way the text went, and why. The engine's line says a dictation was "Typed", meaning it
+        // reached the focused window — by keystrokes or by Ctrl+V, which are very different things when
+        // something goes wrong. Nothing else records which, and since the clipboard is now put back
+        // faithfully, a paste leaves no trace of itself anywhere else either.
+        _logger.LogDebug("Delivering {Chars} chars — {Route}", text.Length, Delivery.Describe(route));
+
+        return route == DeliveryRoute.Typed
+            ? _typing.InjectAsync(text, cancellationToken)
+            : _paste.InjectAsync(text, cancellationToken);
     }
 }
