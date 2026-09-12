@@ -175,8 +175,8 @@ internal static class NativeClipboard
             var captured = entries.Select(entry => entry.Format).ToHashSet();
             var lost = skipped.Where(skip => !CanBeSynthesisedFrom(skip, captured)).ToList();
 
-            DropOrphanedDescriptors(entries, lost);
-            return new ClipboardSnapshot(entries, lost);
+            var withheld = DropOrphanedDescriptors(entries, lost);
+            return new ClipboardSnapshot(entries, lost, withheld);
         }
         catch
         {
@@ -254,12 +254,14 @@ internal static class NativeClipboard
     /// is what a mail client does, would produce an empty attachment instead of falling back to the
     /// `CF_HDROP` path that did survive. An offer that cannot be honoured is worse than no offer.
     /// </summary>
-    private static void DropOrphanedDescriptors(List<ClipboardSnapshot.Entry> entries, List<uint> lost)
+    private static IReadOnlyList<uint> DropOrphanedDescriptors(List<ClipboardSnapshot.Entry> entries, List<uint> lost)
     {
+        var withheld = new List<uint>();
+
         var contents = RegisterClipboardFormat("FileContents");
         if (contents == 0 || !lost.Contains(contents))
         {
-            return;
+            return withheld;
         }
 
         foreach (var name in new[] { "FileGroupDescriptorW", "FileGroupDescriptor" })
@@ -267,9 +269,11 @@ internal static class NativeClipboard
             var descriptor = RegisterClipboardFormat(name);
             if (descriptor != 0 && entries.RemoveAll(entry => entry.Format == descriptor) > 0)
             {
-                lost.Add(descriptor);
+                withheld.Add(descriptor);
             }
         }
+
+        return withheld;
     }
 
     private static bool IsPrivate(uint format) => format is >= 0x0200 and <= 0x02FF;

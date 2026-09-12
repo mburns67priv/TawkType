@@ -11,12 +11,14 @@
 internal sealed class ClipboardSnapshot
 {
     /// <summary>A clipboard that could not be read at all. Restoring it does nothing.</summary>
-    public static readonly ClipboardSnapshot Unreadable = new(Array.Empty<Entry>(), Array.Empty<uint>());
+    public static readonly ClipboardSnapshot Unreadable =
+        new(Array.Empty<Entry>(), Array.Empty<uint>(), Array.Empty<uint>());
 
-    public ClipboardSnapshot(IReadOnlyList<Entry> entries, IReadOnlyList<uint> lost)
+    public ClipboardSnapshot(IReadOnlyList<Entry> entries, IReadOnlyList<uint> lost, IReadOnlyList<uint> withheld)
     {
         Entries = entries;
         Lost = lost;
+        Withheld = withheld;
     }
 
     public IReadOnlyList<Entry> Entries { get; }
@@ -31,8 +33,16 @@ internal sealed class ClipboardSnapshot
     /// </summary>
     public IReadOnlyList<uint> Lost { get; }
 
+    /// <summary>
+    /// Formats that were copied and are deliberately not being put back, because something they depend
+    /// on could not be. Kept apart from <see cref="Lost"/> so a report can say which of the two it is:
+    /// "we could not read this" and "we chose not to hand this back" are different facts about the
+    /// clipboard, and only the second is TawkType's decision.
+    /// </summary>
+    public IReadOnlyList<uint> Withheld { get; }
+
     /// <summary>Whether everything on the clipboard will survive the round trip.</summary>
-    public bool IsComplete => Lost.Count == 0;
+    public bool IsComplete => Lost.Count == 0 && Withheld.Count == 0;
 
     /// <summary>Whether there is anything to put back.</summary>
     public bool HasContent => Entries.Count > 0;

@@ -81,8 +81,9 @@ public sealed class ClipboardPasteInjector : ITextInjector
             // real loss, not on the formats Windows regenerates by itself, or it would fire on every
             // screenshot and stop being worth reading.
             _logger.LogWarning(
-                "Clipboard formats {Lost} cannot be copied aside and will not survive this paste ({Formats} formats, {Bytes} bytes kept)",
+                "Clipboard formats {Lost} cannot be copied aside, and {Withheld} will not be handed back without them; this paste will not preserve them ({Formats} formats, {Bytes} bytes kept)",
                 string.Join(", ", borrowed.Lost),
+                string.Join(", ", borrowed.Withheld),
                 borrowed.Entries.Count,
                 borrowed.TotalBytes);
         }

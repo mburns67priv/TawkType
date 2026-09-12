@@ -71,6 +71,7 @@ static string Fate(ClipboardFormatFate fate) => fate switch
 {
     ClipboardFormatFate.Copied => "kept",
     ClipboardFormatFate.Synthesised => "synthesised",
+    ClipboardFormatFate.Withheld => "WITHHELD",
     _ => "LOST",
 };
 
@@ -78,5 +79,6 @@ static string Bytes(ClipboardFormatReport format) => format.Fate switch
 {
     ClipboardFormatFate.Copied => $"{format.Bytes:n0} bytes",
     ClipboardFormatFate.Synthesised => "not memory-backed; Windows rebuilds it",
+    ClipboardFormatFate.Withheld => "copied, but not handed back: its contents were lost",
     _ => "not memory-backed; nothing rebuilds it",
 };

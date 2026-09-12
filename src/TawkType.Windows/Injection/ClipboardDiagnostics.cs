@@ -12,8 +12,11 @@ public enum ClipboardFormatFate
     /// <summary>Not copied, and not needed: Windows regenerates it from one that was.</summary>
     Synthesised,
 
-    /// <summary>Not copied, and nothing will bring it back. A metafile is the realistic case.</summary>
+    /// <summary>Not copied, and nothing will bring it back. `FileContents` is the realistic case.</summary>
     Lost,
+
+    /// <summary>Copied, and deliberately not put back, because something it depends on was lost.</summary>
+    Withheld,
 }
 
 /// <summary>What is on the clipboard, in one format.</summary>
@@ -49,13 +52,15 @@ public static class ClipboardDiagnostics
         var snapshot = NativeClipboard.Capture();
         var kept = snapshot.Entries.ToDictionary(entry => entry.Format, entry => entry.Bytes.Length);
         var lost = snapshot.Lost.ToHashSet();
+        var withheld = snapshot.Withheld.ToHashSet();
 
         return NativeClipboard.ListFormats()
             .Select(format => new ClipboardFormatReport(
                 format,
                 NameOf(format),
                 kept.TryGetValue(format, out var bytes) ? bytes : 0,
-                kept.ContainsKey(format) ? ClipboardFormatFate.Copied
+                withheld.Contains(format) ? ClipboardFormatFate.Withheld
+                    : kept.ContainsKey(format) ? ClipboardFormatFate.Copied
                     : lost.Contains(format) ? ClipboardFormatFate.Lost
                     : ClipboardFormatFate.Synthesised))
             .ToList();

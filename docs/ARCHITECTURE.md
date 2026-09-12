@@ -304,6 +304,10 @@ leaves the clipboard advertising files nobody can read, and a target that prefer
 mail client attaching a file — would produce an empty attachment instead of falling back to the
 `CF_HDROP` that did survive. An offer that cannot be honoured is worse than no offer.
 
+The two are reported apart — `FileContents` is **lost**, the descriptor is **withheld** — because
+"Windows would not give it to us" and "TawkType chose not to hand it back" are different facts, and
+only the second one is a decision anybody here made.
+
 The real fix for this is OLE: `OleGetClipboard` hands back an `IDataObject` that can carry a stream,
 where the Win32 clipboard API cannot. That is a considerably larger change to a path that works, so it
 is on the roadmap rather than in this pass.
