@@ -794,6 +794,23 @@ with a script. The script sees what it asks about; a person sees the thing that 
     restore destroys whatever they had copied, which may be the one thing they cannot copy again.
     `--read` only enumerates. Ask before running the rest.
 
+59. **A `ContentControl`'s `Content` is not its `DataContext`.** Setting `Content` gives the *template*
+    that object as its context; the control itself keeps whatever it inherited. So
+    `{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=ContentControl}}`
+    from inside the template resolves against the **parent** view model, not the content — and a
+    binding to a command that does not exist there fails in silence.
+
+    That is how Edit and Remove on every vocabulary row did nothing at all, on a page whose Add
+    button, counts, rows, empty states and text mode all worked: the buttons rendered, were enabled,
+    reported the right accessibility names, and executed nothing. It survived a screenshot pass
+    because a screenshot shows a button, not what pressing it does. The owner found it in a minute by
+    adding one entry to each list and trying to change them.
+
+    A row now carries its own section (`VocabularyRow.Section`) and binds straight to it, so nothing
+    walks the visual tree. **The lesson is the rule**: reaching a view model by climbing to an
+    ancestor's `DataContext` is a guess about a tree somebody will later change, and WPF does not
+    report the guess being wrong. Give the item what it needs.
+
 ## Roadmap, in the order I would do it
 
 1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only
@@ -1165,6 +1182,11 @@ with a script. The script sees what it asks about; a person sees the thing that 
     Verified by driving the built app through UI Automation and screenshotting each step: both dialogs
     save and close, rows and counts render, text mode formats from the list, a bad line is refused by
     number, and Save applies without closing the window.
+
+    **Edit and Remove did not work, and the screenshots did not show it** (gotcha 59): every row
+    button was bound through the enclosing `ContentControl`'s `DataContext`, which is not the section.
+    They rendered, were enabled, had correct names, and did nothing. Verifying a button means pressing
+    it and checking what changed, which is what the owner did and the screenshot pass did not.
 
     **Gotcha 38 cost three round trips in one session.** An owned dialog is a UIA *descendant of its
     owner*, and its controls therefore show up in the owner's descendants too. A working Add dialog

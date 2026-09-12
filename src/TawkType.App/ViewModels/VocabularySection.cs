@@ -15,8 +15,24 @@ namespace TawkType.Desktop.ViewModels;
 /// their own names for the same reason: eight buttons all announcing "Remove" is not a list anybody
 /// can use without looking at it.
 /// </summary>
-public sealed class VocabularyRow(int index, string primary, string? secondary, string? tooltip)
+public sealed class VocabularyRow(
+    VocabularySection section,
+    int index,
+    string primary,
+    string? secondary,
+    string? tooltip)
 {
+    /// <summary>
+    /// The list this row belongs to, so Edit and Remove can be bound straight to it.
+    ///
+    /// The row buttons used to reach the section by walking up to the enclosing `ContentControl` and
+    /// taking its `DataContext` — which is not the section. Setting `Content` does not set
+    /// `DataContext`: the template's context becomes the content, the control's stays whatever it
+    /// inherited. So the binding silently resolved against the settings view model, found no command,
+    /// and both buttons did nothing at all while looking perfectly normal.
+    /// </summary>
+    public VocabularySection Section { get; } = section;
+
     /// <summary>Position in the underlying list. Rows are rebuilt after every change, so it is never stale.</summary>
     public int Index { get; } = index;
 

@@ -61,13 +61,13 @@
                                                 Tag="{x:Static views:Icons.Close}"
                                                 AutomationProperties.Name="{Binding RemoveName}"
                                                 ToolTip="{Binding RemoveName}"
-                                                Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=ContentControl}}"
+                                                Command="{Binding Section.RemoveCommand}"
                                                 CommandParameter="{Binding}" />
                                         <Button DockPanel.Dock="Right" Style="{StaticResource Ui.RowIconButton}"
                                                 Tag="{x:Static views:Icons.Pencil}"
                                                 AutomationProperties.Name="{Binding EditName}"
                                                 ToolTip="{Binding EditName}"
-                                                Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=ContentControl}}"
+                                                Command="{Binding Section.EditCommand}"
                                                 CommandParameter="{Binding}" />
 
                                         <Grid>

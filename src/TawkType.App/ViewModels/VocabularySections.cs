@@ -24,7 +24,7 @@ public sealed class SpellingSection(Func<VocabularySettings> vocabulary, Action<
     public override string TextHint => "One per line.";
 
     protected override IEnumerable<VocabularyRow> BuildRows()
-        => vocabulary().Spellings.Select((word, i) => new VocabularyRow(i, word, null, null));
+        => vocabulary().Spellings.Select((word, i) => new VocabularyRow(this, i, word, null, null));
 
     protected override string FormatText() => VocabularyFormat.FormatSpellings(vocabulary().Spellings);
 
@@ -94,7 +94,7 @@ public sealed class ReplacementSection(Func<VocabularySettings> vocabulary, Acti
     public override string TextHint => $"One per line, as heard {VocabularyFormat.Separator} typed.";
 
     protected override IEnumerable<VocabularyRow> BuildRows()
-        => vocabulary().Replacements.Select((r, i) => new VocabularyRow(i, r.From, r.To, null));
+        => vocabulary().Replacements.Select((r, i) => new VocabularyRow(this, i, r.From, r.To, null));
 
     protected override string FormatText() => VocabularyFormat.Format(vocabulary().Replacements);
 
@@ -161,6 +161,7 @@ public sealed class SnippetSection(Func<VocabularySettings> vocabulary, Action<s
 
     protected override IEnumerable<VocabularyRow> BuildRows()
         => vocabulary().Snippets.Select((s, i) => new VocabularyRow(
+            this,
             i,
             $"{PhraseBook.SnippetPrefix} {s.Trigger}",
             OneLine(s.Text),
