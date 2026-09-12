@@ -430,7 +430,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
 6. **Whisper on a very short clip** is padded to 1.5 s in `WhisperTranscriber`; whisper.cpp rejects
    shorter input. Parakeet is padded to 0.5 s.
 7. ~~Clipboard paste mode restores only text.~~ Done — every format is copied aside and put back now.
-   See gotchas 53 to 57 for what that cost and what is still true.
+   See gotchas 54 to 58 for what that cost and what is still true.
 8. **Parakeet is CC-BY-4.0.** Attribution to NVIDIA belongs in the eventual About screen. Whisper is MIT.
 9. **The cleanup pass has never made a successful API call.** No key was available in the session that
    built it. It was verified as far as the API rejecting an invalid key in ~600 ms and the fallback
@@ -705,7 +705,18 @@ with a script. The script sees what it asks about; a person sees the thing that 
     rail, and it opens part way down — or past its end, if it is shorter. Both windows call
     `ScrollToTop()` when the page changes. Any new stacked-page window needs the same.
 
-53. **Opening the clipboard with a null owner is a documented way to break `SetClipboardData`.**
+53. **Two log lines about one dictation give two different lengths, and both are right.** The engine
+    logs `clean.Length` — the words, which are what the history keeps and what a fallback copy puts on
+    the clipboard. The injector logs the length of `CaretFit.Fit(clean, …)`, the same words fitted to
+    the insertion point, which is usually one character longer because of the trailing space. A real
+    run reads `Delivering 517 chars` and `Dictated 516 chars` a quarter of a second apart.
+
+    **The paste threshold is applied to the fitted text**, not the words, because typing the extra
+    character is part of what the threshold is about. So a 400-character dictation that gains a
+    trailing space pastes, while the `Dictated` line says 400. If you are checking the threshold, the
+    `Delivering` line is the one that carries the number the decision was made on.
+
+54. **Opening the clipboard with a null owner is a documented way to break `SetClipboardData`.**
     Microsoft is explicit: "If an application calls `OpenClipboard` with hwnd set to `NULL`,
     `EmptyClipboard` sets the clipboard owner to `NULL`; this causes `SetClipboardData` to fail."
     `NativeClipboard` did exactly that for its whole life and pasting worked anyway on this machine —
@@ -714,7 +725,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     because it "seems fine": what you would be relying on is undocumented behaviour that Windows is
     free to stop.
 
-54. **A skipped clipboard format is not necessarily a lost one.** Windows synthesises `CF_BITMAP` and
+55. **A skipped clipboard format is not necessarily a lost one.** Windows synthesises `CF_BITMAP` and
     `CF_PALETTE` from the `CF_DIB` we do copy, so an image is whole after a restore even though two of
     its formats were never touched. Counting those as losses — which the first version did — put
     "could not be copied aside" in front of the owner the first time he ran the tool over a
@@ -727,7 +738,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     a pasting application picks, so it is worth knowing; `CF_DIB` ahead of `CF_BITMAP` is the order the
     documentation asks for anyway, and it cannot be controlled from this side.
 
-55. **Not every clipboard format's handle is memory, and that is fine.** `CF_BITMAP`,
+56. **Not every clipboard format's handle is memory, and that is fine.** `CF_BITMAP`,
     `CF_ENHMETAFILE`, `CF_PALETTE` and the `CF_DSP*` display formats are GDI handles, so there is
     nothing to `GlobalLock` and copy aside. They are skipped deliberately: Windows synthesises them
     from the memory-backed formats, so restoring `CF_DIB` brings `CF_BITMAP` and `CF_PALETTE` back
@@ -736,7 +747,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     skipped for the opposite reason: the system does not free them, so putting one back would give the
     owning application a handle it has stopped expecting.
 
-56. **`FileContents` cannot be copied aside, and its descriptor must go with it.** It is the half of
+57. **`FileContents` cannot be copied aside, and its descriptor must go with it.** It is the half of
     a documented pair with `FileGroupDescriptorW` that carries a file which is not a file — a mail
     attachment, something inside a zip — and it is normally a `TYMED_ISTREAM`, so `GetClipboardData`
     hands back nothing a `GlobalLock` can read. Found by the owner running `tools/TawkType.Clip` over a
@@ -756,7 +767,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     The real fix is OLE — `OleGetClipboard` returns an `IDataObject` that can hold a stream — and it is
     on the roadmap rather than in this pass.
 
-57. **The clipboard is the one shared thing a session is not sandboxed from.** Files, `%LOCALAPPDATA%`
+58. **The clipboard is the one shared thing a session is not sandboxed from.** Files, `%LOCALAPPDATA%`
     and `HKCU` are redirected into a session overlay (gotcha 28) — the clipboard is not. Running
     `tools/TawkType.Clip` without `--read` writes to the user's actual clipboard, and a bug in the
     restore destroys whatever they had copied, which may be the one thing they cannot copy again.
@@ -781,8 +792,11 @@ with a script. The script sees what it asks about; a person sees the thing that 
    - **The taskbar icon** (gotcha 20). Fixed by a long hunt and never confirmed against a real
      install. Worth a look now that one exists, particularly because the manifest's assembly identity
      changed during the name sweep — the only identity string that has moved since that fix.
-   - **An update that announces itself.** v0.7.2 is the first build that can; proving it needs the one
-     after.
+   - ~~An update that announces itself.~~ **Done.** v0.7.3 was found, downloaded and announced on a
+     real install: `Update available: 0.7.3` at 03:30:54 and `Update 0.7.3 is staged and has been
+     announced` three seconds later, in the owner's own log. The announcement path ran. Whether he
+     saw the button on the bar rather than restarting for other reasons is the one part still on his
+     word rather than in a log.
 
 3. **The rest of review finding 10.** The filler regex still removes German "um" and a lower-case
    English "er". All-capitals words are protected, which is why *"The ER is open"* survives, but a
@@ -991,7 +1005,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     so a failed paste no longer strands the transcript there; and a clipboard found empty is left
     empty instead of keeping the day's speech for the next Ctrl+V. The Win32 side moved onto a
     message-only owner window on its own STA thread, which is what the documentation has required all
-    along (gotcha 53), and everything TawkType writes is now marked as not for the cloud clipboard —
+    along (gotcha 54), and everything TawkType writes is now marked as not for the cloud clipboard —
     clipboard sync was a path by which dictated words could leave the machine with nobody choosing it.
     `ClipboardRestore` holds the decision as a pure reducer with 9 tests; `tools/TawkType.Clip` proves
     the rest against a real clipboard, and was run three times: six text formats, then a screenshot —
@@ -1007,7 +1021,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
 
     Two things are not closed. `FileContents` — a file that is not a file, such as a mail attachment —
     is a stream rather than memory, so it cannot be copied aside at all; its descriptor is dropped with
-    it so the clipboard does not advertise files nobody can read (gotcha 56). Copying an ordinary file
+    it so the clipboard does not advertise files nobody can read (gotcha 57). Copying an ordinary file
     is unaffected, because `CF_HDROP` survives and is what targets use for a real file. Doing better
     means going through OLE.
 
@@ -1066,6 +1080,19 @@ with a script. The script sees what it asks about; a person sees the thing that 
     `Delivery.Route` returns the reason rather than a bool, and `ShouldPaste` is defined in terms of
     it, so the log cannot disagree with what actually happened. `Delivery.Describe` puts it in words
     for the log only; it would need gotcha 42's treatment before it went anywhere near the UI.
+
+53. Confirmed the threshold and the clipboard in the real application rather than the harness. A
+    517-character dictation into a live window: `Delivering 517 chars — pasted: over 400 characters`,
+    then `Dictated 516 chars from 37.4s audio` a quarter of a second later — the 200 ms settle plus
+    overhead, which is what a paste is supposed to look like. No clipboard warning of any kind, and the
+    screenshot the owner had copied still pasted afterwards. That is the borrow-and-return working
+    where it matters, with a real Ctrl+V, which no harness here can reach.
+
+    The two lengths are not a discrepancy; see gotcha 53.
+
+    Also confirmed, out of the owner's own log rather than by asking: the update announcement path ran
+    for real. `Update available: 0.7.3` at 03:30:54 and `Update 0.7.3 is staged and has been announced`
+    at 03:30:57. Roadmap item 2's third bullet is closed.
 
 ## Links
 
