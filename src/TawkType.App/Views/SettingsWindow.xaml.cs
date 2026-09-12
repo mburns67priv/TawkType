@@ -49,10 +49,17 @@ public partial class SettingsWindow : Window
         TitleBarTheme.Apply(new WindowInteropHelper(this).Handle, ThemeManager.IsDark);
     }
 
+    /// <summary>
+    /// Back to the top when the tab changes: one ListBox serves all three lists, so without this it
+    /// keeps the offset from the list before (gotcha 52, one level down).
+    ///
+    /// Searched from the ListBox, not from the page. A TextBox's own template contains a ScrollViewer,
+    /// so walking the page for the first one found the search box and reset that instead — which looks
+    /// like the feature half working, because switching ItemsSource moves the list a little by itself.
+    /// </summary>
     private void ScrollVocabularyToTop()
     {
-        if (VocabularyPage.IsVisible
-            && FindVisualChild<ScrollViewer>(VocabularyPage) is { } scroller)
+        if (FindVisualChild<ScrollViewer>(VocabularyList) is { } scroller)
         {
             scroller.ScrollToTop();
         }

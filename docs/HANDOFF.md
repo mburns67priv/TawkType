@@ -825,6 +825,13 @@ with a script. The script sees what it asks about; a person sees the thing that 
     every page, with nothing on screen having warned anybody. The same is true of any new control in
     that window that wants Escape for itself — the combo box dropdown is the older precedent.
 
+62. **A `TextBox` contains a `ScrollViewer`, so "find the first ScrollViewer" finds the wrong one.**
+    Resetting the vocabulary list's scroll walked the page for a `ScrollViewer` and found the search
+    box's `PART_ContentHost` instead of the list's. It reads as the feature half working: switching
+    the `ItemsSource` moves a virtualising list a little by itself, so the list came back near the top
+    but not at it, which is exactly the sort of result that gets waved through. Search from the named
+    control, not from the page.
+
 ## Roadmap, in the order I would do it
 
 1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only
@@ -1226,6 +1233,12 @@ with a script. The script sees what it asks about; a person sees the thing that 
     while a search is live, so the user can see where their entry is without leaving the tab. Sorting
     is a view and never a write. Two data-loss traps came out of the review and are now gotchas 60 and
     61: a filtered text box is a delete button, and Escape in a search box closes Settings.
+
+    Exercised with 80 spellings, 59 replacements and 38 snippets, loaded through the app's own bulk
+    path: 17 of 80 rows realised, so the list is virtualising; the frame stays put while only the
+    table scrolls; searching 38 snippets reads `Snippets 11/38`; and one of the 60 pasted replacements
+    was dropped as "there is nothing to correct", which is the shared rule firing on the bulk route
+    rather than only in the dialogs. The scroll reset needed a second attempt — see gotcha 62.
 
     The designer's own post-mortem is worth reading: it had designed one section beautifully and never
     drawn three of them full, and had cut the search box to a later slice gated on "once it holds more

@@ -941,7 +941,7 @@
                             </Border>
 
                             <!-- The one scroll region on this page. -->
-                            <ListBox Grid.Row="1" ItemsSource="{Binding ActiveList.Rows}"
+                            <ListBox x:Name="VocabularyList" Grid.Row="1" ItemsSource="{Binding ActiveList.Rows}"
                                      Background="Transparent" BorderThickness="0"
                                      ItemContainerStyle="{StaticResource Ui.VocabularyItem}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
