@@ -308,7 +308,12 @@ public sealed class DictationEngine : IDisposable
 
             if (string.IsNullOrWhiteSpace(clean))
             {
-                _logger.LogInformation("Nothing recognised in {Seconds:F1}s clip", clip.Duration.TotalSeconds);
+                // The peak is the whole diagnosis here: a silent clip and an unrecognisable one look
+                // identical from the outside and want completely different advice.
+                _logger.LogInformation(
+                    "Nothing recognised in {Seconds:F1}s clip (peak {Peak:F3})",
+                    clip.Duration.TotalSeconds,
+                    clip.Peak);
                 SetState(DictationState.Idle);
                 return;
             }
@@ -371,9 +376,10 @@ public sealed class DictationEngine : IDisposable
             }
 
             _logger.LogInformation(
-                "Dictated {Chars} chars from {Audio:F1}s audio in {Ms} ms; {Delivery} ({Target})",
+                "Dictated {Chars} chars from {Audio:F1}s audio (peak {Peak:F3}) in {Ms} ms; {Delivery} ({Target})",
                 clean.Length,
                 clip.Duration.TotalSeconds,
+                clip.Peak,
                 (int)transcript.ProcessingTime.TotalMilliseconds,
                 delivery,
                 target.Description ?? target.Verdict.ToString());

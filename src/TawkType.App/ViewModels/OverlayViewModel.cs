@@ -175,7 +175,11 @@ public sealed partial class OverlayViewModel : ObservableObject
             Bars[i].Height = Bars[i + 1].Height;
         }
 
-        var scaled = WaveBar.WaveMinimum + (Math.Clamp(level, 0, 1) * (WaveBar.WaveMaximum - WaveBar.WaveMinimum));
+        // Through the curve, not linearly. RMS of ordinary speech sits near the bottom of its range,
+        // and a linear map put a working microphone inside four pixels of a 23-pixel bar.
+        var scaled = WaveBar.WaveMinimum
+            + (AudioLevel.Perceptual(level) * (WaveBar.WaveMaximum - WaveBar.WaveMinimum));
+
         Bars[^1].Height = scaled;
     }
 

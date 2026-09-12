@@ -538,7 +538,10 @@ public sealed partial class SetupViewModel : ObservableObject, IDisposable
     private void OnLevel(object? sender, float level)
         => Application.Current?.Dispatcher.BeginInvoke(() =>
         {
-            Level = level;
+            // The meter is drawn through the same curve as the bar's waveform, so quiet speech looks
+            // like speech. The verdict below is judged on the raw peak, because the thresholds in
+            // MicrophoneCheck are about the signal rather than about how it is drawn.
+            Level = AudioLevel.Perceptual(level);
             PeakLevel = Math.Max(PeakLevel, level);
 
             var reading = MicrophoneCheck.For((float)PeakLevel);
