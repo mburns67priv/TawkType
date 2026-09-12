@@ -190,6 +190,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _snippetsText = VocabularyFormat.Format(_draft.Vocabulary.Snippets);
         _historyMaxEntriesText = _draft.History.MaxEntries.ToString();
         _apiKeyStatus = DescribeApiKey();
+        _updateStatus = updates.Describe();
 
         // The field, not the property: assigning the property here would fire OnStartWithWindowsChanged
         // and write the registry back on every open.
@@ -199,6 +200,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         RefreshHistory();
 
         _history.Changed += OnHistoryChanged;
+        _updates.Changed += OnUpdatesChanged;
     }
 
     public event EventHandler? Saved;
@@ -436,7 +438,24 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     public bool CanRestartForUpdate => _updates.State == UpdateState.ReadyToRestart;
 
-    public void Dispose() => _history.Changed -= OnHistoryChanged;
+    public void Dispose()
+    {
+        _history.Changed -= OnHistoryChanged;
+        _updates.Changed -= OnUpdatesChanged;
+    }
+
+    /// <summary>
+    /// The update service reports every state change, and until this existed nobody was listening:
+    /// the status line was bound to a property nothing ever assigned, and "Restart and update" was
+    /// bound to one that never raised a change — so a downloaded update had no way to be applied from
+    /// here at all. Marshalled, because the check runs on a background thread.
+    /// </summary>
+    private void OnUpdatesChanged(object? sender, EventArgs e)
+        => Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            UpdateStatus = _updates.Describe();
+            OnPropertyChanged(nameof(CanRestartForUpdate));
+        });
 
     /// <summary>Called by the password box, which cannot be data-bound.</summary>
     public void SetPendingApiKey(string apiKey) => _pendingApiKey = apiKey;
