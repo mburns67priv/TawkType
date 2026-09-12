@@ -534,8 +534,6 @@ public partial class App : Application
         }
     }
 
-    private void OnSetupClick(object sender, RoutedEventArgs e) => ShowSetup();
-
     /// <summary>
     /// First run, and the walkthrough anyone can ask for again from the tray. It saves as it goes and
     /// drives the real pipeline, so the only thing the app has to do here is notice when a model has
@@ -589,23 +587,6 @@ public partial class App : Application
         _settingsWindow.Show();
         _settingsWindow.Activate();
     }
-
-    private async void OnTestDictationClick(object sender, RoutedEventArgs e)
-    {
-        if (_engine is null)
-        {
-            return;
-        }
-
-        // Give the user a moment to click into the window they want the text to land in.
-        await Task.Delay(TimeSpan.FromSeconds(1.5));
-        _engine.BeginDictation();
-        await Task.Delay(TimeSpan.FromSeconds(3));
-        _engine.EndDictation();
-    }
-
-    private async void OnDeleteModelsClick(object sender, RoutedEventArgs e)
-        => await Services.GetRequiredService<ModelMaintenance>().DeleteAllWithConfirmationAsync();
 
     private void OnOpenDataFolderClick(object sender, RoutedEventArgs e)
     {

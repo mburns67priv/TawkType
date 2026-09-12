@@ -82,10 +82,7 @@
                         <MenuItem Header="Restart to update" Click="OnApplyUpdateClick"
                                   Visibility="{Binding UpdateReady, Converter={StaticResource BoolToVisible}}" />
                         <MenuItem Header="Settings…" Click="OnSettingsClick" />
-                        <MenuItem Header="Set up TawkType…" Click="OnSetupClick" />
-                        <MenuItem Header="Test dictation (records 3 s)" Click="OnTestDictationClick" />
                         <MenuItem Header="Open data folder" Click="OnOpenDataFolderClick" />
-                        <MenuItem Header="Delete all downloaded models…" Click="OnDeleteModelsClick" />
                         <Separator />
                         <MenuItem Header="Quit TawkType" Click="OnQuitClick" />
                     </ContextMenu>

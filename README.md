@@ -104,8 +104,8 @@ you close the window. Nothing is taken on trust either: you cannot move past the
 the meter has moved, past the model step until the model has *loaded* rather than merely downloaded,
 or past the practice step until a dictation has actually produced words. "Ready" means it worked.
 
-**Skip setup** is there if you cannot finish today. **Set up TawkType…** on the tray menu opens it
-again whenever you want, as does the `--setup` flag.
+**Skip setup** is there if you cannot finish today, and the `--setup` flag opens the walkthrough
+again whenever you want it.
 
 ## Requirements
 

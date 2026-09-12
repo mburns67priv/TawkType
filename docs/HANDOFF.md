@@ -347,7 +347,9 @@ site source and every snapshot from v2 on were already clean.
 1. ~~Repo folder is still named `Murmur`.~~ Done — it is `~/source/repos/TawkType` now.
 2. **Synthetic key presses do not trigger the hotkey.** The hook ignores `LLKHF_INJECTED` events on
    purpose (so our own SendInput cannot retrigger it). To test without a physical key use the tray item
-   "Test dictation (records 3 s)" or `DictationEngine.BeginDictation()/EndDictation()`.
+   `DictationEngine.BeginDictation()/EndDictation()`. There used to be a tray item for this; it was
+   removed along with the rest of the developer clutter on the menu, so driving the engine directly is
+   the way now.
 3. **The app cannot steal focus when started from a script**, so a scripted `--settings` launch may open
    behind other windows. It is there; use `PrintWindow` by handle if you need a screenshot.
 4. **Tooling run from inside the Claude desktop app is MSIX-sandboxed.** Its `%LOCALAPPDATA%` writes go to
