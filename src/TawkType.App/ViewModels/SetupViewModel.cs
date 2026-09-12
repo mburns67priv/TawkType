@@ -43,6 +43,9 @@ public sealed partial class SetupViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _modelWork;
     private bool _metering;
 
+    /// <summary>Scales the meter to this microphone. Reset when the device changes, for obvious reasons.</summary>
+    private readonly AdaptiveMeter _meter = new();
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StepNumber))]
     [NotifyPropertyChangedFor(nameof(Progress))]
@@ -464,6 +467,7 @@ public sealed partial class SetupViewModel : ObservableObject, IDisposable
         Commit();
 
         // A device nobody has spoken into yet has not been heard, whatever the last one managed.
+        _meter.Reset();
         PeakLevel = 0;
         Level = 0;
         State = State with { MicrophoneHeard = false };
@@ -538,10 +542,11 @@ public sealed partial class SetupViewModel : ObservableObject, IDisposable
     private void OnLevel(object? sender, float level)
         => Application.Current?.Dispatcher.BeginInvoke(() =>
         {
-            // Drawn through the same mapping as the bar's waveform, so quiet speech looks like
-            // speech. The verdict is judged on the raw peak RMS, because MicrophoneCheck's thresholds
-            // are about the signal rather than about how it is drawn.
-            Level = AudioLevel.Meter(level);
+            // Drawn through the same adaptive meter as the bar's waveform, so any microphone uses
+            // the whole bar. The verdict is judged on the raw peak RMS instead: whether TawkType can
+            // hear you at all is an absolute question, and a meter that scales to its own signal
+            // cannot answer it.
+            Level = _meter.Observe(level);
             PeakLevel = Math.Max(PeakLevel, level);
 
             var reading = MicrophoneCheck.For((float)PeakLevel);

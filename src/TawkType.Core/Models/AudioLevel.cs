@@ -1,7 +1,12 @@
-namespace TawkType.Core.Models;
+﻿namespace TawkType.Core.Models;
 
 /// <summary>
-/// Turns the microphone's RMS into a meter position.
+/// The absolute reference mapping from RMS to a meter position, in decibels.
+///
+/// Nothing on screen uses this any more: fixed limits cannot fit every microphone, so both meters go
+/// through <see cref="AdaptiveMeter"/> instead. This stays because a fixed scale is what a
+/// *measurement* wants — `tools/TawkType.Mic` prints against it, and comparing two machines needs a
+/// ruler that does not move.
 ///
 /// One unit throughout: <see cref="IAudioCapture.LevelChanged"/> raises raw RMS in 0..1, the same
 /// number the samples themselves are in. It used to raise RMS multiplied by six and clamped, which

@@ -39,6 +39,12 @@ public sealed partial class OverlayViewModel : ObservableObject
     private readonly ILlmClient _llm;
     private readonly DispatcherTimer _elapsedTimer;
 
+    /// <summary>
+    /// Scales the waveform to whatever microphone this is. Reset at the start of every dictation, so
+    /// a shout in the last one does not flatten the next.
+    /// </summary>
+    private readonly AdaptiveMeter _meter = new();
+
     private CancellationTokenSource? _settleTimer;
     private CancellationTokenSource? _statusTimer;
     private long _listeningSince;
@@ -175,10 +181,10 @@ public sealed partial class OverlayViewModel : ObservableObject
             Bars[i].Height = Bars[i + 1].Height;
         }
 
-        // In decibels, not linearly from RMS. Ordinary speech lives in the bottom few percent of the
-        // linear range, which drew a working microphone as a flat line.
+        // Through the adaptive meter: fixed limits cannot fit every microphone, and the ones that
+        // were here drew a working headset as a flat line.
         var scaled = WaveBar.WaveMinimum
-            + (AudioLevel.Meter(level) * (WaveBar.WaveMaximum - WaveBar.WaveMinimum));
+            + (_meter.Observe(level) * (WaveBar.WaveMaximum - WaveBar.WaveMinimum));
 
         Bars[^1].Height = scaled;
     }
@@ -379,6 +385,8 @@ public sealed partial class OverlayViewModel : ObservableObject
 
     private void StartListening()
     {
+        _meter.Reset();
+
         foreach (var bar in Bars)
         {
             bar.Height = WaveBar.WaveMinimum;

@@ -28,7 +28,7 @@ Windows only.
 - **Nothing here has ever been run outside a developer checkout.** That, not the release, is what is
   overdue, and three separate things now depend on it: the taskbar icon (gotcha 20), the first run's
   practice dictation, and the uninstall hook. See the roadmap.
-- **Builds clean** with `dotnet build`, **405 unit tests pass** with `dotnet test` in about two seconds.
+- **Builds clean** with `dotnet build`, **416 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
 - **Renamed to TawkType, completely.** Name, mark, palette, namespaces, projects, solution, assembly,
@@ -100,6 +100,7 @@ src/TawkType.Core            pipeline state machine, interfaces, settings, regex
                               Settings/  DictationMode, VocabularyEdit, VocabularyFormat, NumberField,
                                          DataRemoval (the guard in front of every recursive delete)
                               History/   DictationHistoryStore, HistoryQuery, LastDictation
+                              Models/    AudioClip, AdaptiveMeter (the self-scaling level meter)
                               Pipeline/  DictationEngine, Recovery
                               Onboarding/ SetupPlan (the steps and their gates), HotkeyCheck,
                                          MicrophoneCheck
@@ -122,7 +123,7 @@ tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, pri
 tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
 tools/TawkType.Mic           what the microphone actually produces, in the units the meter is calibrated on
 tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/TawkType.Core.Tests    xUnit, 405 tests. One file per behaviour; the names are the specification.
+tests/TawkType.Core.Tests    xUnit, 416 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -132,7 +133,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessmen
 
 ```bash
 dotnet run --project src/TawkType.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 405 tests, ~2 s
+dotnet test                                   # 416 tests, ~2 s
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Mic -- 10          # speak for 10s; prints RMS, dBFS and the verdict
@@ -225,6 +226,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | A pure guard in front of every recursive delete | `DataRemoval.Check` refuses anything near the root of a drive, anything relative, the install folder, and any folder containing it. The data folder and the install folder differ by three letters (gotcha 19) and one caller runs during an uninstall with nobody watching, so the check is a tested function rather than an `if`. |
 | The privacy badge reads the machine, not the checkbox | `Cleanup.UseLlm` is one of three conditions the cleaner checks; the mode and the key are the others. A badge sourced from the setting alone would say "Cloud" while nothing was being sent, and an indicator that overstates is worse than none — the first person to check would find it lying. `PrivacyState` recomputes all three. |
 | One privacy switch, three places on screen | History and Claude each appear on the General panel and on their own page. All of them bind to the same two view-model properties, because two of them bound to the draft directly would leave a stale checkbox behind until the window was reopened. |
+| The meter scales to its own signal | Fixed limits cannot fit every microphone, and picking them from the one machine available is what produced a flat waveform in the first place. `AdaptiveMeter` tracks a floor and a peak in decibels and reports where the level sits between them, so a headset and a microphone twenty decibels hotter draw the same bar within a second or two of speech — with nothing to configure and no calibration step to skip or outgrow. Drawing only: `MicrophoneCheck` still answers "is there a voice at all" absolutely, because a self-scaling meter can always fill itself with room noise. |
 | Audio levels are raw RMS everywhere, and decibels on screen | The capture used to raise RMS × 6, clamped, so every threshold downstream described that six rather than the signal — and the numbers chosen against it were wrong for real hardware. One unit now: `LevelChanged` raises RMS, `AudioLevel.Meter` maps it to a bar in dBFS, `MicrophoneCheck` judges it. A tenfold change in amplitude is the same distance on the meter wherever it happens, which is why every other meter in the world is marked this way. |
 | The microphone thresholds are measured, not assumed | The first set came from a comment claiming speech RMS sits around 0.02–0.2. The first person to run TawkType on real hardware was told his working headset was silent: it peaks at 0.0097, and the floor was 0.0133. `MicrophoneCheckTests` now carries that measurement as a fixture, and `tools/TawkType.Mic` is how to take another one before touching the numbers again. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
@@ -767,6 +769,11 @@ site source and every snapshot from v2 on were already clean.
     RMS instead of RMS × 6 clamped, replaced the linear bar mapping with decibels, and set
     `MicrophoneCheck`'s thresholds from the measurement. His headset now reads Good and the waveform
     moves between 7.6 and 15.6 pixels where it used to sit at 3.3 to 4.3.
+41. Then stopped calibrating to one machine at all, on the owner's question about other people's
+    microphones: `AdaptiveMeter` scales the bar to whatever it is hearing, so a headset and a
+    microphone twenty decibels hotter draw the same waveform with nothing to configure. The absolute
+    thresholds stay where they belong — deciding whether there is a voice there, which a self-scaling
+    meter cannot do.
 
 ## Links
 

@@ -570,12 +570,25 @@ transcribable, because both engines normalise their input, and it was below the 
 0.0133. First run called it silent; the bar drew it at four pixels of twenty-three, which reads as a
 dead meter.
 
-The meter is therefore drawn in decibels, from a -60 dBFS floor to a -24 dBFS ceiling, so a doubling
-of amplitude is the same distance wherever it happens. That measured headset now draws 7.6px between
-words and 15.6px at speech peaks, in a 26px bar.
+Fixed limits were the next mistake waiting to happen, though: calibrating them to that headset would
+have been calibrating to one machine again, and a condenser on an interface peaks twenty decibels
+higher. So the meter scales to its own signal. `AdaptiveMeter` keeps two estimates in decibels — a
+floor that drops instantly and recovers at 3 dB/s, and a peak that rises instantly and decays at
+12 dB/s — with a minimum span of 18 dB so that near-silence cannot collapse the two together and make
+every rustle read as full. It seeds both ends from its first reading, because starting from an assumed
+floor of digital silence drew a quiet room at three quarters of the bar before settling.
 
-`tools/TawkType.Mic` prints all of it — RMS, dBFS, the verdict, the thresholds, and the pixels — and
-is how to take a measurement before changing any of these numbers again.
+Simulated against both extremes, a headset at RMS 0.0097 and a microphone twenty decibels hotter draw
+the *same* waveform, 3px in the gaps to 26px on the syllables. It resets at the start of each
+dictation and when the input device changes, so a shout in the last one does not flatten the next.
+
+Adaptive scaling is for drawing only. Whether there is a voice there at all is an absolute question —
+`MicrophoneCheck` answers it from raw RMS against measured thresholds, because a meter that stretches
+to fit whatever it hears can always fill itself with room noise.
+
+`tools/TawkType.Mic` prints the absolute numbers — RMS, dBFS, the verdict, the thresholds, the pixels
+— against the fixed scale in `AudioLevel`. That is what a measurement wants: comparing two machines
+needs a ruler that does not move.
 
 ## Visible privacy
 
