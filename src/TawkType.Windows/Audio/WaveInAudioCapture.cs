@@ -129,9 +129,12 @@ public sealed class WaveInAudioCapture : IAudioCapture
             }
         }
 
-        // Speech RMS sits around 0.02-0.2, so scale it up to make the meter lively.
+        // Raw RMS, 0..1, the same unit the samples are in. It used to be multiplied by six and
+        // clamped, which made every threshold downstream a statement about that six rather than about
+        // the signal - and the numbers chosen against it were wrong for real hardware. AudioLevel.Meter
+        // decides how it is drawn; MicrophoneCheck decides what it means.
         var rms = MathF.Sqrt(sumOfSquares / count);
-        LevelChanged?.Invoke(this, Math.Clamp(rms * 6f, 0f, 1f));
+        LevelChanged?.Invoke(this, Math.Clamp(rms, 0f, 1f));
     }
 
     private int ResolveDeviceNumber()

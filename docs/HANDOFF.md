@@ -28,7 +28,7 @@ Windows only.
 - **Nothing here has ever been run outside a developer checkout.** That, not the release, is what is
   overdue, and three separate things now depend on it: the taskbar icon (gotcha 20), the first run's
   practice dictation, and the uninstall hook. See the roadmap.
-- **Builds clean** with `dotnet build`, **394 unit tests pass** with `dotnet test` in about two seconds.
+- **Builds clean** with `dotnet build`, **405 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware.** The owner's own mic test: 3.2 s of speech → typed in 215 ms
   with Parakeet. Overlay, tray, settings, model download and deletion are verified in the running app.
 - **Renamed to TawkType, completely.** Name, mark, palette, namespaces, projects, solution, assembly,
@@ -120,8 +120,9 @@ src/TawkType.App             WPF tray app (namespace TawkType.Desktop): App.xaml
 tools/TawkType.Bench         transcribes a WAV with one or both engines, prints latency side by side
 tools/TawkType.Clean         runs a transcript through the LLM cleanup pass, prints the rewrite + latency
 tools/TawkType.Focus         what the focus probe makes of the front window, and the text around its caret
+tools/TawkType.Mic           what the microphone actually produces, in the units the meter is calibrated on
 tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/TawkType.Core.Tests    xUnit, 394 tests. One file per behaviour; the names are the specification.
+tests/TawkType.Core.Tests    xUnit, 405 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -131,9 +132,10 @@ docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessmen
 
 ```bash
 dotnet run --project src/TawkType.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 394 tests, ~2 s
+dotnet test                                   # 405 tests, ~2 s
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
+dotnet run --project tools/TawkType.Mic -- 10          # speak for 10s; prints RMS, dBFS and the verdict
 dotnet run --project tools/TawkType.Brand      # regenerate icon + exports after brand changes
 ```
 
@@ -223,6 +225,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | A pure guard in front of every recursive delete | `DataRemoval.Check` refuses anything near the root of a drive, anything relative, the install folder, and any folder containing it. The data folder and the install folder differ by three letters (gotcha 19) and one caller runs during an uninstall with nobody watching, so the check is a tested function rather than an `if`. |
 | The privacy badge reads the machine, not the checkbox | `Cleanup.UseLlm` is one of three conditions the cleaner checks; the mode and the key are the others. A badge sourced from the setting alone would say "Cloud" while nothing was being sent, and an indicator that overstates is worse than none — the first person to check would find it lying. `PrivacyState` recomputes all three. |
 | One privacy switch, three places on screen | History and Claude each appear on the General panel and on their own page. All of them bind to the same two view-model properties, because two of them bound to the draft directly would leave a stale checkbox behind until the window was reopened. |
+| Audio levels are raw RMS everywhere, and decibels on screen | The capture used to raise RMS × 6, clamped, so every threshold downstream described that six rather than the signal — and the numbers chosen against it were wrong for real hardware. One unit now: `LevelChanged` raises RMS, `AudioLevel.Meter` maps it to a bar in dBFS, `MicrophoneCheck` judges it. A tenfold change in amplitude is the same distance on the meter wherever it happens, which is why every other meter in the world is marked this way. |
+| The microphone thresholds are measured, not assumed | The first set came from a comment claiming speech RMS sits around 0.02–0.2. The first person to run TawkType on real hardware was told his working headset was silent: it peaks at 0.0097, and the floor was 0.0133. `MicrophoneCheckTests` now carries that measurement as a fixture, and `tools/TawkType.Mic` is how to take another one before touching the numbers again. |
 | Brand assets rendered by a WPF tool | Same geometry as the in-app XAML, zero external dependencies, reproducible from `dotnet run`. |
 | Apache-2.0 | Open source, permissive, with an explicit patent grant and a requirement to mark changed files. Chosen over MIT for the patent clause, and over GPL-3.0 because the owner decided a closed fork was an acceptable price for being easy to adopt. Nothing in the dependency tree constrained the choice — every package is MIT or Apache-2.0, with no copyleft anywhere. |
 | The licence texts are fetched, never recalled | PolyForm Strict was recommended here as permitting commercial use. It does not: its permitted purposes are personal use and noncommercial organisations. That was a confident claim from memory, wrong, and acted on. Read the text — the Apache-2.0 in `LICENSE` is byte-for-byte from apache.org. |
@@ -757,6 +761,12 @@ site source and every snapshot from v2 on were already clean.
 39. Fixed the first-run microphone card, reported from the first real install: it was sized to its
     message rather than to a width, so the level meter shrank when the message got shorter. Third
     instance of gotcha 46, which now says so.
+40. Recalibrated the whole audio-level path against a measurement, after the owner's working headset
+    was called silent by first run and drew a flat waveform. Built `tools/TawkType.Mic` to find out
+    what his microphone actually produces (peak RMS 0.0097, -40 dBFS), made `LevelChanged` raise raw
+    RMS instead of RMS × 6 clamped, replaced the linear bar mapping with decibels, and set
+    `MicrophoneCheck`'s thresholds from the measurement. His headset now reads Good and the waveform
+    moves between 7.6 and 15.6 pixels where it used to sit at 3.3 to 4.3.
 
 ## Links
 

@@ -175,10 +175,10 @@ public sealed partial class OverlayViewModel : ObservableObject
             Bars[i].Height = Bars[i + 1].Height;
         }
 
-        // Through the curve, not linearly. RMS of ordinary speech sits near the bottom of its range,
-        // and a linear map put a working microphone inside four pixels of a 23-pixel bar.
+        // In decibels, not linearly from RMS. Ordinary speech lives in the bottom few percent of the
+        // linear range, which drew a working microphone as a flat line.
         var scaled = WaveBar.WaveMinimum
-            + (AudioLevel.Perceptual(level) * (WaveBar.WaveMaximum - WaveBar.WaveMinimum));
+            + (AudioLevel.Meter(level) * (WaveBar.WaveMaximum - WaveBar.WaveMinimum));
 
         Bars[^1].Height = scaled;
     }

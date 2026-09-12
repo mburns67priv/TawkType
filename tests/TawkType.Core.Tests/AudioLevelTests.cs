@@ -3,24 +3,35 @@
 namespace TawkType.Core.Tests;
 
 /// <summary>
-/// The curve between the microphone and the meter. It exists because the linear version showed a
-/// working microphone as a flat line, so the test that matters is the quiet one.
+/// The mapping between the microphone and the meter. It exists because drawing RMS linearly showed a
+/// working microphone as a flat line, so the numbers here are the ones measured off real hardware:
+/// a headset at default Windows gain sits near RMS 0.002 between words and 0.010 at the peak of
+/// ordinary speech.
 /// </summary>
 public class AudioLevelTests
 {
+    /// <summary>What a quiet room and a normal voice actually measure, on the machine this was fixed for.</summary>
+    private const double RoomNoise = 0.0005;
+
+    private const double BetweenWords = 0.002;
+
+    private const double SpeechPeak = 0.010;
+
+    private const double LoudVoice = 0.05;
+
     [Fact]
-    public void Silence_is_silence_and_full_is_full()
+    public void Silence_rests_and_a_loud_signal_pins()
     {
-        Assert.Equal(0, AudioLevel.Perceptual(0));
-        Assert.Equal(1, AudioLevel.Perceptual(1));
+        Assert.Equal(0, AudioLevel.Meter(0));
+        Assert.Equal(1, AudioLevel.Meter(1));
     }
 
     [Fact]
     public void Nothing_escapes_the_range()
     {
-        Assert.Equal(0, AudioLevel.Perceptual(-0.5));
-        Assert.Equal(1, AudioLevel.Perceptual(4));
-        Assert.Equal(0, AudioLevel.Perceptual(double.NaN));
+        Assert.Equal(0, AudioLevel.Meter(-0.5));
+        Assert.Equal(0, AudioLevel.Meter(double.NaN));
+        Assert.Equal(1, AudioLevel.Meter(4));
     }
 
     [Fact]
@@ -28,43 +39,64 @@ public class AudioLevelTests
     {
         var previous = -1.0;
 
-        for (var level = 0.0; level <= 1.0; level += 0.01)
+        for (var rms = 0.0; rms <= 1.0; rms += 0.005)
         {
-            var height = AudioLevel.Perceptual(level);
-            Assert.True(height >= previous, $"{level} went backwards");
-            previous = height;
+            var meter = AudioLevel.Meter(rms);
+            Assert.True(meter >= previous, $"{rms} went backwards");
+            previous = meter;
         }
     }
 
     /// <summary>
-    /// The bug this exists for. A quiet microphone — the raw level around 0.05 after scaling — has to
-    /// produce visible movement, not a fifth of one pixel in a 23-pixel bar.
+    /// The bug this exists for, in pixels. A measured speech peak has to draw something anyone can
+    /// see moving in a 26-pixel bar — the linear mapping drew it at 3.2px, against a 3px floor.
     /// </summary>
-    [Theory]
-    [InlineData(0.02)]
-    [InlineData(0.05)]
-    [InlineData(0.12)]
-    public void A_quiet_voice_still_moves_the_meter(double level)
+    [Fact]
+    public void A_real_speech_peak_moves_the_meter_visibly()
     {
-        var pixels = 3 + (AudioLevel.Perceptual(level) * 23);
+        var pixels = 3 + (AudioLevel.Meter(SpeechPeak) * 23);
 
-        Assert.True(pixels >= 6, $"{level} drew {pixels:F1}px, which nobody can see moving");
+        Assert.True(pixels >= 12, $"a measured speech peak drew {pixels:F1}px, which reads as flat");
     }
 
     /// <summary>
-    /// And it has to be an improvement rather than a different flat line: the curve must lift a quiet
-    /// signal well clear of where the linear mapping left it.
+    /// And the gaps between words have to sit clearly below the peaks, or the meter is just lit up
+    /// all the time and says nothing.
     /// </summary>
     [Fact]
-    public void The_curve_lifts_quiet_speech_clear_of_the_linear_mapping()
+    public void The_gaps_between_words_read_lower_than_the_words()
     {
-        const double quiet = 0.05;
+        var gap = AudioLevel.Meter(BetweenWords);
+        var peak = AudioLevel.Meter(SpeechPeak);
 
-        Assert.True(AudioLevel.Perceptual(quiet) > quiet * 3);
+        Assert.True(peak - gap > 0.15, $"gap {gap:F2} and peak {peak:F2} are too close to tell apart");
     }
 
-    /// <summary>A loud signal must still have somewhere to go, or the meter pins and stops meaning anything.</summary>
+    [Fact]
+    public void A_quiet_room_stays_near_the_floor()
+        => Assert.True(AudioLevel.Meter(RoomNoise) < 0.15);
+
+    /// <summary>A loud voice must still have somewhere to go, rather than pinning and staying there.</summary>
     [Fact]
     public void A_loud_voice_has_not_already_run_out_of_room()
-        => Assert.True(AudioLevel.Perceptual(0.5) < 0.8);
+    {
+        var loud = AudioLevel.Meter(LoudVoice);
+
+        Assert.True(loud > AudioLevel.Meter(SpeechPeak));
+        Assert.True(loud < 1);
+    }
+
+    /// <summary>
+    /// Decibels, so doubling the amplitude moves the meter the same distance wherever it happens.
+    /// Only inside the mapped band: outside it the ends are deliberately flat, which is why these
+    /// values sit between the floor and the ceiling rather than spanning them.
+    /// </summary>
+    [Fact]
+    public void Equal_ratios_are_equal_distances()
+    {
+        var lower = AudioLevel.Meter(0.008) - AudioLevel.Meter(0.004);
+        var upper = AudioLevel.Meter(0.016) - AudioLevel.Meter(0.008);
+
+        Assert.Equal(lower, upper, 3);
+    }
 }

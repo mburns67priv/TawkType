@@ -315,7 +315,7 @@ Both transcripts were identical and correctly punctuated. Typical end-to-end: 3.
 ## Developer tools
 
 ```bash
-dotnet test                                              # 394 unit tests, ~2 s
+dotnet test                                              # 405 unit tests, ~2 s
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Focus -- 15           # what the focus probe sees

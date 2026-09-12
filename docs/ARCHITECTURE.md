@@ -553,6 +553,30 @@ past something is told what is missing instead of being congratulated. **Skip se
 person who cannot finish today; it marks setup done rather than letting the window reappear at every
 launch, and the tray menu is the way back.
 
+## Audio levels
+
+One unit, end to end: `IAudioCapture.LevelChanged` raises the RMS of the last 50 ms window, raw, in
+0..1. Two consumers decide what it means — `AudioLevel.Meter` maps it to a meter position and
+`MicrophoneCheck` judges whether it is a voice — and both are calibrated on that unit.
+
+It used to raise RMS multiplied by six and clamped to 1. That made every threshold downstream a
+statement about the six rather than about the signal, hid anything above RMS 0.167 behind the clamp,
+and the numbers chosen against it were wrong: they came from a comment guessing that speech RMS sits
+around 0.02–0.2.
+
+Real hardware is far quieter. A Corsair headset at default Windows gain measures RMS 0.0023 between
+words and 0.0097 at the peak of ordinary speech — about -53 and -40 dBFS. That is perfectly
+transcribable, because both engines normalise their input, and it was below the old noise floor of
+0.0133. First run called it silent; the bar drew it at four pixels of twenty-three, which reads as a
+dead meter.
+
+The meter is therefore drawn in decibels, from a -60 dBFS floor to a -24 dBFS ceiling, so a doubling
+of amplitude is the same distance wherever it happens. That measured headset now draws 7.6px between
+words and 15.6px at speech peaks, in a 26px bar.
+
+`tools/TawkType.Mic` prints all of it — RMS, dBFS, the verdict, the thresholds, and the pixels — and
+is how to take a measurement before changing any of these numbers again.
+
 ## Visible privacy
 
 `PrivacyState.From(settings, hasApiKey)` is the single answer to "where does the next dictation go",
