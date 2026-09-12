@@ -604,7 +604,19 @@ with a script. The script sees what it asks about; a person sees the thing that 
     useless for fitting text around an insertion point. `ReadCaret` requires `TextPattern` and returns
     Unknown otherwise. `TextPatternRangeEndpoint` and `TextUnit` live in
     `System.Windows.Automation.Text`, not `System.Windows.Automation`.
-40. **Do not send synthetic keystrokes to verify anything.** A scripted `SendKeys` goes to whatever has
+40. **Do not drive somebody else's UI blindly — with keystrokes or with UI Automation.**
+
+    The keystroke half is below. The UIA half was learned separately and worse: a script clicked
+    *Import…*, then set the file path into "the first writable text box" it could find in the Open
+    dialog. That is the file list's inline **rename** field, not *File name:*, so it tried to rename a
+    folder in the owner's Documents to a path and Windows threw an error dialog in his face. Nothing
+    was renamed, which was luck rather than care.
+
+    A common dialog is the user's file system with a window around it. Address a control by its name
+    and verify it is the one you meant, or do not touch it: "whichever control accepts a value" is a
+    guess, and the thing it lands on may be somebody's data.
+
+ A scripted `SendKeys` goes to whatever has
     focus, which is the user's window, not yours — it typed test text into an application during this
     session. Use a harness window you own, and bring it to the front from the script with
     `SetForegroundWindow` on its `MainWindowHandle`, since a scripted launch opens behind (gotcha 3).
