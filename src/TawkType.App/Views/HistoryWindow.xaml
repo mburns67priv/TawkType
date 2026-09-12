@@ -107,6 +107,12 @@
                                                 ToolTip="Remove this dictation from the log and the file"
                                                 Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                                 CommandParameter="{Binding}" />
+                                        <!-- The way back to the list. Without it, expanding a row was a
+                                             one-way door: the row opens on selection, and nothing
+                                             deselected it. Escape does the same thing. -->
+                                        <Button Content="Close" Style="{StaticResource RowButton}"
+                                                ToolTip="Go back to the list (Esc)"
+                                                Command="{Binding DataContext.CollapseCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" />
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding DayText}" Style="{StaticResource Meta}" />

@@ -75,6 +75,15 @@ public sealed partial class HistoryViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _status = string.Empty;
 
+    /// <summary>
+    /// Goes back to the list. A row expands when it is selected and there was no way to unselect it,
+    /// so opening one dictation meant staying in it — reported as "no way to close the editor window".
+    /// Any unsaved edit is left alone rather than thrown away: Save and Revert are still the only two
+    /// things that decide what happens to it.
+    /// </summary>
+    [RelayCommand]
+    private void Collapse() => Selected = null;
+
     [ObservableProperty]
     private bool _alwaysOnTop;
 

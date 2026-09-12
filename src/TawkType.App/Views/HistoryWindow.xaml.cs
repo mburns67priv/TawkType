@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -115,6 +116,35 @@ public partial class HistoryWindow : Window
 
     /// <summary>Set on shutdown so the last close actually closes instead of hiding.</summary>
     public bool AllowClose { get; set; }
+
+    /// <summary>
+    /// Escape goes back to the list, and then out of the window.
+    ///
+    /// Bubbling rather than tunnelling, so a control that wants Escape for itself gets it first — the
+    /// text box in an expanded row is the one that matters, since somebody pressing Escape in the
+    /// middle of an edit means the edit.
+    ///
+    /// The global Escape that cancels a dictation is a keyboard hook and is unrelated: it only fires
+    /// while a dictation is actually running.
+    /// </summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && DataContext is HistoryViewModel viewModel)
+        {
+            e.Handled = true;
+
+            if (viewModel.Selected is not null)
+            {
+                viewModel.CollapseCommand.Execute(null);
+                return;
+            }
+
+            Close();
+            return;
+        }
+
+        base.OnKeyDown(e);
+    }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
