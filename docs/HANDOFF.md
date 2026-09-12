@@ -938,8 +938,10 @@ with a script. The script sees what it asks about; a person sees the thing that 
 43. Made the update visible. The check reported nothing at all — `UpdateStatus` was bound and never
     assigned, and `CanRestartForUpdate` never raised a change, so "Restart and update" had never once
     appeared (gotcha 50). Then went further than the binding: a staged update now puts a button on the
-    bar, an item on the tray menu and the version in the tray tooltip, because a status line in a
-    settings page nobody has open is not being told.
+    bar, an item on the tray menu and **the version it is offering** in the tray tooltip, because a
+    status line in a settings page nobody has open is not being told. That tooltip never carries the
+    *running* version — Settings → General → About is the only place that is, and the wording here was
+    ambiguous enough to send a later session looking in the tray for it.
 44. Fixed what an evening of use found in the windows: the history's expanded row had no way back to
     the list (a Close button and Escape); the settings pages shared one scroll offset (gotcha 52); the
     theme only applied on Save, which is no way to choose a theme — it previews as you pick and Cancel
