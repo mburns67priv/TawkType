@@ -921,7 +921,29 @@ with a script. The script sees what it asks about; a person sees the thing that 
     hangs on. A page-level "unsaved changes" mark is the bigger version of the same idea and may be
     the better answer, since the draft model applies to every settings page, not just this one.
 
-12. **Put the changes in the release notes.** Every GitHub Release carries the same boilerplate — how
+12. **An edit in the history should offer to become a replacement.** Reported by the owner after
+    editing a dictation to change "Jupyter Studio" to "Jupeter Studio": the correction he had just
+    made is exactly the evidence a replacement is built from, and nothing offered.
+
+    The machinery is already there and already right. **Remember…** on an expanded row runs
+    `CorrectionGuess.Between(RawText, Draft)`, which proposes only the words that changed — for that
+    edit, `Jupyter Studio => Jupeter Studio`, not the whole sentence. The gap is purely that saving an
+    edit and teaching the vocabulary are two separate acts, and the second is a button you have to
+    know about. Offering it after a save that changed words — a line beside the flash, not a dialog —
+    is most of the fix.
+
+    **The same investigation turned up three persistence models visible in two windows**, which is
+    the deeper version of item 11:
+
+    - History **Save edit** writes to `history.jsonl` immediately and flashes *"Saved."* — true.
+    - History **Remember…** writes a replacement to `settings.json` immediately.
+    - Vocabulary **Save changes** in a dialog changes a draft and persists nothing until the Settings
+      window's own Save, and flashes nothing.
+
+    So "Saved." means saved in one window and a dialog button says "Save changes" for something that
+    is not saved in another. Worth settling as one decision rather than three wordings.
+
+13. **Put the changes in the release notes.** Every GitHub Release carries the same boilerplate — how
     to install, the SmartScreen warning, the runtime — and says nothing about what changed. The tag
     messages do carry it: `v0.7.3` is annotated with what that release fixed. `gh release create` takes
     `--notes-from-tag`, so this is close to a one-line change in `.github/workflows/release.yml`, with
