@@ -24,6 +24,9 @@
         <!-- Toolbar glyphs: 22px hit target, muted until hovered. Deliberately quiet — the bar is on
              screen all day and these must not compete with the dictation state. -->
         <Style x:Key="BarButton" TargetType="Button">
+            <!-- The glyph takes the button's Foreground, so a derived style can light one up without
+                 restating the whole template. -->
+            <Setter Property="Foreground" Value="#8A90A8" />
             <Setter Property="Width" Value="22" />
             <Setter Property="Height" Value="22" />
             <Setter Property="Cursor" Value="Hand" />
@@ -36,7 +39,7 @@
                             <Path x:Name="Glyph" Data="{TemplateBinding Tag}"
                                   Width="13" Height="13" Stretch="Uniform"
                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                  Stroke="#8A90A8" StrokeThickness="1.6"
+                                  Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6"
                                   StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -48,6 +51,17 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- The dictation box button, which is on the bar at all times. Lit when a dictation is
+             actually waiting in there, so "there is something for you" is visible at a glance rather
+             than only in a tooltip. -->
+        <Style x:Key="BarButtonAlert" TargetType="Button" BasedOn="{StaticResource BarButton}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRecoverable}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource State.Error}" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="StateLabel" TargetType="TextBlock">
@@ -140,12 +154,13 @@
                                     Command="{Binding OpenHistoryCommand}" ToolTip="History" />
                             <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Clipboard}"
                                     Command="{Binding CopyLastCommand}" ToolTip="Copy the last dictation" />
-                            <!-- Only while there is something to recover, so the bar is not carrying a
-                                 button that does nothing for the whole time nothing has gone wrong. -->
-                            <Button Style="{StaticResource BarButton}" Tag="{x:Static views:Icons.Rescue}"
+                            <!-- Always here. It used to appear only after a delivery failed, on the
+                                 reasoning that the bar should not carry a button that does nothing —
+                                 but the box is also a scratchpad to dictate into deliberately, so it
+                                 was never doing nothing, and hiding it left no obvious way in at all. -->
+                            <Button Style="{StaticResource BarButtonAlert}" Tag="{x:Static views:Icons.Rescue}"
                                     Command="{Binding OpenDictationBoxCommand}"
-                                    ToolTip="Open the dictation that did not arrive"
-                                    Visibility="{Binding IsRecoverable, Converter={StaticResource BoolToVisible}}" />
+                                    ToolTip="{Binding DictationBoxTooltip}" />
 
                             <!-- Same rule as the recovery button: on the bar only while it means
                                  something. An update that has downloaded and is waiting for a restart

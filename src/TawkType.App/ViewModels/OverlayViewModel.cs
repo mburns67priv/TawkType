@@ -244,9 +244,18 @@ public sealed partial class OverlayViewModel : ObservableObject
     /// the bar is not carrying a control that does nothing for the whole time nothing has gone wrong.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DictationBoxTooltip))]
     private bool _isRecoverable;
 
     public void SetRecoverable(bool recoverable) => IsRecoverable = recoverable;
+
+    /// <summary>
+    /// The dictation box button is on the bar at all times now, so its tooltip has to say which of its
+    /// two jobs is the one on offer: the scratchpad, or the dictation that did not arrive.
+    /// </summary>
+    public string DictationBoxTooltip => IsRecoverable
+        ? "Open the dictation that did not arrive"
+        : "Open the dictation box — a scratchpad you can dictate into";
 
     /// <summary>
     /// An update has downloaded and is waiting for a restart.
