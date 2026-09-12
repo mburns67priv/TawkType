@@ -237,6 +237,8 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | A bad number says so instead of being dropped or clamped | Save used to ignore an unusable value silently: the box kept what was typed, the setting did not change, and the window closed looking like it had worked. Clamping would be worse, since a value the user never chose would be saved under their name. `NumberField` holds the range and the message; Save waits. |
 | TawkType checks for updates only when asked | The application is local: speech recognition, the phrase book, the modes and the caret fitting all run here and need nothing. An automatic check is then the one connection nobody chose — it sends nothing about the user, but it happens on a schedule they did not set and tells whoever is listening that this machine runs TawkType. Off by default makes "it connects when you choose" true on a machine that never opens Settings, which is the only place that claim is worth anything. `CheckAsync` itself is never gated, because pressing *Check now* is the choosing. |
 | Turning automatic checks on checks immediately | The loop wakes every six hours, so switching it on and being told nothing for the rest of the afternoon would read as broken. The `SettingsStore.Changed` handler spots the transition and runs one check there and then. |
+| Save does not close the Settings window | Settings are changed in handfuls, not one at a time — a mode, then the key that cycles them, then the thing on the next page the first two brought to mind — and closing after each one made that three trips through the nav rail. The window stays and flashes *Saved*, which is what says it worked now that there is no window disappearing to say it. Cancel, Escape and the close button all still discard whatever has been edited since the last save. |
+| The theme preview is reverted on close whatever happened | It used to be skipped once a save had happened, which was correct only while saving also closed the window. With the window outliving a save, previewing a second theme and then closing would have left that preview in force. `Apply()` reads what is on disk, so doing it unconditionally reverts an unsaved preview and is a no-op otherwise. |
 | The clipboard is borrowed and given back, in full | Pasting needs the user's clipboard for a fifth of a second, and the clipboard has no undo. Keeping only the text meant every pasted dictation silently destroyed an image, a copied file, or the formatting on copied text — and finding 3 made that *more* common by sending every multiline result down this path. `ClipboardSnapshot` copies the bytes of every memory-backed format; the few that are not memory come back by Windows' own synthesis from the ones that are. |
 | It is only put back if it is still ours | `GetClipboardSequenceNumber` says whether anything has touched the clipboard since we wrote to it. Restoring unconditionally meant that copying something during the 200 ms settle had it taken away again a moment later — the user's own action, undone by a background feature. Somebody else's clipboard is not ours to replace. |
 | A clipboard found empty is left empty | Otherwise every pasted dictation quietly left the transcript behind for the next Ctrl+V, which is the whole day's speech sitting in whatever the user pastes into next. |
@@ -444,6 +446,9 @@ with a script. The script sees what it asks about; a person sees the thing that 
 12. **The history window saves settings when it moves or closes**, via clone-modify-save on
     `SettingsStore`. If the Settings window is open with unsaved edits at that moment, last writer wins.
     Not worth solving until someone actually hits it, but it is why the two can disagree.
+
+    **More likely now than when this was written**: Save no longer closes the Settings window, so it
+    is open for longer and across more of whatever else the user is doing.
 13. **Closing the history window hides it**; only `AllowClose` (set on app exit) really closes it. If you
     add another way to shut the app down, set that flag or the window will block it.
 14. **Never call `Activate()`, `Focus()` or `SetForegroundWindow` on `OverlayWindow`.** It would take
@@ -1117,6 +1122,17 @@ with a script. The script sees what it asks about; a person sees the thing that 
     computed only when the bar settles to idle, so changing the hotkey left the bar naming the old key
     until the next dictation had finished. Both are now applied together, and the duplicate `SetMode`
     call at startup went with it so there is one place that reads the mode out of settings.
+
+55. Stopped the Settings window closing itself on Save, on the owner's request — changing three
+    things meant three trips through the nav rail. It flashes *Saved* instead, using the same status
+    line the downloads and the vocabulary export already use.
+
+    The one thing that had to move with it: the theme preview was reverted on close only when nothing
+    had been saved, which was correct exactly as long as saving also closed the window. Previewing a
+    second theme after a save and then closing would have left it in force. It reverts unconditionally
+    now, which is a no-op when there is nothing unsaved to revert. Worth noticing as a class — a piece
+    of cleanup whose correctness rested on a lifetime somewhere else, not on anything visible where it
+    was written.
 
 ## Links
 

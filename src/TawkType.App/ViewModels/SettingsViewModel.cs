@@ -38,7 +38,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly ThemeManager _theme;
 
     /// <summary>Whether Save ever ran. A window closed without it has to put the theme back.</summary>
-    private bool _saved;
 
     /// <summary>
     /// The faintness to go back to when dimming is switched on again, so somebody who set their own
@@ -220,8 +219,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _history.Changed += OnHistoryChanged;
         _updates.Changed += OnUpdatesChanged;
     }
-
-    public event EventHandler? Saved;
 
     public IReadOnlyList<NavPage> Pages { get; } = NavPage.All;
 
@@ -548,12 +545,11 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _history.Changed -= OnHistoryChanged;
         _updates.Changed -= OnUpdatesChanged;
 
-        // Cancel, Escape or the close button: the previewed theme was never agreed to, so it goes
-        // back to whatever is on disk. Apply() reads the saved setting, which is exactly that.
-        if (!_saved)
-        {
-            _theme.Apply();
-        }
+        // Any theme previewed but not saved goes back to whatever is on disk, which is what Apply()
+        // reads. Unconditional, and it has to be: this used to be skipped once a save had happened,
+        // which was safe only while saving also closed the window. Now that it does not, previewing a
+        // second theme after saving and then closing would have left that preview in force.
+        _theme.Apply();
     }
 
     /// <summary>
@@ -601,8 +597,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
 
         _store.Save(Draft);
-        _saved = true;
-        Saved?.Invoke(this, EventArgs.Empty);
+
+        // The window stays open. Settings are changed in handfuls — a mode, then the key that cycles
+        // them, then the thing on the next page that the first two made you think of — and closing
+        // after each one made that three trips. The flash is what says it worked, since there is no
+        // longer a window disappearing to say it.
+        Flash("Saved.");
     }
 
     [RelayCommand]

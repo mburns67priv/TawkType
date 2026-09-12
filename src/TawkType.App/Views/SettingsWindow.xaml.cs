@@ -18,7 +18,6 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
-        viewModel.Saved += (_, _) => Close();
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
