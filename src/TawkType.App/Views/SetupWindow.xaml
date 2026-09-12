@@ -26,9 +26,12 @@
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
 
+        <!-- Width, not MaxWidth: a left-aligned card sizes itself to its content, so the microphone
+             card and its level meter shrank to the width of whatever the message happened to say.
+             A fixed width also stops the step resizing under the user as the message changes. -->
         <Style x:Key="Card" TargetType="Border" BasedOn="{StaticResource Ui.CardSurface}">
             <Setter Property="Margin" Value="0,4,0,14" />
-            <Setter Property="MaxWidth" Value="520" />
+            <Setter Property="Width" Value="520" />
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
     </Window.Resources>

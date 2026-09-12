@@ -553,10 +553,20 @@ site source and every snapshot from v2 on were already clean.
     user's recording away mid-sentence. The engine's clip then carries a little of the metered audio
     in front of it, which is harmless. Do not "tidy" that into an unconditional Stop.
 
-46. **An empty `TextBox` with `MaxWidth` and `HorizontalAlignment="Left"` collapses to nothing.** It
-    sizes itself to the text it does not have yet, so the practice box rendered about 40px wide and
-    there was nothing visible to click into. `Width`, not `MaxWidth`, for a box that starts empty.
-    Caught by screenshotting the step; the XAML compiles either way.
+46. **`MaxWidth` plus `HorizontalAlignment="Left"` means "as wide as my content", not "520 wide".**
+    It has now caused the same bug three times, in three windows:
+
+    - The settings window hit it first, which is why `SettingsWindow.xaml` has a comment saying
+      *"Fixed, not MaxWidth: a field with no hint under it would otherwise shrink to its content"*.
+    - First run's practice box, empty at the moment it is shown, rendered about 40px wide with
+      nothing visible to click into.
+    - First run's microphone card shrank to fit its message, taking the level meter with it — so the
+      meter was wide while the message said *"Nothing yet. Check the device above…"* and narrow the
+      moment it said *"That is a good level."* Reported from a real install, with a screenshot.
+
+    Use `Width` for any container or input whose size should not depend on what is in it. `MaxWidth`
+    is right for a block of text and almost nothing else. The XAML compiles either way and the
+    designer will not tell you; only looking at it will.
 
 47. **A Velopack hook may not show UI, and is killed after 30 seconds.** Velopack's documentation is
     explicit on both: "you may not show any UI to the user", and "if your application receives one of
@@ -744,6 +754,9 @@ site source and every snapshot from v2 on were already clean.
     controls. The point of it is the disagreement case — the rewrite switched on with no key reads
     Local, because that is what will happen. Driven in the running app and screenshotted, including
     toggling the switch and watching the panel refuse to say Cloud.
+39. Fixed the first-run microphone card, reported from the first real install: it was sized to its
+    message rather than to a width, so the level meter shrank when the message got shorter. Third
+    instance of gotcha 46, which now says so.
 
 ## Links
 
