@@ -773,7 +773,14 @@ site source and every snapshot from v2 on were already clean.
     microphones: `AdaptiveMeter` scales the bar to whatever it is hearing, so a headset and a
     microphone twenty decibels hotter draw the same waveform with nothing to configure. The absolute
     thresholds stay where they belong — deciding whether there is a voice there, which a self-scaling
-    meter cannot do.
+    meter cannot do. **Confirmed working against a real voice on the owner's machine**, which is the
+    only way this one could ever be confirmed: three attempts at it were shipped before the
+    measurement existed, and every one of them was reasoning.
+
+    The sequence is the lesson. A linear map that assumed speech RMS of 0.02–0.2; a square-root curve
+    guessed against the same assumption; thresholds calibrated to one measured headset; and finally a
+    meter that measures for itself. Only the fourth is right for anybody else's hardware, and the
+    measurement that made it possible took one console tool and ten seconds of somebody talking.
 
 ## Links
 
