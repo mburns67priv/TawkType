@@ -908,7 +908,20 @@ with a script. The script sees what it asks about; a person sees the thing that 
    who want the rewrite.
 10. **Command mode**: hold a second key, speak an instruction, replace the selected text.
 
-11. **Put the changes in the release notes.** Every GitHub Release carries the same boilerplate — how
+11. **A vocabulary edit looks saved before it is.** Reported by the owner while using the new page.
+    The Add and Edit dialogs' primary button says *Save changes*, the row updates the moment the
+    dialog closes, and nothing on screen says the change is still only in the draft — it does not
+    reach disk until the Save button at the bottom of the Settings window, and Cancel throws it away.
+
+    Every other path on that page already says so: importing flashes *"Vocabulary imported. Save to
+    keep it."* The dialogs and Remove say nothing at all, which is the inconsistency.
+
+    Worth fixing as a piece: flash *"Added. Save to keep it."* / *"Updated…"* / *"Removed…"* after each
+    one, and reconsider the dialog's *Save changes* wording, which is the word the whole confusion
+    hangs on. A page-level "unsaved changes" mark is the bigger version of the same idea and may be
+    the better answer, since the draft model applies to every settings page, not just this one.
+
+12. **Put the changes in the release notes.** Every GitHub Release carries the same boilerplate — how
     to install, the SmartScreen warning, the runtime — and says nothing about what changed. The tag
     messages do carry it: `v0.7.3` is annotated with what that release fixed. `gh release create` takes
     `--notes-from-tag`, so this is close to a one-line change in `.github/workflows/release.yml`, with
