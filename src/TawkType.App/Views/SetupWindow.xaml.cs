@@ -66,7 +66,16 @@ public partial class SetupWindow : Window
     /// </summary>
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(SetupViewModel.Step) || _viewModel.Step != SetupStep.Practice)
+        if (e.PropertyName != nameof(SetupViewModel.Step))
+        {
+            return;
+        }
+
+        // The steps share one scroll viewer, so a step arrived at whatever offset the last one was
+        // left at. Same fault as the settings pages, same fix.
+        StepScroll.ScrollToTop();
+
+        if (_viewModel.Step != SetupStep.Practice)
         {
             return;
         }

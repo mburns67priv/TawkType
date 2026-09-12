@@ -90,7 +90,8 @@
         </Border>
 
         <!-- ===================== The steps ===================== -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,22,28,22">
+        <!-- One scroll region for every step, so moving between them has to reset it. -->
+        <ScrollViewer x:Name="StepScroll" VerticalScrollBarVisibility="Auto" Padding="28,22,28,22">
             <Grid>
 
                 <!-- ===== Welcome ===== -->

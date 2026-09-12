@@ -133,7 +133,10 @@
                 </DockPanel>
             </Border>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,24,28,24">
+            <!-- One scroll region for every page, which is why changing page has to reset it: the
+                 pages share this viewer's offset, so arriving at a short page half way down is the
+                 previous page's scroll position, not this one's. -->
+            <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" Padding="28,24,28,24">
                 <Grid>
 
                     <!-- ============ General ============ -->

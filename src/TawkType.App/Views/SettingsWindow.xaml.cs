@@ -19,6 +19,20 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         DataContext = viewModel;
         viewModel.Saved += (_, _) => Close();
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    /// <summary>
+    /// Every page lives in the same scroll viewer, stacked and switched by visibility, so the offset
+    /// is shared. Scrolling down one page and then picking another from the nav rail arrived part way
+    /// down the new one — or past the end of it, on a page shorter than the last.
+    /// </summary>
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsViewModel.SelectedPage))
+        {
+            PageScroll.ScrollToTop();
+        }
     }
 
     protected override void OnSourceInitialized(EventArgs e)
