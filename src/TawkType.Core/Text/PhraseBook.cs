@@ -37,13 +37,23 @@ public static class PhraseBook
             return new PhraseResult(text, ExpandedSnippet: false);
         }
 
-        // Snippets first: their text is exact, and nothing after this should be rewriting it.
-        var expanded = false;
+        // Snippets first, and each one goes in as a placeholder rather than as itself. The passes
+        // below would otherwise rewrite the text of a snippet that has only just been inserted — a
+        // replacement or a spelling matching inside somebody's signature — and the final Trim would
+        // eat the blank line a signature usually ends with. This comment used to claim that nothing
+        // after this point rewrites a snippet, while the code went straight on and did.
+        var snippets = new List<string>();
         foreach (var snippet in Ordered(vocabulary.Snippets, s => s.Trigger))
         {
             var before = text;
-            text = Replace(text, SnippetPrefix + " " + snippet.Trigger, snippet.Text);
-            expanded |= !ReferenceEquals(before, text) && !string.Equals(before, text, StringComparison.Ordinal);
+            var placeholder = Placeholder(snippets.Count);
+
+            text = Replace(text, SnippetPrefix + " " + snippet.Trigger, placeholder);
+
+            if (!string.Equals(before, text, StringComparison.Ordinal))
+            {
+                snippets.Add(snippet.Text);
+            }
         }
 
         foreach (var replacement in Ordered(vocabulary.Replacements, r => r.From))
@@ -56,8 +66,27 @@ public static class PhraseBook
             text = Replace(text, spelling, spelling);
         }
 
-        return new PhraseResult(text.Trim(), expanded);
+        // Trim before the snippets go back, so it tidies the dictation around them and never the text
+        // the user saved. A snippet that is the whole dictation comes out exactly as it was written.
+        text = text.Trim();
+
+        for (var i = 0; i < snippets.Count; i++)
+        {
+            text = text.Replace(Placeholder(i), snippets[i], StringComparison.Ordinal);
+        }
+
+        return new PhraseResult(text, snippets.Count > 0);
     }
+
+    /// <summary>
+    /// Stands in for one snippet's text while the other passes run.
+    ///
+    /// A single character from the Unicode private use area, which is neither a letter nor a digit, so
+    /// the whole-word boundaries in <see cref="Pattern"/> behave exactly as they would around any
+    /// other punctuation — and no phrase anybody types can contain one, so nothing can match it by
+    /// accident. Digits would not do: a replacement whose left-hand side is a number could match one.
+    /// </summary>
+    private static string Placeholder(int index) => ((char)(0xE000 + index)).ToString();
 
     /// <summary>Longest phrase first, so a short entry cannot eat the start of a longer one.</summary>
     private static IEnumerable<T> Ordered<T>(IEnumerable<T>? entries, Func<T, string> phrase)

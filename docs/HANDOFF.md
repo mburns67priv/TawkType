@@ -232,6 +232,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | Every dictation is a `Session` | Cancellation needs something to cancel. An id, a `CancellationTokenSource` and the task let Escape actually stop transcription, stop a late dictation stamping on the one that replaced it, and let shutdown drain instead of tearing up mid-write. |
 | The words are announced before delivery | History used to be written after typing, so a dictation that failed to deliver was lost along with the exception — the exact case the history window exists for. `Recognised` fires first now. |
 | The phrase book runs again after the rewrite | The model is deliberately given the raw transcript, so it has no idea what the user has corrected and cheerfully undoes it. Re-applying afterwards is the only ordering where both features work. |
+| A snippet's text is exempt from every pass after it | It is saved text, typed as written — that is the promise in the README, in the settings hint, and in `PhraseBook`'s own comment, which said "nothing after this should be rewriting it" directly above the code that went on to rewrite it. The replacement and spelling passes ran over the freshly inserted text, so a user's own correction rule could rewrite their signature, and the closing `Trim` took the blank line a signature usually ends with. Each snippet now goes in as a private-use placeholder character, the other passes run, the text is trimmed, and only then does the snippet text go back. A digit or a word would not do as a placeholder: a replacement can match either. |
 | Snippets need the word "insert" | Left implicit, a signature or an address expands in the middle of an ordinary sentence. They also skip the LLM pass entirely: a model asked to tidy up a signature will do exactly that. |
 | Vocabulary is a text box, and its own file | These lists are written in bursts, usually pasted from somewhere, and plain text can be selected, sorted, diffed and kept in a note — a grid of rows with add/remove buttons cannot. The export is separate from `settings.json` because it is the user's own work, not window positions. |
 | A bad number says so instead of being dropped or clamped | Save used to ignore an unusable value silently: the box kept what was typed, the setting did not change, and the window closed looking like it had worked. Clamping would be worse, since a value the user never chose would be saved under their name. `NumberField` holds the range and the message; Save waits. |
@@ -1133,6 +1134,19 @@ with a script. The script sees what it asks about; a person sees the thing that 
     now, which is a no-op when there is nothing unsaved to revert. Worth noticing as a class — a piece
     of cleanup whose correctness rested on a lifetime somewhere else, not on anything visible where it
     was written.
+
+56. Made a snippet's text genuinely exempt from the passes that follow it, which the documentation
+    and the code's own comment had both claimed for as long as snippets have existed. `PhraseBook`
+    expanded the snippet and then ran every replacement and every spelling over the result, so a
+    user's correction rule could rewrite their own signature, and the closing `Trim` removed the blank
+    line most signatures end with. Each snippet now goes in as a placeholder from the Unicode private
+    use area — neither a letter nor a digit, so the word boundaries behave and no phrase anybody can
+    type will match it — and the real text is put back after the trim.
+
+    Found by having Codex review the vocabulary redesign plan against the code. It is not a UI defect
+    and nobody was looking for it; it came out of checking a sentence the plan wanted to put in a
+    dialog. Eight tests in `SnippetExactnessTests`, named after the promise rather than the mechanism,
+    so reordering the passes in `Apply` fails something that says what was lost.
 
 ## Links
 
