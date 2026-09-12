@@ -626,10 +626,22 @@
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="Status pill" />
 
-                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
-                                  IsChecked="{Binding Draft.Overlay.AlwaysVisible}">
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,10"
+                                  IsChecked="{Binding KeepPillOnScreen}">
                             <TextBlock Text="Keep the pill on screen between dictations" TextWrapping="Wrap" />
                         </CheckBox>
+
+                        <!-- Greyed rather than hidden when the pill hides itself: the setting still
+                             exists, it simply has nothing to act on. -->
+                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,4"
+                                  IsChecked="{Binding DimWhenResting}"
+                                  IsEnabled="{Binding KeepPillOnScreen}">
+                            <TextBlock Text="Fade it while it is resting" TextWrapping="Wrap" />
+                        </CheckBox>
+                        <TextBlock Style="{StaticResource Ui.Hint}" Margin="0,0,0,18"
+                                   TextWrapping="Wrap" MaxWidth="420" HorizontalAlignment="Left"
+                                   IsEnabled="{Binding KeepPillOnScreen}"
+                                   Text="Off keeps it at full strength between dictations, which is easier to find against a busy desktop. It still brightens and comes to the front the moment you speak." />
 
                         <StackPanel Style="{StaticResource Field}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Position" />

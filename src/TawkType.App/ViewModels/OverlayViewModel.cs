@@ -451,11 +451,12 @@ public sealed partial class OverlayViewModel : ObservableObject
         {
             Settle();
         }
-        else
-        {
-            // Mid-dictation: leave the bar alone and let the next settle pick the new mode up.
-            OnPropertyChanged(nameof(Opacity));
-        }
+
+        // Unconditionally, and after settling rather than instead of it. Settle only re-raises Opacity
+        // when IsResting actually changes, so a pill that was already resting kept its old faintness
+        // until the next dictation — which is exactly when somebody who has just changed that setting
+        // is looking at it.
+        OnPropertyChanged(nameof(Opacity));
     }
 
     private void Show(string text, DictationState state)

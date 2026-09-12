@@ -39,6 +39,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     /// <summary>Whether Save ever ran. A window closed without it has to put the theme back.</summary>
     private bool _saved;
+
+    /// <summary>
+    /// The faintness to go back to when dimming is switched on again, so somebody who set their own
+    /// value and then tried solid does not lose it to the default.
+    /// </summary>
+    private double _dimmedOpacity;
     private readonly IDictationHistory _history;
     private readonly UpdateService _updates;
 
@@ -201,6 +207,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         // The field, not the property: assigning the property here would fire OnStartWithWindowsChanged
         // and write the registry back on every open.
         _startWithWindows = WindowsStartup.IsEnabled();
+        _dimmedOpacity = _draft.Overlay.RestingOpacity;
 
         RefreshModels();
         RefreshHistory();
@@ -470,6 +477,55 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
             Draft.Appearance.Theme = value;
             _theme.Preview(value);
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Proxied so the dimming switch below can grey out when the pill hides itself entirely.</summary>
+    public bool KeepPillOnScreen
+    {
+        get => Draft.Overlay.AlwaysVisible;
+        set
+        {
+            if (value == Draft.Overlay.AlwaysVisible)
+            {
+                return;
+            }
+
+            Draft.Overlay.AlwaysVisible = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Whether the pill fades while it is resting. Off keeps it at full strength, which is what
+    /// somebody wants when a faint pill disappears into a busy desktop or a bright wallpaper.
+    ///
+    /// It is a checkbox over a number: the stored setting is still an opacity, so a value set by hand
+    /// in settings.json survives being switched off and back on.
+    /// </summary>
+    public bool DimWhenResting
+    {
+        get => Draft.Overlay.RestingOpacity < 1;
+        set
+        {
+            if (value == DimWhenResting)
+            {
+                return;
+            }
+
+            if (value)
+            {
+                Draft.Overlay.RestingOpacity = _dimmedOpacity is > 0 and < 1
+                    ? _dimmedOpacity
+                    : new OverlaySettings().RestingOpacity;
+            }
+            else
+            {
+                _dimmedOpacity = Draft.Overlay.RestingOpacity;
+                Draft.Overlay.RestingOpacity = 1;
+            }
+
             OnPropertyChanged();
         }
     }
