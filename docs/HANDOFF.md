@@ -670,6 +670,14 @@ with a script. The script sees what it asks about; a person sees the thing that 
     The rule: a computed property over somebody else's state needs whoever owns that state to tell it.
     `UpdateService` had been raising `Changed` on every transition the entire time; nobody subscribed.
 
+    **Second instance, found by the owner going to look for something else.** The tray tooltip was the
+    literal `"TawkType — hold Right Ctrl to dictate"` in `App.xaml`, and the code that builds it from
+    the user's actual hotkey only ran inside `OnUpdateStateChanged`. So anyone who rebound their key
+    was told by the tray to hold one that does nothing, until an update check happened along and
+    overwrote it. The variant to watch for: not a dead binding this time but a **literal in the markup
+    shadowing the code that computes it**, which looks right in the designer and is wrong at runtime
+    for everybody who changed the setting. It is rebuilt at startup, on save, and on update state now.
+
 51. **WPF decodes the largest frame of a multi-frame `.ico`.** `tawktype.ico` carries ten sizes from
     16 to 256. An `<Image Source="…ico" Width="22">` decodes the 256 and squashes it, which looks
     soft and muddy. `DecodePixelWidth` on a `BitmapImage` picks the nearest frame instead. Worth
@@ -990,6 +998,14 @@ with a script. The script sees what it asks about; a person sees the thing that 
     And the settle time. Nothing tells an application's clipboard borrower when the
     target has actually pasted, so 200 ms is still a guess — deliberately unchanged, because changing
     a number nobody has measured is how the audio path went wrong three times (entry 41).
+
+49. Fixed the tray tooltip, which named Right Ctrl to everybody regardless of the key they had chosen
+    (gotcha 50, second instance). The markup carried a literal and the code that builds the real
+    string ran only when the update state changed, so the tray was correct by accident or not at all.
+    Found while checking a claim in this document — that the tooltip carries the version, which it
+    does only for a *staged update*, never for the running one. Both the claim and the tooltip were
+    wrong in the same ten minutes; the wording here was what sent a session looking in the tray for a
+    version that is only ever in Settings → General → About.
 
 ## Links
 

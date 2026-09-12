@@ -174,6 +174,11 @@ public partial class App : Application
         // back when the bar has been hidden.
         _tray.DataContext = overlayVm;
 
+        // The tooltip names the key the user chose, so it is built here rather than written in XAML,
+        // and rebuilt whenever they change it.
+        RefreshTrayTooltip();
+        Services.GetRequiredService<SettingsStore>().Changed += (_, _) => Dispatcher.BeginInvoke(RefreshTrayTooltip);
+
         _engine.Start(); // installs the keyboard hook on this (message-pumping) thread
 
         if (Services.GetRequiredService<SettingsStore>().Current.History.OpenOnStart
@@ -535,18 +540,36 @@ public partial class App : Application
         var ready = updates.State == UpdateState.ReadyToRestart;
 
         overlay.SetUpdateReady(ready, updates.PendingVersion);
-
-        if (_tray is not null)
-        {
-            _tray.ToolTipText = ready
-                ? $"TawkType — {updates.PendingVersion} ready, restart to apply"
-                : $"TawkType — hold {Hotkey.ParseOrDefault(Services.GetRequiredService<SettingsStore>().Current.Hotkey)} to dictate";
-        }
+        RefreshTrayTooltip();
 
         if (ready)
         {
             _logger?.LogInformation("Update {Version} is staged and has been announced", updates.PendingVersion);
         }
+    }
+
+    /// <summary>
+    /// The tray tooltip: what a staged update is offering, or the key to hold to dictate.
+    ///
+    /// It has to be built from settings rather than written in XAML, because it names a key the user
+    /// can change. It was a literal "Right Ctrl" in the markup, corrected only as a side effect of an
+    /// update-state change — so anybody who rebound their key was told by the tray to hold one that
+    /// does nothing, until an update check happened to come along and overwrite it. Rebuilt at
+    /// startup, when the settings are saved, and when the update state moves.
+    /// </summary>
+    private void RefreshTrayTooltip()
+    {
+        if (_tray is null)
+        {
+            return;
+        }
+
+        var updates = Services.GetRequiredService<UpdateService>();
+        var hotkey = Hotkey.ParseOrDefault(Services.GetRequiredService<SettingsStore>().Current.Hotkey);
+
+        _tray.ToolTipText = updates.State == UpdateState.ReadyToRestart
+            ? $"TawkType — {updates.PendingVersion} ready, restart to apply"
+            : $"TawkType — hold {hotkey} to dictate";
     }
 
     /// <summary>

@@ -69,7 +69,7 @@
             </GeometryGroup>
 
             <tb:TaskbarIcon x:Key="TrayIcon"
-                            ToolTipText="TawkType — hold Right Ctrl to dictate"
+                            ToolTipText="TawkType"
                             IconSource="pack://application:,,,/Assets/tawktype.ico"
                             NoLeftClickDelay="True"
                             LeftClickCommand="{x:Null}">
