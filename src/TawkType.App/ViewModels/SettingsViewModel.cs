@@ -51,6 +51,15 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     /// <summary>Set by the password box as the user types. Null means "leave the stored key alone".</summary>
     private string? _pendingApiKey;
 
+    /// <summary>
+    /// Whether anything on the Vocabulary page has changed the draft since this window opened.
+    ///
+    /// Drives two things: the note that says the change is not on disk yet, and what happens when the
+    /// file changes underneath — an untouched vocabulary can simply take the newer one, an edited one
+    /// cannot, because adopting it would throw the user's edits away.
+    /// </summary>
+    private bool _vocabularyTouched;
+
     private CancellationTokenSource? _statusTimer;
     private CancellationTokenSource? _download;
 
@@ -202,10 +211,46 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private HistoryEntry? _selectedHistoryEntry;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UnsavedNote))]
     private string _status = string.Empty;
+
+    /// <summary>
+    /// Set when the vocabulary on disk changed while this window held an edited copy of it — which
+    /// happens when Remember… in the history window teaches a replacement. Unlike the flash it stays
+    /// on screen, because it is a warning about what the Save button is about to do.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UnsavedNote))]
+    private string? _vocabularyConflict;
+
+    /// <summary>
+    /// The whole of the warning, for the tooltip. The footer line is short because it shares a bar
+    /// with two buttons and a 720px window leaves it a few dozen characters — short enough to read at
+    /// a glance, with the rest a hover away.
+    /// </summary>
+    public string VocabularyConflictDetail =>
+        "While this window has been open, a replacement was saved from the history window's Remember… "
+        + "button. This window is still holding the vocabulary as it was when it opened, so Save will "
+        + "write that older list back and the new replacement will be lost. Cancel and reopen Settings "
+        + "to keep it.";
 
     [ObservableProperty]
     private string _updateStatus = string.Empty;
+
+    /// <summary>
+    /// The quiet reminder that a vocabulary change is still only in the draft.
+    ///
+    /// Nothing on this page reaches disk until Save, and the Add and Edit dialogs used to say nothing
+    /// about that at all: the row changed the moment the dialog closed, so the change looked done. The
+    /// flash says it entry by entry; this stays put afterwards, until Save or Cancel settles it.
+    ///
+    /// Null while a flash is up — that flash already ends in "Save to keep it" — and null while a
+    /// conflict is showing, which is the more serious version of the same sentence.
+    /// </summary>
+    public string? UnsavedNote
+        => VocabularyConflict is not null || Status.Length > 0 || !_vocabularyTouched
+            ? null
+            : "Vocabulary changed. Save to keep it.";
 
     /// <summary>
     /// Seeded from the registry in the constructor, not left at its default. A checkbox that always
@@ -278,6 +323,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
         _history.Changed += OnHistoryChanged;
         _updates.Changed += OnUpdatesChanged;
+        _store.Changed += OnStoreChanged;
     }
 
     public IReadOnlyList<NavPage> Pages { get; } = NavPage.All;
@@ -604,6 +650,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         _history.Changed -= OnHistoryChanged;
         _updates.Changed -= OnUpdatesChanged;
+        _store.Changed -= OnStoreChanged;
 
         // Any theme previewed but not saved goes back to whatever is on disk, which is what Apply()
         // reads. Unconditional, and it has to be: this used to be skipped once a save had happened,
@@ -664,6 +711,11 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         }
 
         _store.Save(Draft);
+
+        // The draft and the disk agree again, so both warnings go: the quiet one that said the
+        // vocabulary was only in the draft, and the conflict, which has now happened.
+        _vocabularyTouched = false;
+        VocabularyConflict = null;
 
         // The window stays open. Settings are changed in handfuls — a mode, then the key that cycles
         // them, then the thing on the next page that the first two made you think of — and closing
@@ -1035,7 +1087,10 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     /// <summary>A section changed the draft: refresh what depends on it, and say anything it asked to say.</summary>
     private void OnVocabularyChanged(string? note)
     {
+        _vocabularyTouched = true;
+
         OnPropertyChanged(nameof(VocabularySummary));
+        OnPropertyChanged(nameof(UnsavedNote));
         SaveCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(SaveBlockedBy));
 
@@ -1044,6 +1099,48 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
             Flash(note);
         }
     }
+
+    /// <summary>
+    /// settings.json changed while this window is open. Almost always this window's own Save, or the
+    /// history window remembering where it was dragged to — neither of which touches the vocabulary,
+    /// which is why only the vocabulary is compared.
+    ///
+    /// The one that matters is Remember… in the history window: it writes a replacement straight to
+    /// disk, while this window is holding a clone taken when it opened. Before this, that replacement
+    /// was invisible here and the next Save quietly wrote the older list back over it.
+    ///
+    /// An untouched vocabulary simply takes the newer one. An edited one cannot — adopting it would
+    /// throw away what the user has been doing on this page — so it says what happened instead, and
+    /// keeps saying it, because the Save button is now a destructive one.
+    /// </summary>
+    private void OnStoreChanged(object? sender, EventArgs e)
+        => Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            if (VocabularyRules.Same(Draft.Vocabulary, _store.Current.Vocabulary))
+            {
+                return;
+            }
+
+            // A section in text mode is holding text the user typed and has not committed. Nothing has
+            // marked the draft yet, but replacing the lists under an open box would still lose it.
+            var busy = _vocabularyTouched || Vocabularies.Any(section => section.IsTextMode);
+
+            if (busy)
+            {
+                VocabularyConflict = "A correction was saved elsewhere — Save will replace it.";
+                return;
+            }
+
+            Draft.Vocabulary = _store.Current.Vocabulary.Clone();
+
+            foreach (var section in Vocabularies)
+            {
+                section.Refresh();
+            }
+
+            OnPropertyChanged(nameof(VocabularySummary));
+            Flash("A correction was saved from the history window. It is in the list below.");
+        });
 
 
     private string DescribeApiKey()

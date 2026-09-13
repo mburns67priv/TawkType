@@ -63,7 +63,7 @@ public sealed class SpellingSection(Func<VocabularySettings> vocabulary, Action<
                 null,
                 null,
                 string.Empty,
-                editing is null ? "Add spelling" : "Save changes",
+                editing is null ? "Add spelling" : "Update spelling",
                 (first, _) =>
                 {
                     var result = VocabularyEdit.UpsertSpelling(vocabulary().Spellings, editing, first);
@@ -139,7 +139,7 @@ public sealed class ReplacementSection(Func<VocabularySettings> vocabulary, Acti
                 "Type this instead",
                 "What should be typed in its place: C#",
                 entry.To,
-                editing is null ? "Add replacement" : "Save changes",
+                editing is null ? "Add replacement" : "Update replacement",
                 (first, second) =>
                 {
                     var result = VocabularyEdit.UpsertReplacement(vocabulary().Replacements, editing, first, second);
@@ -216,7 +216,7 @@ public sealed class SnippetSection(Func<VocabularySettings> vocabulary, Action<s
                 editing is null ? "Add a snippet" : "Edit a snippet",
                 entry.Trigger,
                 entry.Text,
-                editing is null ? "Add snippet" : "Save changes",
+                editing is null ? "Add snippet" : "Update snippet",
                 (trigger, text) =>
                 {
                     var result = VocabularyEdit.UpsertSnippet(vocabulary().Snippets, editing, trigger, text);

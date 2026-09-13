@@ -197,6 +197,33 @@ public static class VocabularyRules
     public static string Normalise(string? text)
         => (text ?? string.Empty).ReplaceLineEndings(Environment.NewLine);
 
+    /// <summary>
+    /// True when two vocabularies hold the same entries in the same order.
+    ///
+    /// The Settings window works on a clone and saves the whole thing, so it has to be able to tell
+    /// whether the copy on disk has moved underneath it — the history window's Remember… writes a
+    /// replacement straight away, and a Settings window that opened before that would otherwise save
+    /// its older copy back over it. Only the vocabulary is compared, because a settings file also
+    /// changes when the history window is merely dragged.
+    /// </summary>
+    public static bool Same(VocabularySettings? left, VocabularySettings? right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+
+        if (left is null || right is null)
+        {
+            return false;
+        }
+
+        // The two entry types are records, so this is entry-by-entry value equality and not identity.
+        return left.Spellings.SequenceEqual(right.Spellings, StringComparer.Ordinal)
+            && left.Replacements.SequenceEqual(right.Replacements)
+            && left.Snippets.SequenceEqual(right.Snippets);
+    }
+
     private static void Note(List<string> notes, int count, string thing, string why)
     {
         if (count > 0)

@@ -89,6 +89,9 @@ public abstract partial class VocabularySection : ObservableObject
     /// <summary>The heading. Capitalised; <see cref="Plural"/> is for the middle of a sentence.</summary>
     public string Title => char.ToUpperInvariant(Plural[0]) + Plural[1..];
 
+    /// <summary>The singular, capitalised, for the start of a sentence about one entry.</summary>
+    public string SingularTitle => char.ToUpperInvariant(Singular[0]) + Singular[1..];
+
     /// <summary>What this list is for, in one sentence. The syntax is not in it — that is the dialog's job.</summary>
     public string Hint { get; }
 
@@ -316,7 +319,7 @@ public abstract partial class VocabularySection : ObservableObject
         Search = string.Empty;
 
         Refresh();
-        Announce(wasSearching ? $"Search cleared so you can see the new {Singular}." : null);
+        Announce(Done("added", wasSearching ? $"Search cleared so you can see the new {Singular}." : null));
     }
 
     [RelayCommand]
@@ -325,7 +328,7 @@ public abstract partial class VocabularySection : ObservableObject
         if (row is not null && ShowEditDialog(row, Application.Current?.Windows.OfType<SettingsWindow>().FirstOrDefault()))
         {
             Refresh();
-            Announce(null);
+            Announce(Done("updated", null));
         }
     }
 
@@ -343,7 +346,7 @@ public abstract partial class VocabularySection : ObservableObject
 
         RemoveAt(row.Index);
         Refresh();
-        Announce(null);
+        Announce(Done("removed", null));
     }
 
     /// <summary>
@@ -358,6 +361,19 @@ public abstract partial class VocabularySection : ObservableObject
 
     /// <summary>Tells the owner something changed, with a sentence to flash when there is one to say.</summary>
     protected void Announce(string? note) => _changed(note);
+
+    /// <summary>
+    /// What to say after a dialog or a Remove. Every one of them ends in the same five words.
+    ///
+    /// The dialog's own button says the change is made and the row updates the moment it closes, which
+    /// is true of the draft and not of the disk — the Settings window's Save is still what writes it,
+    /// and Cancel still throws it away. Import already said so; these three said nothing at all, which
+    /// is how "it says Saved but it is not really" happens.
+    /// </summary>
+    private string Done(string what, string? aside)
+        => aside is null
+            ? $"{SingularTitle} {what}. Save to keep it."
+            : $"{SingularTitle} {what}. {aside} Save to keep it.";
 
     protected abstract IEnumerable<VocabularyRow> BuildRows();
 

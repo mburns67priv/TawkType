@@ -131,8 +131,23 @@
                         <Button Content="Save" IsDefault="True" Style="{StaticResource Ui.PrimaryButton}"
                                 Command="{Binding SaveCommand}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding Status}" VerticalAlignment="Center" FontSize="11.5"
-                               Foreground="{DynamicResource Ui.Accent}" TextTrimming="CharacterEllipsis" />
+                    <!-- Three things that never show at once, by construction in the view model: the
+                         flash, the quiet reminder that a vocabulary change is only in the draft, and
+                         the warning that the copy on disk has moved on since this window opened.
+                         A Grid rather than a StackPanel so each one is given the width that is left
+                         and trims inside it — a horizontal StackPanel measures its children at
+                         infinity, and TextTrimming on a child that was never constrained does nothing. -->
+                    <Grid>
+                        <TextBlock Text="{Binding Status}" VerticalAlignment="Center" FontSize="11.5"
+                                   Foreground="{DynamicResource Ui.Accent}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding UnsavedNote}" VerticalAlignment="Center" FontSize="11.5"
+                                   Foreground="{DynamicResource Ui.TextMuted}" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding UnsavedNote, Converter={StaticResource NullToCollapsed}}" />
+                        <TextBlock Text="{Binding VocabularyConflict}" VerticalAlignment="Center" FontSize="11.5"
+                                   Style="{StaticResource Ui.FieldError}" TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding VocabularyConflictDetail}"
+                                   Visibility="{Binding VocabularyConflict, Converter={StaticResource NullToCollapsed}}" />
+                    </Grid>
                 </DockPanel>
             </Border>
 
