@@ -6,6 +6,7 @@ using TawkType.Core.Abstractions;
 using TawkType.Core.History;
 using TawkType.Core.Models;
 using TawkType.Core.Settings;
+using TawkType.Core.Text;
 
 namespace TawkType.Desktop.ViewModels;
 
@@ -74,6 +75,22 @@ public sealed partial class HistoryViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _status = string.Empty;
+
+    /// <summary>
+    /// The replacement worth offering after the edit that was just saved, or null.
+    ///
+    /// It lives on the window rather than on the row because saving an edit rewrites the history file,
+    /// which raises <c>Changed</c>, which rebuilds every row — an offer attached to a row would be
+    /// thrown away a moment after it appeared.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SuggestionText))]
+    private Correction? _suggestion;
+
+    /// <summary>The offer, in the user's own words on both sides.</summary>
+    public string? SuggestionText => Suggestion is { } correction
+        ? $"Always type “{correction.Typed}” when you say “{correction.Heard}”?"
+        : null;
 
     /// <summary>
     /// Goes back to the list. A row expands when it is selected and there was no way to unselect it,
@@ -197,6 +214,15 @@ public sealed partial class HistoryViewModel : ObservableObject, IDisposable
         {
             entry.Accept(edited);
             Flash("Saved.");
+
+            // The correction the user has just made is exactly the evidence a replacement is built
+            // from, and until now the two were separate acts with a button between them that you had
+            // to know was there. Offered, never done: a replacement applies to everything they say
+            // from now on, so it still goes through the dialog that shows both halves.
+            Suggestion = CorrectionOffer.For(
+                edited.RawText,
+                edited.FinalText,
+                _settings.Current.Vocabulary.Replacements);
         }
         else
         {
@@ -206,6 +232,10 @@ public sealed partial class HistoryViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void RevertEdit(HistoryEntry? entry) => (entry ?? Selected)?.Revert();
+
+    /// <summary>"No thanks." The offer is a suggestion, so declining it has to cost one click.</summary>
+    [RelayCommand]
+    private void DismissSuggestion() => Suggestion = null;
 
     [RelayCommand]
     private void Delete(HistoryEntry? entry)
@@ -293,6 +323,10 @@ public sealed partial class HistoryViewModel : ObservableObject, IDisposable
 
         next.Vocabulary.Replacements = result.Replacements;
         _settings.Save(next);
+
+        // Taken, so there is nothing left to offer — whether it came from the offer or from Remember…
+        Suggestion = null;
+
         Flash(result.Replaced ? "Replacement updated." : "Replacement saved.");
         return null;
     }

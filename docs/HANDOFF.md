@@ -454,6 +454,11 @@ with a script. The script sees what it asks about; a person sees the thing that 
 
     **More likely now than when this was written**: Save no longer closes the Settings window, so it
     is open for longer and across more of whatever else the user is doing.
+
+    **The vocabulary half of this is now handled** — `SettingsViewModel.OnStoreChanged` adopts or
+    warns, see roadmap item 12. Everything else in the file is still last-writer-wins: the history
+    window's placement and always-on-top are saved by clone-modify-save the same way, and nothing
+    compares them.
 13. **Closing the history window hides it**; only `AllowClose` (set on app exit) really closes it. If you
     add another way to shut the app down, set that flag or the window will block it.
 14. **Never call `Activate()`, `Focus()` or `SetForegroundWindow` on `OverlayWindow`.** It would take
@@ -908,40 +913,40 @@ with a script. The script sees what it asks about; a person sees the thing that 
    who want the rewrite.
 10. **Command mode**: hold a second key, speak an instruction, replace the selected text.
 
-11. **A vocabulary edit looks saved before it is.** Reported by the owner while using the new page.
-    The Add and Edit dialogs' primary button says *Save changes*, the row updates the moment the
-    dialog closes, and nothing on screen says the change is still only in the draft — it does not
-    reach disk until the Save button at the bottom of the Settings window, and Cancel throws it away.
+11. ~~**A vocabulary edit looks saved before it is.**~~ **Done.** Every path on the Vocabulary page now
+    ends in the same five words. Add, Edit and Remove flash *"Spelling added. Save to keep it."* and
+    the like, matching what Import already said, and once the flash expires a quieter
+    *"Vocabulary changed. Save to keep it."* stays in the footer until Save or Cancel settles it. The
+    dialogs' *Save changes* button — the word the whole confusion hung on — now reads *Update
+    spelling* / *Update replacement* / *Update snippet*, which is what it actually does: it updates a
+    list, and the Settings window's Save is still the only thing that writes.
 
-    Every other path on that page already says so: importing flashes *"Vocabulary imported. Save to
-    keep it."* The dialogs and Remove say nothing at all, which is the inconsistency.
+12. ~~**An edit in the history should offer to become a replacement.**~~ **Done.** Saving an edit now
+    runs `CorrectionOffer.For(raw, final, existing)` and, when there is something worth proposing,
+    a strip appears above the list: *"Always type “Jupitor” when you say “Jupiter”?"* with **Add
+    replacement…** and **Not now**. Taking it opens the same Remember dialog, seeded — offered, never
+    done, because a replacement applies to everything said from then on.
 
-    Worth fixing as a piece: flash *"Added. Save to keep it."* / *"Updated…"* / *"Removed…"* after each
-    one, and reconsider the dialog's *Save changes* wording, which is the word the whole confusion
-    hangs on. A page-level "unsaved changes" mark is the bigger version of the same idea and may be
-    the better answer, since the draft model applies to every settings page, not just this one.
+    `CorrectionOffer` is pure and tested (`CorrectionOfferTests`). It refuses more than it accepts:
+    nothing when the edit was only punctuation, nothing when either half runs past six words — which
+    is what a wholesale rewrite degrades into, since `CorrectionGuess` falls back to both whole
+    sentences when it cannot narrow the change — and nothing when that phrase is already taught.
+    The offer lives on the view model rather than the row, because saving an edit rewrites
+    `history.jsonl`, which raises `Changed`, which rebuilds every row.
 
-12. **An edit in the history should offer to become a replacement.** Reported by the owner after
-    editing a dictation to change "Jupyter Studio" to "Jupeter Studio": the correction he had just
-    made is exactly the evidence a replacement is built from, and nothing offered.
+    **The three persistence models are now reconciled**, which was the deeper half of this item.
+    `SettingsViewModel` subscribes to `SettingsStore.Changed` and compares vocabularies with
+    `VocabularyRules.Same` — only the vocabulary, because the settings file also changes when the
+    history window is merely dragged. An untouched Settings window takes the newer vocabulary and
+    says so. A touched one cannot, so it warns instead — *"A correction was saved elsewhere — Save
+    will replace it."* in red beside the Save button, with the whole explanation on the tooltip, and
+    it stays until Save or Cancel. Both branches were driven through the real app and watched.
 
-    The machinery is already there and already right. **Remember…** on an expanded row runs
-    `CorrectionGuess.Between(RawText, Draft)`, which proposes only the words that changed — for that
-    edit, `Jupyter Studio => Jupeter Studio`, not the whole sentence. The gap is purely that saving an
-    edit and teaching the vocabulary are two separate acts, and the second is a button you have to
-    know about. Offering it after a save that changed words — a line beside the flash, not a dialog —
-    is most of the fix.
-
-    **The same investigation turned up three persistence models visible in two windows**, which is
-    the deeper version of item 11:
-
-    - History **Save edit** writes to `history.jsonl` immediately and flashes *"Saved."* — true.
-    - History **Remember…** writes a replacement to `settings.json` immediately.
-    - Vocabulary **Save changes** in a dialog changes a draft and persists nothing until the Settings
-      window's own Save, and flashes nothing.
-
-    So "Saved." means saved in one window and a dialog button says "Save changes" for something that
-    is not saved in another. Worth settling as one decision rather than three wordings.
+    What is still true: the touched branch loses the outside correction if the user saves anyway. It
+    says so plainly, which is the whole of the fix, but a merge — folding in just the replacements
+    the draft has never seen — is the better answer if this turns out to bite. It was not built
+    because a merge resurrects an entry the user deleted in their draft, and that is a worse
+    surprise than a warning they read.
 
 13. **Put the changes in the release notes.** Every GitHub Release carries the same boilerplate — how
     to install, the SmartScreen warning, the runtime — and says nothing about what changed. The tag

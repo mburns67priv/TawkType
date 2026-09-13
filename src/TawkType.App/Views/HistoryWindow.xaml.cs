@@ -71,6 +71,24 @@ public partial class HistoryWindow : Window
         new RememberWindow(_viewModel, guess.Heard.Trim(), guess.Typed.Trim()) { Owner = this }.ShowDialog();
     }
 
+    /// <summary>
+    /// Takes up the offer made after an edit was saved: the same dialog Remember… opens, with the
+    /// words that changed already in it.
+    ///
+    /// It goes through the dialog rather than saving directly because a replacement applies to every
+    /// dictation from now on, and one click on a strip the user did not ask for is not enough consent
+    /// for that. The strip clears itself when the dialog saves — see <c>LearnReplacement</c>.
+    /// </summary>
+    private void OnSuggestionClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Suggestion is not { } correction)
+        {
+            return;
+        }
+
+        new RememberWindow(_viewModel, correction.Heard, correction.Typed) { Owner = this }.ShowDialog();
+    }
+
     /// <summary>The selected text in a named box inside this row, or null when nothing is selected.</summary>
     private static string? Selected(DependencyObject? row, string name)
     {

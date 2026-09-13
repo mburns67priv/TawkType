@@ -63,6 +63,26 @@
             <Button Content="Copy last dictation" Style="{StaticResource Ui.PrimaryButton}"
                     HorizontalAlignment="Stretch" Padding="12,10"
                     Command="{Binding CopyLastCommand}" />
+
+            <!-- Shown only after an edit that looks like a correction worth keeping. A strip rather
+                 than a dialog: the user has just finished doing something else, and an offer that
+                 interrupts them to be declined is worse than no offer. Both buttons end it. -->
+            <Border Margin="0,10,0,0" Padding="12,10" CornerRadius="8"
+                    Background="{DynamicResource Ui.NavSelected}"
+                    Visibility="{Binding SuggestionText, Converter={StaticResource NullToCollapsed}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding SuggestionText}" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Ui.Text}" />
+                    <TextBlock Style="{StaticResource Meta}" Margin="0,2,0,0" TextWrapping="Wrap"
+                               Text="TawkType can make this change to every dictation from now on." />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="Add replacement…" Style="{StaticResource RowButton}"
+                                Click="OnSuggestionClick" />
+                        <Button Content="Not now" Style="{StaticResource RowButton}"
+                                Command="{Binding DismissSuggestionCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </StackPanel>
 
         <!-- The hint sits behind the box rather than above it: a 560px window has no row to spare, and
