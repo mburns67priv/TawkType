@@ -1036,6 +1036,18 @@ with a script. The script sees what it asks about; a person sees the thing that 
     snippet has real breaks in it, and a blank line came through as two spaces, putting an audible
     gap in the middle of the row. Confirmed in the running app both times, before and after.
 
+16. **Two more places a class name reaches the user.** Both found while driving Settings with UI
+    Automation for the sound pickers, both gotcha 42, neither fixed because neither belongs in a
+    change about sound.
+
+    - The **Insert text by** combo on the Activation page offers `Auto | TypeUnicode | Paste`. That
+      is an enum in a picker, so it cannot override `ToString()` — it needs a wrapper with a name,
+      the way `OverlayPositionChoice` already does for the pill's position. This one is visible on
+      screen, not just to a screen reader.
+    - The privacy list on the General page reads
+      `PrivacyLine { Text = Claude rewrite is off., Attention = False }` to a screen reader. A record
+      struct, so the fix is one `ToString()`.
+
 ## Session log (what was actually done, in order)
 
 1. Researched Wispr Flow and engine options; profiled the machine; chose .NET 8 + WPF.
@@ -1459,6 +1471,51 @@ with a script. The script sees what it asks about; a person sees the thing that 
     turning automatic update checks off by default looks like from the outside. Those numbers are
     also the reputation SmartScreen weighs, and four downloads is nowhere near enough for the warning
     to lift on its own.
+
+61. Made the sound cues choosable, after the owner said the default "sounds like a Windows error".
+    He was right in the most literal way: the failure cue was `SystemSounds.Hand`, which *is* Windows'
+    Critical Stop, and the other two were Asterisk and Default Beep. Those three were chosen because
+    `SystemSounds` needs no assets and respects the user's scheme — both true, and all five sounds it
+    exposes are alerts.
+
+    Asked which way to go and he chose Windows sounds rather than shipped or generated audio, with a
+    volume slider. That combination has a hard problem in it: `SystemSound.Play()` has no volume
+    control of any kind. So the cue is resolved to the .wav behind it —
+    `HKCU\AppEvents\Schemes\Apps\.Default\<event>\.Current`, expanded and existence-checked — and
+    played through NAudio, which was already in the solution for the microphone.
+
+    Reading the registry directly is also what fixes the actual complaint. `SystemSounds` exposes
+    five; the scheme holds 43 with sounds assigned, each with the label from the Sound control panel,
+    including the soft notification and device chimes. Defaults are now Notification to start,
+    **silence** to stop, Critical Stop only on failure — the start cue is the one carrying
+    information, and the text arriving announces the end by itself.
+
+    A cue is stored as the **event name**, not a path and not an enum of ours, so it survives a
+    changed scheme and a settings file carried to another machine. A name the scheme no longer has
+    stays in the list as "(not in your sound scheme)" rather than silently becoming whatever sorts
+    first. `PlaySounds` is untouched as the master switch, and Preview deliberately ignores it —
+    somebody auditioning sounds is deciding whether to tick that box.
+
+    Core holds the testable half: the gain curve (squared, so halfway along the slider is a quarter
+    of the amplitude rather than four fifths), the clamp, the words beside the slider, and the
+    ordering. 29 tests.
+
+    Two defects were found by opening the thing rather than reasoning about it. The picker first
+    opened on `Alarm 1, Alarm 10, Alarm 2` — a plain alphabetical sort of 44 entries, alarms first,
+    chimes buried, and 10 before 2. There is now a short suggested list that floats to the top and a
+    natural comparison for the rest. And the default volume of 70 described itself as "Loud", which
+    is not what a default should say; the bands moved so it reads "Medium".
+
+    Verified on the running app: 44 options in each picker, the suggested ones first, the new slider
+    style rendering, the preview buttons not throwing, and "That one is silent." when a cue is set to
+    no sound. Playback itself was proven separately through NAudio against the resolved .wav —
+    `Playing`, 115,200 bytes consumed, then `Stopped` — because nobody in a session can hear anything.
+
+    **Half an hour was wasted inspecting the wrong process first.** `dotnet run` exited 0 against the
+    single-instance mutex while an installed copy was up, and the Settings window being read was
+    v0.7.6 with no sound controls in it. The project notes warn about exactly this in their first ten
+    minutes. `(Get-Process TawkType).Path` settles it in one call and is now the first thing to run
+    when the app does not look like the code.
 
 ## Links
 

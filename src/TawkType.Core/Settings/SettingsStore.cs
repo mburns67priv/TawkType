@@ -89,6 +89,11 @@ public sealed class SettingsStore : ISettingsProvider
         loaded.Vocabulary ??= new VocabularySettings();
         loaded.Cleanup ??= new CleanupSettings();
 
+        // A file written before sounds were choosable has no section at all. The defaults are the
+        // right answer for it: the cues it was playing are not worth preserving, which is the whole
+        // reason this setting exists.
+        loaded.Sounds ??= new SoundSettings();
+
         if (loaded.Vocabulary.Spellings.Length == 0 && loaded.Cleanup.Vocabulary.Length > 0)
         {
             loaded.Vocabulary.Spellings = (string[])loaded.Cleanup.Vocabulary.Clone();

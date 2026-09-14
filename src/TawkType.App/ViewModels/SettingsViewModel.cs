@@ -36,6 +36,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     private readonly IApiKeyStore _apiKeys;
     private readonly ILlmClient _llm;
     private readonly ThemeManager _theme;
+    private readonly SoundCues _sounds;
 
     /// <summary>Whether Save ever ran. A window closed without it has to put the theme back.</summary>
 
@@ -104,6 +105,102 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     /// <summary>What the log is using, so "Clear the log now" says what it would get back.</summary>
     [ObservableProperty]
     private string _logText;
+
+    /// <summary>
+    /// Every sound the user's Windows scheme has, plus silence. Read when the window opens rather
+    /// than at launch: somebody setting these up may have just changed their scheme in the Sound
+    /// control panel, and a list captured once would not show it.
+    /// </summary>
+    public IReadOnlyList<SoundOption> SoundOptions { get; }
+
+    public SoundOption SelectedStartSound
+    {
+        get => OptionFor(Draft.Sounds.Start);
+        set => SetCue(value, cue => Draft.Sounds.Start = cue, nameof(SelectedStartSound));
+    }
+
+    public SoundOption SelectedStopSound
+    {
+        get => OptionFor(Draft.Sounds.Stop);
+        set => SetCue(value, cue => Draft.Sounds.Stop = cue, nameof(SelectedStopSound));
+    }
+
+    public SoundOption SelectedErrorSound
+    {
+        get => OptionFor(Draft.Sounds.Error);
+        set => SetCue(value, cue => Draft.Sounds.Error = cue, nameof(SelectedErrorSound));
+    }
+
+    /// <summary>
+    /// The slider. Proxied rather than bound straight at the draft so the word beside it keeps up,
+    /// and so dragging it plays nothing — a preview on every tick of a drag is a machine gun.
+    /// </summary>
+    public int SoundVolume
+    {
+        get => Draft.Sounds.Volume;
+        set
+        {
+            var clamped = SoundCue.ClampVolume(value);
+            if (clamped == Draft.Sounds.Volume)
+            {
+                return;
+            }
+
+            Draft.Sounds.Volume = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SoundVolumeText));
+        }
+    }
+
+    public string SoundVolumeText => SoundCue.DescribeVolume(SoundVolume);
+
+    /// <summary>
+    /// Plays a cue at the volume currently on the slider, whatever the master switch says.
+    ///
+    /// Auditioning is the whole point of the picker: you cannot choose between "Notification" and
+    /// "Device Connect" from their names. It ignores <c>PlaySounds</c> deliberately — somebody who
+    /// has not ticked that box yet is exactly who is trying to decide whether to.
+    /// </summary>
+    [RelayCommand]
+    private void PreviewSound(string? which)
+    {
+        var cue = which switch
+        {
+            "start" => Draft.Sounds.Start,
+            "stop" => Draft.Sounds.Stop,
+            "error" => Draft.Sounds.Error,
+            _ => null,
+        };
+
+        if (SoundCue.IsSilent(cue))
+        {
+            Flash("That one is silent.");
+            return;
+        }
+
+        _sounds.Preview(cue, SoundVolume);
+    }
+
+    /// <summary>The option matching a stored cue, inventing a placeholder when the scheme has lost it.</summary>
+    private SoundOption OptionFor(string? cue)
+    {
+        var name = SoundCue.Normalise(cue);
+
+        if (SoundCue.IsSilent(name))
+        {
+            return SoundOption.Silence;
+        }
+
+        return SoundOptions.FirstOrDefault(option =>
+                   string.Equals(option.EventName, name, StringComparison.OrdinalIgnoreCase))
+               ?? SoundOption.Missing(name);
+    }
+
+    private void SetCue(SoundOption? option, Action<string> write, string property)
+    {
+        write(SoundCue.Normalise(option?.EventName));
+        OnPropertyChanged(property);
+    }
 
     /// <summary>
     /// The three vocabulary lists. Each owns its rows, its text box and the rules for getting in, so
@@ -268,7 +365,8 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         ILlmClient llm,
         IDictationHistory history,
         ThemeManager theme,
-        UpdateService updates)
+        UpdateService updates,
+        SoundCues sounds)
     {
         _store = store;
         _models = models;
@@ -278,6 +376,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _theme = theme;
         _history = history;
         _updates = updates;
+        _sounds = sounds;
 
         _draft = store.Current.Clone();
         _minimumHoldText = _draft.MinimumHoldMs.ToString();
@@ -295,6 +394,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         _appDataText = DescribeAppData(appData);
         _logText = DescribeLogs();
         _cleanupTimeoutText = _draft.Cleanup.TimeoutMs.ToString();
+
+        // Silence first, then whatever the scheme has, by label. A scheme that cannot be read leaves
+        // just the one entry, which is still a usable picker: it says "no sound" and means it.
+        SoundOptions = new[] { SoundOption.Silence }
+            .Concat(WindowsSoundScheme.List().Select(SoundOption.From))
+            .ToArray();
         Spellings = new SpellingSection(() => Draft.Vocabulary, OnVocabularyChanged);
         Replacements = new ReplacementSection(() => Draft.Vocabulary, OnVocabularyChanged);
         Snippets = new SnippetSection(() => Draft.Vocabulary, OnVocabularyChanged);

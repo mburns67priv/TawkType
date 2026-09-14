@@ -550,10 +550,103 @@
 
                         <TextBlock Style="{StaticResource Ui.SectionTitle}" Text="While you are talking" />
 
-                        <CheckBox Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,18"
+                        <CheckBox x:Name="PlaySounds" Style="{StaticResource Ui.CheckBox}" Margin="0,0,0,10"
                                   IsChecked="{Binding Draft.PlaySounds}">
                             <TextBlock Text="Play a sound when a dictation starts, finishes or fails" TextWrapping="Wrap" />
                         </CheckBox>
+
+                        <!-- The pickers stay usable while the box above is unticked, because choosing
+                             sounds is how somebody decides whether to tick it. Preview ignores the
+                             checkbox for the same reason. -->
+                        <StackPanel Margin="0,0,0,18">
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="260" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource Ui.Label}" Margin="0,0,10,0"
+                                           VerticalAlignment="Center" Text="When it starts" />
+                                <ComboBox Grid.Column="1" Style="{StaticResource Ui.ComboBox}"
+                                          ItemsSource="{Binding SoundOptions}"
+                                          SelectedItem="{Binding SelectedStartSound}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Button Grid.Column="2" Content="Play" Margin="8,0,0,0"
+                                        Style="{StaticResource Ui.Button}"
+                                        AutomationProperties.Name="Play the starting sound"
+                                        Command="{Binding PreviewSoundCommand}" CommandParameter="start" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="260" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource Ui.Label}" Margin="0,0,10,0"
+                                           VerticalAlignment="Center" Text="When it stops" />
+                                <ComboBox Grid.Column="1" Style="{StaticResource Ui.ComboBox}"
+                                          ItemsSource="{Binding SoundOptions}"
+                                          SelectedItem="{Binding SelectedStopSound}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Button Grid.Column="2" Content="Play" Margin="8,0,0,0"
+                                        Style="{StaticResource Ui.Button}"
+                                        AutomationProperties.Name="Play the stopping sound"
+                                        Command="{Binding PreviewSoundCommand}" CommandParameter="stop" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="260" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource Ui.Label}" Margin="0,0,10,0"
+                                           VerticalAlignment="Center" Text="If it fails" />
+                                <ComboBox Grid.Column="1" Style="{StaticResource Ui.ComboBox}"
+                                          ItemsSource="{Binding SoundOptions}"
+                                          SelectedItem="{Binding SelectedErrorSound}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Button Grid.Column="2" Content="Play" Margin="8,0,0,0"
+                                        Style="{StaticResource Ui.Button}"
+                                        AutomationProperties.Name="Play the failure sound"
+                                        Command="{Binding PreviewSoundCommand}" CommandParameter="error" />
+                            </Grid>
+
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="200" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource Ui.Label}" Margin="0,0,10,0"
+                                           VerticalAlignment="Center" Text="Volume" />
+                                <Slider Grid.Column="1" Style="{StaticResource Ui.Slider}"
+                                        Minimum="0" Maximum="100" SmallChange="5" LargeChange="10"
+                                        AutomationProperties.Name="Sound volume"
+                                        Value="{Binding SoundVolume}" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource Ui.Hint}" Margin="10,0,0,0"
+                                           VerticalAlignment="Center" Text="{Binding SoundVolumeText}" />
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap" Margin="0,10,0,0"
+                                       Text="These are your own Windows sounds, so they follow whatever scheme you have set and nothing is shipped with TawkType. Press Play to hear one before you commit to hearing it all day." />
+                        </StackPanel>
 
                         <StackPanel Style="{StaticResource Field}">
                             <TextBlock Style="{StaticResource Ui.Label}" Text="Stop recording after (minutes)" />

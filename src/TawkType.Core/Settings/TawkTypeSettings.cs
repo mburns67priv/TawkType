@@ -90,6 +90,12 @@ public sealed class TawkTypeSettings
     public bool PlaySounds { get; set; }
 
     /// <summary>
+    /// Which sound each cue makes, and how loud. Read only when <see cref="PlaySounds"/> is on: the
+    /// checkbox stays the master switch, so turning sound off and on again does not lose the choices.
+    /// </summary>
+    public SoundSettings Sounds { get; set; } = new();
+
+    /// <summary>
     /// Finish a dictation automatically after this many seconds, so a key held by a book or a toggle
     /// left on does not record all afternoon. What was said up to that point is still delivered.
     /// Zero means no limit.
@@ -173,6 +179,7 @@ public sealed class TawkTypeSettings
         copy.History = History.Clone();
         copy.Overlay = Overlay.Clone();
         copy.Appearance = Appearance.Clone();
+        copy.Sounds = Sounds.Clone();
         return copy;
     }
 }
