@@ -23,11 +23,17 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # v4 of both actions declares `using: node20` in its own action.yml, and the runner has been
+      # forcing those onto Node 24 and warning about it on every release. v5 upwards declares node24
+      # and the warning goes. Nothing else in these majors reaches this workflow: checkout v6 moved
+      # git credentials out of .git/config, which would matter if a later step shelled out to git,
+      # and this one talks to GitHub through `gh` with GH_TOKEN; checkout v7 blocks checking out fork
+      # PR heads on pull_request_target and workflow_run, and this runs on tag push.
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
