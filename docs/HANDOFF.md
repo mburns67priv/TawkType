@@ -23,9 +23,12 @@ Windows only.
 
 ## State of the code
 
-- **Branch `main`, clean tree, pushed. `v0.7.2` is the current release.** Tags run v0.5.0, v0.6.0,
-  v0.6.1, v0.7.0, v0.7.1, v0.7.2 — everything before v0.5.0 was deleted, which was free exactly once
+- **Branch `main`, clean tree, pushed. `v0.7.6` is the current release.** Tags run v0.5.0, v0.6.0,
+  v0.6.1, v0.7.0 through v0.7.6 — everything before v0.5.0 was deleted, which was free exactly once
   and never will be again (gotcha 44).
+
+  v0.7.6 is the odd one: the application is byte-for-byte v0.7.5, and the tag says so. It exists so
+  the download page carries `SHA256SUMS.txt` and an explanation of the two prompts Windows shows.
 - **It is installed, and it is in use.** That sentence was the first roadmap item for three sessions
   and it is now done. The owner installed it, ran first run, dictated, and spent an evening reporting
   what was wrong with it — which is where most of v0.7.1 and all of v0.7.2 came from. Everything below
@@ -38,7 +41,7 @@ Windows only.
 - **The update path works, and now says so.** An installed copy polls the release feed, downloads a
   delta (0.1 MB between recent versions) and applies it on the next start. Until v0.7.2 it did all of
   that in silence; it now puts a button on the bar, an item on the tray menu, and a line in Settings.
-- **Builds clean** with `dotnet build`, **425 unit tests pass** with `dotnet test` in about two seconds.
+- **Builds clean** with `dotnet build`, **503 unit tests pass** with `dotnet test` in about two seconds.
 - **Works end to end on real hardware, from an installed build.** Parakeet, 8 s of speech, typed into
   another window; the history has the receipts. Overlay, tray, settings, first run, model download and
   the live waveform are all verified on the owner's machine rather than in a session sandbox.
@@ -142,7 +145,7 @@ tools/TawkType.Clip          borrows the clipboard the way a pasted dictation do
                             every format came back; --read just lists what is on it
 tools/TawkType.Mic           what the microphone actually produces, in the units the meter is calibrated on
 tools/TawkType.Brand         renders tawktype.ico + logo PNGs from the vector mark (WPF, no external tools)
-tests/TawkType.Core.Tests    xUnit, 425 tests. One file per behaviour; the names are the specification.
+tests/TawkType.Core.Tests    xUnit, 503 tests. One file per behaviour; the names are the specification.
 branding/                   BRAND.md, mark.svg, icon.svg, logo.svg, exports/
 docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessments, images/,
                             tawktype-brand/ (the design package; untracked, see .gitignore)
@@ -152,7 +155,7 @@ docs/                       ARCHITECTURE.md, HANDOFF.md, the two dated assessmen
 
 ```bash
 dotnet run --project src/TawkType.App          # tray app; first run downloads the active engine's model
-dotnet test                                   # 425 tests, ~2 s
+dotnet test                                   # 503 tests, ~2 s
 dotnet run --project tools/TawkType.Clean -- "um the deadline is monday no wait tuesday"
 dotnet run --project tools/TawkType.Bench -- speech.wav Both 5
 dotnet run --project tools/TawkType.Mic -- 10          # speak for 10s; prints RMS, dBFS and the verdict
@@ -863,6 +866,20 @@ with a script. The script sees what it asks about; a person sees the thing that 
     `PrintWindow` does not capture the caret, so "where is the text origin" cannot be answered by
     screenshotting an empty focused box. Type a character and measure that instead.
 
+64. **A double-quoted PowerShell here-string eats every backtick.** The release notes in
+    `.github/workflows/release.yml` are built in `pwsh`, and they grew markdown code fences when they
+    started explaining the SmartScreen and *File In Use* prompts. In `@"…"@` the backtick is the
+    escape character, so three of them in a row are not a fence, they are an escape sequence and a
+    stray character. The notes are a `@'…'@` here-string now, with the two SHA-256 hashes spliced in
+    through `String.Replace` — not the `-replace` operator, which would read the `{{…}}` placeholders
+    as a regex.
+
+    Related, and the reason the notes are deliberately ASCII-only: the file already contains em
+    dashes in comments and releases fine, but comments are never printed. Whether a non-ASCII
+    character survives the path from the YAML file to the release page depends on how `pwsh` decodes
+    the generated script, which cannot be checked from a machine with no PowerShell 7 on it. A
+    mangled character in a comment costs nothing; one on a public download page is there for good.
+
 ## Roadmap, in the order I would do it
 
 1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only
@@ -1007,6 +1024,13 @@ with a script. The script sees what it asks about; a person sees the thing that 
     release so a careful person can verify a download, and say plainly in the release notes what the
     SmartScreen prompt is and what *File In Use* means. That removes most of the alarm without
     removing the prompt, and none of it is wasted if signing happens later.
+
+15. **A history row announces its class name.** Gotcha 42 again, found while driving the history
+    window with UI Automation: every row in the list reads as
+    `TawkType.Desktop.ViewModels.HistoryEntry` to a screen reader and to any script, because
+    `HistoryEntry` never overrides `ToString()`. `VocabularyRow`, `NavPage` and `DictationMode` all
+    do. It is a one-line fix — the time, and the first few words of the text, is what the row is —
+    and it was left alone rather than bundled into an unrelated change.
 
 ## Session log (what was actually done, in order)
 
@@ -1361,6 +1385,76 @@ with a script. The script sees what it asks about; a person sees the thing that 
     drawn three of them full, and had cut the search box to a later slice gated on "once it holds more
     than about twenty entries" — a control that materialises when a list grows is a control nobody
     finds.
+
+59. Fixed the two things the owner noticed while playing with the rebuilt vocabulary page, and a
+    third that his second note led to. Roadmap items 11 and 12 are both closed.
+
+    *"When I edit something it says Saved, but it's not really."* Add, Edit and Remove now flash
+    `Spelling added. Save to keep it.` and the like, matching what Import already said, and a quieter
+    `Vocabulary changed. Save to keep it.` stays in the footer once the flash expires. The dialogs'
+    *Save changes* button — the word the confusion hung on — reads *Update spelling* now, because
+    what it updates is a list.
+
+    *"When I edited the history, I did not see my edit show up in Replacements."* That was working as
+    built, but the point stood: the correction just made is the evidence a replacement is built from.
+    Saving a history edit now asks `CorrectionOffer.For(raw, final, existing)` and shows a strip —
+    *"Always type “Jupitor” when you say “Jupiter”?"* — with **Add replacement…** and **Not now**.
+    Offered, never done: it opens the same Remember dialog, seeded. `CorrectionOffer` refuses more
+    than it accepts, and the eleven tests are mostly refusals: punctuation-only edits, either half
+    past six words, a phrase already taught.
+
+    The third thing was found while checking whether that offer was safe to encourage.
+    `SettingsViewModel` took `store.Current.Clone()` when the window opened and never looked again,
+    while Remember… writes to disk immediately — so a replacement taught from the history window was
+    invisible in an open Settings window and was destroyed by its next Save. Gotcha 12 with teeth,
+    and this session had made it likelier twice over, by giving people a reason to leave the
+    Vocabulary page open and by stopping Save from closing the window. It now watches the store and
+    compares with `VocabularyRules.Same`, which looks only at the vocabulary because dragging the
+    history window also saves settings. Untouched, it adopts and says so; touched, it cannot without
+    discarding the user's edits, so it warns in red beside the Save button until Save or Cancel.
+
+    Both branches were driven through the running app and watched, not reasoned about: the offer
+    strip on his own *"I really like Jupiter Studio."* entry, the adopt path taking the tab count
+    from 36 to 37, the warning appearing when the same thing happened with edits pending, and both
+    notes clearing on Save. Released as **v0.7.5**, fourteen commits after v0.7.4.
+
+60. Somebody installing v0.7.5 sent a photo of Explorer's *File In Use* dialog — the downloaded setup
+    was **open in System** and Windows would not move it. It is the shell's copy/delete dialog, not
+    the installer, and they were never blocked from installing; an unsigned 37 MB executable simply
+    gets held open while Defender scans it. Nothing to fix in the app, but it is the first thing a
+    stranger meets.
+
+    Code signing went on the roadmap as item 14, twice. The first version recommended Azure Artifact
+    Signing at $9.99/month, which `vpk` already supports — verified, `--azureTrustedSignFile` exists
+    in 1.2.0, the version `build/pack.ps1` installs. The owner's answer was that this is open source
+    and he never wanted a recurring bill, which is fair and is now the constraint the item is written
+    against. So it points at the SignPath Foundation instead, and at the catch: their open-source
+    policy verifies origin through the build system and only accepts requests from their GitHub
+    Action, with a human approving each release, while `vpk` signs by calling a command *during*
+    packing because that is the only moment `Setup.exe` and `Update.exe` exist. Signing `Setup.exe`
+    after packing is the likely way through and nobody has tried it. The item says so.
+
+    What was actually built is the free half that takes an hour: every release now carries
+    `SHA256SUMS.txt` for every uploaded file, with the installer's and the portable zip's hashes
+    printed in the notes beside the `Get-FileHash` command to check them, and the notes now explain
+    both Windows prompts — SmartScreen's *"Windows protected your PC"* as the absence of a
+    certificate rather than a finding about the file, and *File In Use* as Defender still scanning.
+    Proven before shipping by parsing the workflow, extracting the step and running it against
+    stand-in files, then again on the published release: the hash in the notes matches the one in
+    `SHA256SUMS.txt`. Released as **v0.7.6**, whose tag says outright that the application is
+    unchanged and there is nothing to install.
+
+    Also bumped `actions/checkout` v4→v7 and `actions/setup-dotnet` v4→v6, which had been warning on
+    every release that they target Node 20 and are being forced onto Node 24. v5 upwards declares
+    `node24`; the inputs this workflow passes still exist at the new majors, which was checked. It
+    has not run yet — the only way to run this workflow is a real tag push, and a failure would land
+    at checkout within seconds, before anything is published.
+
+    Download counts, for scale: `Setup.exe` has been taken 4 times on v0.7.5 against the usual one or
+    two, and the `releases.win.json` feed 7 times on v0.7.3 dropping to 1 on v0.7.5, which is what
+    turning automatic update checks off by default looks like from the outside. Those numbers are
+    also the reputation SmartScreen weighs, and four downloads is nowhere near enough for the warning
+    to lift on its own.
 
 ## Links
 
