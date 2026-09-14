@@ -957,6 +957,53 @@ with a script. The script sees what it asks about; a person sees the thing that 
     **Deliberately deferred** — the owner's call, with fixes outstanding. It is written down here so it
     is not rediscovered as a surprise, not because it is due.
 
+14. **Code-sign the release.** TawkType has never been signed. The README and every release's notes
+    warn about the SmartScreen prompt, which is the visible half; the invisible half is that an
+    unsigned 37 MB executable gets held open by Defender and SmartScreen while they scan it, long
+    enough that Windows refuses to move or delete the download. Somebody hit exactly that on 13
+    September 2026 and sent a photo of Explorer's *File In Use* dialog saying the file was open in
+    **System**. Nothing was broken — it was the shell's copy/delete dialog, not the installer — but
+    it is the first thing a stranger sees, and the cause is the same one the README already
+    apologises for.
+
+    **The way to do it: Azure Artifact Signing** (renamed from Trusted Signing; same service).
+    $9.99/month for 5,000 signatures and one certificate profile. The private key never exists as a
+    file — signing is an API call against a Microsoft-run HSM, which is what makes it work in CI at
+    all. Since the 2023 rules, an ordinary OV certificate means a hardware token, and a USB token
+    cannot be plugged into a GitHub runner.
+
+    `vpk` already speaks it. Verified against the version this repo installs, 1.2.0:
+    `--azureTrustedSignFile <PATH>` takes a `metadata.json` naming the endpoint, the account and the
+    certificate profile. So the build change is roughly:
+
+    - `build/pack.ps1`: an optional `-AzureSignFile` parameter, passed straight through to
+      `vpk pack`. Absent, nothing signs, and a local build still works exactly as it does now.
+    - `.github/workflows/release.yml`: `permissions: id-token: write`, an `azure/login` step using
+      a federated credential rather than a stored secret, write the `metadata.json`, pass the path.
+
+    **What it costs in time, not money.** Identity validation takes 1 to 20 business days and has to
+    finish before the first signature. Do it well before a release is wanted, not on the day.
+
+    **Two things to decide before starting.**
+
+    - *Eligibility is geographic.* Individual developers must be in the United States or Canada.
+      Organisations have a wider list — US, Canada, the EU, the UK, Australia, New Zealand, Japan,
+      South Korea, Singapore, Switzerland, Norway, Israel. Signing up as Jupitor Studio rather than
+      as a person also needs the business's public records to match what is entered, exactly.
+    - *The certificate is public and carries the validated name.* Organisation validation puts the
+      company name on it. Individual validation puts the person's legal name, city, state and
+      country on every binary shipped, forever. That is the trade for being trusted, and it is worth
+      deciding on purpose rather than discovering afterwards.
+
+    **What it does not do.** Signing does not switch SmartScreen off on day one. Reputation accrues
+    to the signing identity across downloads and time; the value of signing is that it accrues at
+    all, which it cannot for an unsigned binary whose hash changes every release. Expect the warning
+    to fade rather than vanish. Use a **Public Trust Test** certificate profile for the dry run so
+    the real identity is not spent proving the pipeline works.
+
+    Where this belongs in the order: above everything except item 1. It is the only item on this
+    list that a person who has never met TawkType runs into before they get to use it.
+
 ## Session log (what was actually done, in order)
 
 1. Researched Wispr Flow and engine options; profiled the machine; chose .NET 8 + WPF.
