@@ -962,47 +962,51 @@ with a script. The script sees what it asks about; a person sees the thing that 
     unsigned 37 MB executable gets held open by Defender and SmartScreen while they scan it, long
     enough that Windows refuses to move or delete the download. Somebody hit exactly that on 13
     September 2026 and sent a photo of Explorer's *File In Use* dialog saying the file was open in
-    **System**. Nothing was broken — it was the shell's copy/delete dialog, not the installer — but
-    it is the first thing a stranger sees, and the cause is the same one the README already
-    apologises for.
+    **System**. Nothing was broken — it was the shell's copy/delete dialog, not the installer — and
+    they were never stopped from installing. But it is the first thing a stranger sees.
 
-    **The way to do it: Azure Artifact Signing** (renamed from Trusted Signing; same service).
-    $9.99/month for 5,000 signatures and one certificate profile. The private key never exists as a
-    file — signing is an API call against a Microsoft-run HSM, which is what makes it work in CI at
-    all. Since the 2023 rules, an ordinary OV certificate means a hardware token, and a USB token
-    cannot be plugged into a GitHub runner.
+    **This must not cost money.** The owner's call, and the right one for a project that is
+    Apache-2.0 and public. Which rules out the obvious answer: Azure Artifact Signing is $9.99/month
+    and `vpk` already takes `--azureTrustedSignFile`, verified against 1.2.0, but it is a
+    subscription. Certum's open-source certificate is cheaper and still not free. Everything else
+    publicly trusted needs a hardware token since the 2023 rules, which cannot go in a GitHub runner
+    anyway. A self-signed certificate is worth nothing here: SmartScreen judges reputation, not the
+    presence of a signature.
 
-    `vpk` already speaks it. Verified against the version this repo installs, 1.2.0:
-    `--azureTrustedSignFile <PATH>` takes a `metadata.json` naming the endpoint, the account and the
-    certificate profile. So the build change is roughly:
+    **So the free route is the SignPath Foundation**, which issues OV certificates to open-source
+    projects at no charge. On their published conditions TawkType looks eligible: OSI licence with no
+    commercial dual-licensing, no proprietary components, public repository, built from source in CI,
+    actively maintained, already released, and it uninstalls itself properly. Their conditions also
+    ask for things this project would have to add — MFA for everyone with access, named Author,
+    Reviewer and Approver roles, a **code signing policy published on the project homepage**, and
+    attribution to SignPath.io and SignPath Foundation.
 
-    - `build/pack.ps1`: an optional `-AzureSignFile` parameter, passed straight through to
-      `vpk pack`. Absent, nothing signs, and a local build still works exactly as it does now.
-    - `.github/workflows/release.yml`: `permissions: id-token: write`, an `azure/login` step using
-      a federated credential rather than a stored secret, write the `metadata.json`, pass the path.
+    **The catch is the build, not the licence.** SignPath's open-source policy verifies origin
+    through the build system, so a signing request is only accepted through their GitHub Action, as
+    a workflow step, with a human approving every release. `vpk` signs by calling a command
+    *during* packing — that is the only way to sign the executables Velopack generates, the portable
+    stub, `Update.exe` and `Setup.exe`, because they are created as part of packing. An approval-gated
+    HTTP submission cannot be a synchronous callback from inside `vpk pack`.
 
-    **What it costs in time, not money.** Identity validation takes 1 to 20 business days and has to
-    finish before the first signature. Do it well before a release is wanted, not on the day.
+    The way out is probably to sign **`Setup.exe` after packing** and upload that: it is a standalone
+    artifact, it is the file people actually download, and it is the one SmartScreen forms an opinion
+    about. The feed references the `.nupkg` files rather than `Setup.exe`, so re-signing it should not
+    invalidate anything — but *should* is doing work in that sentence and nobody has tried it. The
+    package's internal `Update.exe` would stay unsigned, which matters much less: it runs from a
+    folder the user already installed.
 
-    **Two things to decide before starting.**
+    **Nobody has verified any of this**, including whether the application is accepted at all. Treat
+    the paragraph above as the shape of an experiment, not a plan.
 
-    - *Eligibility is geographic.* Individual developers must be in the United States or Canada.
-      Organisations have a wider list — US, Canada, the EU, the UK, Australia, New Zealand, Japan,
-      South Korea, Singapore, Switzerland, Norway, Israel. Signing up as Jupitor Studio rather than
-      as a person also needs the business's public records to match what is entered, exactly.
-    - *The certificate is public and carries the validated name.* Organisation validation puts the
-      company name on it. Individual validation puts the person's legal name, city, state and
-      country on every binary shipped, forever. That is the trade for being trusted, and it is worth
-      deciding on purpose rather than discovering afterwards.
+    **What signing does not do**, whichever route: it does not switch SmartScreen off on day one.
+    Reputation accrues to the signing identity across downloads and time. The value is that it
+    accrues at all, which it cannot for an unsigned binary whose hash changes every release. Expect
+    the warning to fade rather than vanish.
 
-    **What it does not do.** Signing does not switch SmartScreen off on day one. Reputation accrues
-    to the signing identity across downloads and time; the value of signing is that it accrues at
-    all, which it cannot for an unsigned binary whose hash changes every release. Expect the warning
-    to fade rather than vanish. Use a **Public Trust Test** certificate profile for the dry run so
-    the real identity is not spent proving the pipeline works.
-
-    Where this belongs in the order: above everything except item 1. It is the only item on this
-    list that a person who has never met TawkType runs into before they get to use it.
+    **Worth doing first, because it is free and takes an hour**: publish SHA-256 checksums with each
+    release so a careful person can verify a download, and say plainly in the release notes what the
+    SmartScreen prompt is and what *File In Use* means. That removes most of the alarm without
+    removing the prompt, and none of it is wasted if signing happens later.
 
 ## Session log (what was actually done, in order)
 
