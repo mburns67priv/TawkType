@@ -102,15 +102,67 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = 'v${{ steps.version.outputs.value }}'
-          $notes = @"
-          Install TawkType by downloading **TawkTypeApp-win-Setup.exe** below and running it.
 
-          TawkType is not code-signed yet, so Windows SmartScreen will warn you the first time. Choose
-          **More info** then **Run anyway**. Installed copies update themselves from this feed.
+          # Checksums for everything that is about to be uploaded, written into the same folder so
+          # the list goes up with the files it describes. Computed before the file is created, so it
+          # never tries to hash itself.
+          #
+          # This is not a substitute for a signature and does not pretend to be: anyone who can
+          # replace the download can replace the list beside it. It is here for the person who has
+          # been sent a copy of the installer from somewhere else and wants to know whether it is the
+          # one this release built.
+          $hashes = [ordered]@{}
+          foreach ($file in Get-ChildItem build/releases -File) {
+            $hashes[$file.Name] = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
+          }
+
+          $lines = $hashes.GetEnumerator() | ForEach-Object { '{0}  {1}' -f $_.Value, $_.Key }
+          Set-Content -Path build/releases/SHA256SUMS.txt -Value $lines -Encoding ascii
+          Write-Host "checksummed $($hashes.Count) files"
+
+          # Single-quoted so the markdown below is taken literally. A double-quoted here-string would
+          # read every backtick as an escape character, and the code blocks are full of them.
+          $notes = @'
+          Install TawkType by downloading **TawkTypeApp-win-Setup.exe** below and running it.
 
           Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0); the
           installer offers to fetch it if it is missing. No speech model is included: the first run
           walks you through choosing one, downloading it, and dictating a sentence to prove it works.
-          "@
+          Installed copies update themselves from this feed.
+
+          ## Windows will warn you, and here is why
+
+          TawkType is not code-signed, so the first time you run the installer Windows SmartScreen
+          shows **"Windows protected your PC"**. Choose **More info**, then **Run anyway**.
+
+          The warning is about the absence of a certificate, not about anything found in the file.
+          Certificates cost money every year and this is a free, open-source project, so until that
+          changes Windows has no name to attach the download to.
+
+          If Windows later says the setup file is **open in System** when you try to move or delete
+          it, that is Microsoft Defender still scanning it. It does not stop the installer running,
+          and nothing is wrong. Wait a minute and try again, or leave the file where it is.
+
+          ## Checking your download
+
+          Every file in this release is listed in **SHA256SUMS.txt** with its SHA-256 hash. To check
+          the installer, run this in PowerShell in the folder you downloaded it to:
+
+          ```powershell
+          Get-FileHash .\TawkTypeApp-win-Setup.exe -Algorithm SHA256
+          ```
+
+          and compare what it prints with:
+
+          ```
+          {{SETUP_SHA256}}  TawkTypeApp-win-Setup.exe
+          {{PORTABLE_SHA256}}  TawkTypeApp-win-Portable.zip
+          ```
+          '@
+
+          # Literal Replace, not the -replace operator, which would read the braces as a regex.
+          $notes = $notes.Replace('{{SETUP_SHA256}}', $hashes['TawkTypeApp-win-Setup.exe'])
+          $notes = $notes.Replace('{{PORTABLE_SHA256}}', $hashes['TawkTypeApp-win-Portable.zip'])
+
           gh release create $tag (Get-ChildItem build/releases | ForEach-Object FullName) `
             --title $tag --notes $notes --verify-tag
