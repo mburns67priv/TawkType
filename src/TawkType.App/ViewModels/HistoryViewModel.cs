@@ -57,6 +57,36 @@ public sealed partial class HistoryEntry(DictationRecord record) : ObservableObj
     }
 
     public void Revert() => Draft = FinalText;
+
+    /// <summary>
+    /// What a screen reader and any automation script read for this row — gotcha 42, which this class
+    /// had been getting wrong since it was written: every entry in the list announced
+    /// <c>TawkType.Desktop.ViewModels.HistoryEntry</c>.
+    ///
+    /// Says what the collapsed row shows: when it was said, then the text, trimmed the way the
+    /// preview is trimmed. A dictation can run to hundreds of characters and this is an index entry,
+    /// not the content — the whole thing is in the text box when the row is expanded, which is where
+    /// somebody reading it aloud wants to be anyway.
+    /// </summary>
+    public override string ToString()
+    {
+        // Split on every run of whitespace and rejoin with single spaces. A dictation carrying a
+        // multi-line snippet has real line breaks in it, and a blank line read as two spaces put a
+        // gap in the middle of the spoken row.
+        var text = string.Join(' ', FinalText.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        if (text.Length == 0)
+        {
+            return $"{DayText} {TimeText}";
+        }
+
+        return text.Length <= PreviewLength
+            ? $"{DayText} {TimeText}, {text}"
+            : $"{DayText} {TimeText}, {text[..PreviewLength].TrimEnd()}…";
+    }
+
+    /// <summary>How much of the dictation the row's name carries. Two lines' worth, roughly.</summary>
+    private const int PreviewLength = 80;
 }
 
 /// <summary>

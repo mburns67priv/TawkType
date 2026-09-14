@@ -1025,12 +1025,16 @@ with a script. The script sees what it asks about; a person sees the thing that 
     SmartScreen prompt is and what *File In Use* means. That removes most of the alarm without
     removing the prompt, and none of it is wasted if signing happens later.
 
-15. **A history row announces its class name.** Gotcha 42 again, found while driving the history
-    window with UI Automation: every row in the list reads as
+15. ~~**A history row announces its class name.**~~ **Done.** Gotcha 42 for the fourth time, found
+    while driving the history window with UI Automation: every row read as
     `TawkType.Desktop.ViewModels.HistoryEntry` to a screen reader and to any script, because
-    `HistoryEntry` never overrides `ToString()`. `VocabularyRow`, `NavPage` and `DictationMode` all
-    do. It is a one-line fix — the time, and the first few words of the text, is what the row is —
-    and it was left alone rather than bundled into an unrelated change.
+    `HistoryEntry` never overrode `ToString()`. It now says what the collapsed row shows —
+    `12 Sep 14:42, I really like Jupitor Studio.` — trimmed at 80 characters with an ellipsis, since
+    a dictation can run to hundreds and the row is an index entry rather than the content.
+
+    Whitespace is collapsed rather than line endings replaced: a dictation carrying a multi-line
+    snippet has real breaks in it, and a blank line came through as two spaces, putting an audible
+    gap in the middle of the row. Confirmed in the running app both times, before and after.
 
 ## Session log (what was actually done, in order)
 
