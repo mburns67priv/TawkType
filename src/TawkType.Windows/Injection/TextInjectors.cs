@@ -143,8 +143,11 @@ internal sealed class RemotePasteInjector
             chord.Add(NativeInput.KeyDown(vk, scan, extended));
         }
 
-        foreach (var vk in keys.Reverse())
+        // A loop, not keys.Reverse(): on a newer compiler an array's Reverse() binds to the in-place
+        // Span overload, which returns nothing. The release build broke on exactly that (gotcha 66).
+        for (var i = keys.Length - 1; i >= 0; i--)
         {
+            var vk = keys[i];
             var (scan, extended) = NativeInput.ScanCodeFor(vk, layout);
             chord.Add(NativeInput.KeyUp(vk, scan, extended));
         }

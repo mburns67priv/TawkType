@@ -900,6 +900,13 @@ with a script. The script sees what it asks about; a person sees the thing that 
     TigerVNC 1.16.2 session into Omarchy: short text typed, Caps Lock on and off, and a ~600
     character dictation pasted.
 
+66. **The release runner compiles with a newer C# than this machine.** `setup-dotnet` asks for
+    `8.0.x`, but with no `global.json` the runner builds with the newest SDK on its image. From C# 14,
+    `array.Reverse()` binds to `MemoryExtensions.Reverse(Span<T>)`, which reverses in place and
+    returns `void`, so `foreach (var x in array.Reverse())` builds here on SDK 8 and fails on the
+    runner with CS1579. It cost v0.7.9: the tag exists, the release does not. Reverse an array with
+    a loop or `Enumerable.Reverse(array)`; a `Reverse()` at the end of a LINQ chain is unaffected.
+
 ## Roadmap, in the order I would do it
 
 1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only
