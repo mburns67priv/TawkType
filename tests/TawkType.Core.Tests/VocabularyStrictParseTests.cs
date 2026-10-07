@@ -13,7 +13,7 @@ public class VocabularyStrictParseTests
     [Fact]
     public void A_line_with_no_separator_is_reported_with_its_number()
     {
-        var text = string.Join(Environment.NewLine, "see sharp => C#", "this line is wrong", "jupitor => Jupitor Studio");
+        var text = string.Join(Environment.NewLine, "see sharp => C#", "this line is wrong", "kestral => Kestral Studio");
 
         var parse = VocabularyFormat.ParseReplacementsStrict(text);
 
@@ -36,7 +36,7 @@ public class VocabularyStrictParseTests
     [Fact]
     public void Blank_lines_are_not_rejected()
     {
-        var text = string.Join(Environment.NewLine, "see sharp => C#", string.Empty, "   ", "jupitor => Jupitor Studio");
+        var text = string.Join(Environment.NewLine, "see sharp => C#", string.Empty, "   ", "kestral => Kestral Studio");
 
         var parse = VocabularyFormat.ParseReplacementsStrict(text);
 
@@ -108,10 +108,10 @@ public class VocabularyStrictParseTests
     [Fact]
     public void Spellings_come_one_per_line_or_comma_separated()
     {
-        var parse = VocabularyFormat.ParseSpellingsStrict("TawkType, GitHub" + Environment.NewLine + "Jupitor Studio");
+        var parse = VocabularyFormat.ParseSpellingsStrict("TawkType, GitHub" + Environment.NewLine + "Kestral Studio");
 
         Assert.True(parse.Ok);
-        Assert.Equal(["TawkType", "GitHub", "Jupitor Studio"], parse.Entries);
+        Assert.Equal(["TawkType", "GitHub", "Kestral Studio"], parse.Entries);
     }
 
     /// <summary>Somebody has pasted the wrong list into the wrong box, and would get a spelling nobody wants.</summary>

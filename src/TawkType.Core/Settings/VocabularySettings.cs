@@ -18,7 +18,7 @@ public sealed record Snippet(string Trigger = "", string Text = "");
 public sealed class VocabularySettings
 {
     /// <summary>
-    /// Names, products and acronyms written the way they should be typed — "TawkType", "Jupitor Studio".
+    /// Names, products and acronyms written the way they should be typed — "TawkType", "Kestral Studio".
     /// Matched however they were capitalised and rewritten to exactly this.
     /// </summary>
     public string[] Spellings { get; set; } = [];

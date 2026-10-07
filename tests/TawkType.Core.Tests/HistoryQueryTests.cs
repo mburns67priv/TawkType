@@ -27,10 +27,10 @@ public class HistoryQueryTests
     [Fact]
     public void What_was_heard_is_searched_as_well_as_what_was_typed()
     {
-        var record = Record("jupitor studio", "Jupiter Studio");
+        var record = Record("kestral studio", "Kestrel Studio");
 
-        Assert.True(HistoryQuery.Matches(record, "jupitor"));
-        Assert.True(HistoryQuery.Matches(record, "Jupiter"));
+        Assert.True(HistoryQuery.Matches(record, "kestral"));
+        Assert.True(HistoryQuery.Matches(record, "Kestrel"));
     }
 
     [Fact]

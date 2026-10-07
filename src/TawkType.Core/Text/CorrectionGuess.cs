@@ -11,10 +11,10 @@ public readonly record struct Correction(string Heard, string Typed);
 ///
 /// Without this, "remember this correction" offers the user the whole sentence on both sides, and a
 /// replacement rule for a whole sentence is close to useless: it only ever fires on that exact
-/// sentence again. "send it to jupitor studio please" against "Send it to Jupiter Studio please."
+/// sentence again. "send it to kestral studio please" against "Send it to Kestrel Studio please."
 /// is really a correction of two words, and those two are what should be saved.
 ///
-/// Words, not characters: a character-level diff of "jupitor"/"Jupiter" proposes the letters that
+/// Words, not characters: a character-level diff of "kestral"/"Kestrel" proposes the letters that
 /// differ, which is not a phrase anyone can read or edit.
 /// </summary>
 public static class CorrectionGuess

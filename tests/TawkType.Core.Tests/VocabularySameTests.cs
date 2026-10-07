@@ -95,7 +95,7 @@ public class VocabularySameTests
 
     private static VocabularySettings Full() => new()
     {
-        Spellings = ["TawkType", "Jupitor Studio"],
+        Spellings = ["TawkType", "Kestral Studio"],
         Replacements = [new TextReplacement("see sharp", "C#")],
         Snippets = [new Snippet("sign off", "Best," + "\n" + "Michael")],
     };

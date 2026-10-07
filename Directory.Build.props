@@ -8,8 +8,8 @@
     <FallbackVersion>0.0.0</FallbackVersion>
     <Version>$(FallbackVersion)</Version>
     <Product>TawkType</Product>
-    <Company>Jupitor Studio</Company>
-    <Copyright>Copyright © Jupitor Studio</Copyright>
+    <Company>Michael Burns</Company>
+    <Copyright>Copyright © Michael Burns</Copyright>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 </Project>

@@ -116,14 +116,14 @@ public sealed class LlmTextCleanerTests
     [Fact]
     public async Task Sends_the_raw_transcript_wrapped_in_delimiters()
     {
-        EnableLlm(cleanup => cleanup.Vocabulary = ["Jupitor Studio"]);
+        EnableLlm(cleanup => cleanup.Vocabulary = ["Kestral Studio"]);
         _llm.ReplyToReturn = "Fine.";
 
         await CreateCleaner().CleanAsync(Raw);
 
         var request = Assert.Single(_llm.Received);
         Assert.Equal($"{CleanupPrompt.OpenTag}\n{Raw}\n{CleanupPrompt.CloseTag}", request.UserMessage);
-        Assert.Contains("Jupitor Studio", request.SystemPrompt);
+        Assert.Contains("Kestral Studio", request.SystemPrompt);
     }
 
     [Fact]

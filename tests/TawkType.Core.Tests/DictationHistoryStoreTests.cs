@@ -85,11 +85,11 @@ public sealed class DictationHistoryStoreTests : IDisposable
     public void Editing_what_was_typed_leaves_what_was_heard_alone()
     {
         var store = CreateStore();
-        store.Add(Record("Jupiter Studio", raw: "jupitor studio"));
+        store.Add(Record("Kestrel Studio", raw: "kestral studio"));
 
-        store.Replace(store.Recent[0] with { FinalText = "Jupitor Studio" });
+        store.Replace(store.Recent[0] with { FinalText = "Kestral Studio" });
 
-        Assert.Equal("jupitor studio", CreateStore().Recent[0].RawText);
+        Assert.Equal("kestral studio", CreateStore().Recent[0].RawText);
     }
 
     [Fact]

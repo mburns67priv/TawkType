@@ -14,12 +14,12 @@ public class CorrectionOfferTests
     public void Offers_the_words_that_changed_not_the_sentence()
     {
         var offer = CorrectionOffer.For(
-            "send it to jupyter studio please",
-            "Send it to Jupitor Studio please.");
+            "send it to kestril studio please",
+            "Send it to Kestral Studio please.");
 
         Assert.NotNull(offer);
-        Assert.Equal("jupyter studio", offer!.Value.Heard);
-        Assert.Equal("Jupitor Studio", offer.Value.Typed);
+        Assert.Equal("kestril studio", offer!.Value.Heard);
+        Assert.Equal("Kestral Studio", offer.Value.Typed);
     }
 
     [Fact]

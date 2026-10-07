@@ -19,7 +19,7 @@ public readonly record struct PhraseResult(string Text, bool ExpandedSnippet);
 /// vocabulary that only exists inside someone else's prompt does nothing for a local-only user.
 ///
 /// Matching is on whole phrases, ignoring case, with flexible spacing between the words — the
-/// recogniser is not consistent about either. Longer phrases are tried first, so "Jupitor Studio"
+/// recogniser is not consistent about either. Longer phrases are tried first, so "Kestral Studio"
 /// wins over "studio". Replacement text is inserted verbatim, casing and all, because deciding it was
 /// worth writing down is the whole point.
 /// </summary>

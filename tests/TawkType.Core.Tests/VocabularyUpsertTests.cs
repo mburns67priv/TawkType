@@ -12,19 +12,19 @@ public class VocabularyUpsertTests
 {
     private static readonly TextReplacement[] Existing =
     [
-        new("jupitor", "Jupitor Studio"),
+        new("kestral", "Kestral Studio"),
         new("see sharp", "C#"),
     ];
 
     [Fact]
     public void Editing_a_row_replaces_it_in_place()
     {
-        var result = VocabularyEdit.UpsertReplacement(Existing, editing: 0, "jupitor", "Jupitor Studio Ltd");
+        var result = VocabularyEdit.UpsertReplacement(Existing, editing: 0, "kestral", "Kestral Studio Ltd");
 
         Assert.True(result.Ok);
         Assert.False(result.Replaced);
         Assert.Equal(2, result.Replacements.Length);
-        Assert.Equal(new TextReplacement("jupitor", "Jupitor Studio Ltd"), result.Replacements[0]);
+        Assert.Equal(new TextReplacement("kestral", "Kestral Studio Ltd"), result.Replacements[0]);
     }
 
     /// <summary>A row does not collide with itself, so saving an edit that changed nothing is fine.</summary>
@@ -41,10 +41,10 @@ public class VocabularyUpsertTests
     [Fact]
     public void Editing_only_the_case_of_a_phrase_is_allowed()
     {
-        var result = VocabularyEdit.UpsertReplacement(Existing, editing: 0, "JUPITOR", "Jupitor Studio");
+        var result = VocabularyEdit.UpsertReplacement(Existing, editing: 0, "KESTRAL", "Kestral Studio");
 
         Assert.True(result.Ok);
-        Assert.Equal("JUPITOR", result.Replacements[0].From);
+        Assert.Equal("KESTRAL", result.Replacements[0].From);
     }
 
     [Fact]
@@ -119,11 +119,11 @@ public class VocabularyUpsertTests
     {
         Snippet[] existing = [new("my signature", "Michael Burns"), new("my address", "1 Burns Road")];
 
-        var result = VocabularyEdit.UpsertSnippet(existing, null, "My Signature", "Michael Burns, Jupitor Studio");
+        var result = VocabularyEdit.UpsertSnippet(existing, null, "My Signature", "Michael Burns, Kestral Studio");
 
         Assert.True(result.Replaced);
         Assert.Equal(2, result.Snippets.Length);
-        Assert.Equal("Michael Burns, Jupitor Studio", result.Snippets[0].Text);
+        Assert.Equal("Michael Burns, Kestral Studio", result.Snippets[0].Text);
     }
 
     [Fact]

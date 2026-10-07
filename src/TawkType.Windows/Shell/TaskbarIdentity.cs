@@ -27,10 +27,10 @@ public static class TaskbarIdentity
 
     /// <summary>
     /// Deliberately not Velopack's; see the note above. It only has to be an identity no installed
-    /// shortcut claims, so it renamed with the app — "JupitorStudio.TawkType" is no more registered
+    /// shortcut claims, so it renamed with the app — "TawkType.Desktop" is no more registered
     /// than the old one was.
     /// </summary>
-    private const string WindowAppUserModelId = "JupitorStudio.TawkType";
+    private const string WindowAppUserModelId = "TawkType.Desktop";
 
     private static readonly Guid AppUserModel = new("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
 

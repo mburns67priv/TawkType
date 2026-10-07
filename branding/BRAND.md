@@ -7,7 +7,7 @@ The full design package — positioning, voice, launch copy, production checklis
 uses, and where it comes from.
 
 Home: **[tawktype.com](https://tawktype.com)**. Repository:
-[JupitorStudioDev/TawkType](https://github.com/JupitorStudioDev/TawkType).
+[mburns67priv/TawkType](https://github.com/mburns67priv/TawkType).
 
 ## Name and voice
 

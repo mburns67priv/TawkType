@@ -11,20 +11,20 @@ public class CorrectionGuessTests
     public void Only_the_words_that_changed_are_offered()
     {
         var guess = CorrectionGuess.Between(
-            "send it to jupitor studio please",
-            "Send it to Jupiter Studio please.");
+            "send it to kestral studio please",
+            "Send it to Kestrel Studio please.");
 
-        Assert.Equal("jupitor studio", guess.Heard);
-        Assert.Equal("Jupiter Studio", guess.Typed);
+        Assert.Equal("kestral studio", guess.Heard);
+        Assert.Equal("Kestrel Studio", guess.Typed);
     }
 
     [Fact]
     public void A_correction_at_the_start_keeps_its_tail_off()
     {
-        var guess = CorrectionGuess.Between("jupitor is open", "Jupitor Studio is open");
+        var guess = CorrectionGuess.Between("kestral is open", "Kestral Studio is open");
 
-        Assert.Equal("jupitor", guess.Heard);
-        Assert.Equal("Jupitor Studio", guess.Typed);
+        Assert.Equal("kestral", guess.Heard);
+        Assert.Equal("Kestral Studio", guess.Typed);
     }
 
     [Fact]

@@ -31,10 +31,10 @@ public class SnippetExactnessTests
     {
         var vocabulary = Vocabulary(
             replacements: [new TextReplacement("see sharp", "C#"), new TextReplacement("Burns", "BURNS")],
-            snippets: [new Snippet("my signature", "Michael Burns, Jupitor Studio")]);
+            snippets: [new Snippet("my signature", "Michael Burns, Kestral Studio")]);
 
         Assert.Equal(
-            "Michael Burns, Jupitor Studio",
+            "Michael Burns, Kestral Studio",
             PhraseBook.Apply("insert my signature", vocabulary).Text);
     }
 

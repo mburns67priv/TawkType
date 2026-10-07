@@ -39,13 +39,13 @@ public class PhraseBookTests
 
     /// <summary>Spacing is not something the recogniser is consistent about.</summary>
     [Theory]
-    [InlineData("jupitor  studio")]
-    [InlineData("Jupitor\tStudio")]
+    [InlineData("kestral  studio")]
+    [InlineData("Kestral\tStudio")]
     public void Extra_space_inside_a_phrase_still_matches(string heard)
     {
-        var vocabulary = Vocabulary(spellings: ["Jupitor Studio"]);
+        var vocabulary = Vocabulary(spellings: ["Kestral Studio"]);
 
-        Assert.Equal("Jupitor Studio", PhraseBook.Apply(heard, vocabulary).Text);
+        Assert.Equal("Kestral Studio", PhraseBook.Apply(heard, vocabulary).Text);
     }
 
     /// <summary>
@@ -75,19 +75,19 @@ public class PhraseBookTests
     [Fact]
     public void The_longest_phrase_wins()
     {
-        var vocabulary = Vocabulary(spellings: ["Jupitor Studio", "Studio"]);
+        var vocabulary = Vocabulary(spellings: ["Kestral Studio", "Studio"]);
 
-        Assert.Equal("Jupitor Studio", PhraseBook.Apply("jupitor studio", vocabulary).Text);
+        Assert.Equal("Kestral Studio", PhraseBook.Apply("kestral studio", vocabulary).Text);
     }
 
     [Fact]
     public void A_snippet_is_inserted_by_saying_insert_and_its_trigger()
     {
-        var vocabulary = Vocabulary(snippets: [new Snippet("my signature", "Michael Burns, Jupitor Studio")]);
+        var vocabulary = Vocabulary(snippets: [new Snippet("my signature", "Michael Burns, Kestral Studio")]);
 
         var result = PhraseBook.Apply("insert my signature", vocabulary);
 
-        Assert.Equal("Michael Burns, Jupitor Studio", result.Text);
+        Assert.Equal("Michael Burns, Kestral Studio", result.Text);
         Assert.True(result.ExpandedSnippet);
     }
 
@@ -105,11 +105,11 @@ public class PhraseBookTests
     [Fact]
     public void A_snippet_can_be_inserted_mid_sentence()
     {
-        var vocabulary = Vocabulary(snippets: [new Snippet("project link", "https://github.com/JupitorStudioDev/TawkType")]);
+        var vocabulary = Vocabulary(snippets: [new Snippet("project link", "https://github.com/mburns67priv/TawkType")]);
 
         var result = PhraseBook.Apply("see insert project link for details", vocabulary);
 
-        Assert.Equal("see https://github.com/JupitorStudioDev/TawkType for details", result.Text);
+        Assert.Equal("see https://github.com/mburns67priv/TawkType for details", result.Text);
         Assert.True(result.ExpandedSnippet);
     }
 

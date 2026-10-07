@@ -12,7 +12,7 @@
     <!-- What Windows shows in the file properties, the installer and Task Manager. -->
     <Product>TawkType</Product>
     <AssemblyTitle>TawkType</AssemblyTitle>
-    <Company>Jupitor Studio</Company>
+    <Company>Michael Burns</Company>
     <Description>TawkType: local voice typing for Windows. Hold a key, speak, release.</Description>
   </PropertyGroup>
 

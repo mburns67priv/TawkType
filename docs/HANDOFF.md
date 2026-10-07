@@ -14,7 +14,7 @@ Ctrl, speak, release; the text is typed into whatever has focus. Speech recognit
 machine. There is no account and no telemetry, and the only thing that ever leaves the computer is the
 optional Claude rewrite, which is off until someone turns it on and supplies a key.
 
-Owner: Jupitor Studio. Home: [tawktype.com](https://tawktype.com). Working name was **Murmur**, then
+Owner: Michael Burns. Home: [tawktype.com](https://tawktype.com). Working name was **Murmur**, then
 a second name that turned out to be another dictation product's; it is now **TawkType**. That older
 name is a trademark belonging to somebody else, so it is not recorded anywhere in this repository —
 not in a string, an identifier, an environment variable or a comment. See "The rename" below.
@@ -260,7 +260,7 @@ On first run the app moves the old `%LOCALAPPDATA%\Murmur` folder here, so nothi
 | The dictation box never opens itself | It appears after a failed delivery, which is exactly when the user is mid-sentence in something else. A window arriving over that would be a worse interruption than the failure, and it would take the focus the rest of the app works so hard never to touch. The bar reports it; the user opens it. |
 | Send-it-back is refused for elevated targets | Windows discards synthetic input aimed at a more privileged process and says nothing either time, so a second attempt fails exactly as silently as the first. The box says the text has to be pasted by hand rather than offering a button that cannot work. |
 | An edit writes only what was typed | What was heard is the evidence a correction is learned from. An edit that overwrote it would destroy the pair the vocabulary needs, and the pair is the whole point of remembering corrections from history. |
-| Remember… proposes the words that changed, not the sentence | A replacement rule for a whole sentence only ever fires on that exact sentence again. `CorrectionGuess` trims what both versions agree on from each end; words rather than characters, because a character diff of "jupitor"/"Jupiter" proposes letters nobody can read or edit. |
+| Remember… proposes the words that changed, not the sentence | A replacement rule for a whole sentence only ever fires on that exact sentence again. `CorrectionGuess` trims what both versions agree on from each end; words rather than characters, because a character diff of "kestral"/"Kestrel" proposes letters nobody can read or edit. |
 | Deleting one entry does not ask; Clear still does | One entry is a small, obviously-scoped action and a dialog would be in the way of the tidying-up it exists for. Clear takes everything at once, so it keeps its confirmation. |
 | Clean again reprocesses text, never audio | Re-transcribing would mean keeping every recording ever made. The result goes into the draft rather than to disk, so seeing what cleanup would say now is separate from accepting it. |
 | The caret is read at delivery, not at key-down | It is the one thing that moves while a dictation is being transcribed, so the answer from key-down would be stale exactly when it mattered. That puts an accessibility call on the path of finished text, hence the 250 ms budget and an immediate "do not know" when it expires. |
@@ -315,7 +315,7 @@ removed — see below — because nothing was ever installed for them to find:
 | Data folder | `%LOCALAPPDATA%\TawkType` | Nothing to carry: no release was ever installed. The migration code that did carry it has been removed. |
 | DPAPI entropy | `TawkType.ApiKey.v1` | No fallback. An `apikey.dat` written under the old name will not decrypt; the user is asked for the key again. |
 | Run-key value | `TawkType` | No fallback. An entry under the old name, if one ever existed, would have to be removed by hand. |
-| Window AUMID | `JupitorStudio.TawkType` | It only has to be an identity no shortcut claims, which this is. Re-check gotcha 20 on a real install. |
+| Window AUMID | `TawkType.Desktop` | It only has to be an identity no shortcut claims, which this is. Re-check gotcha 20 on a real install. |
 | Velopack packId | `TawkTypeApp` | **Does not migrate.** See below. The `App` suffix is what keeps it clear of the data folder. |
 | Assembly, namespaces, projects, solution | `TawkType.*` | Internal; nothing outside the repo refers to them. |
 
@@ -500,7 +500,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     Fixed, but only by getting **both** of these right at once, which is why it took so long:
     - The window needs `PKEY_AppUserModel_RelaunchIconResource` **and** a
       `PKEY_AppUserModel_ID` of its own. Neither alone does anything.
-    - That ID must be one **no installed shortcut claims** (`JupitorStudio.TawkType`). Set it to
+    - That ID must be one **no installed shortcut claims** (`TawkType.Desktop`). Set it to
       Velopack's own (`velopack.<packId>`) — which is what matching the process ID gives you, and what
       looks obviously correct — and the shell serves the icon registered for that app instead, i.e.
       the generic one. It ignores the property entirely.
@@ -967,7 +967,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
 
 12. ~~**An edit in the history should offer to become a replacement.**~~ **Done.** Saving an edit now
     runs `CorrectionOffer.For(raw, final, existing)` and, when there is something worth proposing,
-    a strip appears above the list: *"Always type “Jupitor” when you say “Jupiter”?"* with **Add
+    a strip appears above the list: *"Always type “Kestral” when you say “Kestrel”?"* with **Add
     replacement…** and **Not now**. Taking it opens the same Remember dialog, seeded — offered, never
     done, because a replacement applies to everything said from then on.
 
@@ -1056,7 +1056,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     while driving the history window with UI Automation: every row read as
     `TawkType.Desktop.ViewModels.HistoryEntry` to a screen reader and to any script, because
     `HistoryEntry` never overrode `ToString()`. It now says what the collapsed row shows —
-    `12 Sep 14:42, I really like Jupitor Studio.` — trimmed at 80 characters with an ellipsis, since
+    `12 Sep 14:42, I really like Kestral Studio.` — trimmed at 80 characters with an ellipsis, since
     a dictation can run to hundreds and the row is an index entry rather than the content.
 
     Whitespace is collapsed rather than line endings replaced: a dictation carrying a multi-line
@@ -1441,7 +1441,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     *"When I edited the history, I did not see my edit show up in Replacements."* That was working as
     built, but the point stood: the correction just made is the evidence a replacement is built from.
     Saving a history edit now asks `CorrectionOffer.For(raw, final, existing)` and shows a strip —
-    *"Always type “Jupitor” when you say “Jupiter”?"* — with **Add replacement…** and **Not now**.
+    *"Always type “Kestral” when you say “Kestrel”?"* — with **Add replacement…** and **Not now**.
     Offered, never done: it opens the same Remember dialog, seeded. `CorrectionOffer` refuses more
     than it accepts, and the eleven tests are mostly refusals: punctuation-only edits, either half
     past six words, a phrase already taught.
@@ -1457,7 +1457,7 @@ with a script. The script sees what it asks about; a person sees the thing that 
     discarding the user's edits, so it warns in red beside the Save button until Save or Cancel.
 
     Both branches were driven through the running app and watched, not reasoned about: the offer
-    strip on his own *"I really like Jupiter Studio."* entry, the adopt path taking the tab count
+    strip on his own *"I really like Kestrel Studio."* entry, the adopt path taking the tab count
     from 36 to 37, the warning appearing when the same thing happened with edits pending, and both
     notes clearing on Save. Released as **v0.7.5**, fourteen commits after v0.7.4.
 

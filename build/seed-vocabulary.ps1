@@ -1,7 +1,7 @@
 param([string]$Out = "$env:TEMP\tawktype-seed-vocabulary.json")
 
 $spellings = @(
-  'TawkType','Jupitor Studio','GitHub','PostgreSQL','Kubernetes','WebAssembly','OAuth','gRPC','NuGet',
+  'TawkType','GitHub','PostgreSQL','Kubernetes','WebAssembly','OAuth','gRPC','NuGet',
   'Velopack','sherpa-onnx','Parakeet','Whisper','ONNX','CUDA','Vulkan','WPF','xUnit','MSBuild',
   'PowerShell','SQLite','Anthropic','Claude','Windows','Explorer','Notepad','Chromium','Electron',
   'TypeScript','JavaScript','Node.js','Docker','Terraform','Ansible','Grafana','Prometheus','Redis',
@@ -17,7 +17,6 @@ $replacements = @(
   @{ From = 'post gres';      To = 'PostgreSQL' },
   @{ From = 'kuber netes';    To = 'Kubernetes' },
   @{ From = 'tawk type';      To = 'TawkType' },
-  @{ From = 'jupitor';        To = 'Jupitor Studio' },
   @{ From = 'git hub';        To = 'GitHub' },
   @{ From = 'java script';    To = 'JavaScript' },
   @{ From = 'type script';    To = 'TypeScript' },
@@ -50,14 +49,14 @@ $replacements = @(
 $nl = "`r`n"
 
 $snippets = @(
-  @{ Trigger = 'my signature'; Text = "Michael Burns${nl}Jupitor Studio${nl}tawktype.com" },
-  @{ Trigger = 'my address';   Text = "Jupitor Studio${nl}1 Example Street${nl}Dublin, Ireland" },
+  @{ Trigger = 'my signature'; Text = "Michael Burns${nl}tawktype.com" },
+  @{ Trigger = 'my address';   Text = "Michael Burns${nl}1 Example Street${nl}Dublin, Ireland" },
   @{ Trigger = 'bug template'; Text = "**What I did**${nl}${nl}**What I expected**${nl}${nl}**What happened**${nl}" },
   @{ Trigger = 'release checklist'; Text = "- tests green${nl}- handoff updated${nl}- tag pushed${nl}- release notes read once" },
   @{ Trigger = 'standup';      Text = "Yesterday:${nl}Today:${nl}Blocked by:" },
   @{ Trigger = 'thanks note';  Text = 'Thanks very much for this - I will take a look and come back to you.' },
   @{ Trigger = 'out of office'; Text = "I am away from my desk and will reply when I am back.${nl}${nl}Michael" },
-  @{ Trigger = 'repo link';    Text = 'https://github.com/JupitorStudioDev/TawkType' },
+  @{ Trigger = 'repo link';    Text = 'https://github.com/mburns67priv/TawkType' },
   @{ Trigger = 'licence line'; Text = 'Licensed under Apache-2.0. See LICENSE and NOTICE.' },
   @{ Trigger = 'commit trailer'; Text = 'Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>' },
   @{ Trigger = 'meeting notes'; Text = "Present:${nl}Decisions:${nl}Actions:" },

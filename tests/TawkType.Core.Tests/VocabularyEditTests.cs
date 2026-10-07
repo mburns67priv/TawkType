@@ -4,7 +4,7 @@ namespace TawkType.Core.Tests;
 
 public class VocabularyEditTests
 {
-    private static readonly TextReplacement[] Existing = [new("jupitor", "Jupitor Studio")];
+    private static readonly TextReplacement[] Existing = [new("kestral", "Kestral Studio")];
 
     [Fact]
     public void A_new_correction_is_added()
@@ -40,18 +40,18 @@ public class VocabularyEditTests
     [Fact]
     public void A_second_rule_for_the_same_phrase_overwrites_the_first()
     {
-        var result = VocabularyEdit.Learn(Existing, "JUPITOR", "Jupitor Studio Ltd");
+        var result = VocabularyEdit.Learn(Existing, "KESTRAL", "Kestral Studio Ltd");
 
         Assert.True(result.Ok);
         Assert.True(result.Replaced);
         Assert.Single(result.Replacements);
-        Assert.Equal("Jupitor Studio Ltd", result.Replacements[0].To);
+        Assert.Equal("Kestral Studio Ltd", result.Replacements[0].To);
     }
 
     [Fact]
     public void Teaching_it_something_it_already_knows_is_refused_rather_than_duplicated()
     {
-        var result = VocabularyEdit.Learn(Existing, "jupitor", "Jupitor Studio");
+        var result = VocabularyEdit.Learn(Existing, "kestral", "Kestral Studio");
 
         Assert.False(result.Ok);
         Assert.Single(result.Replacements);

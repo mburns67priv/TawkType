@@ -94,14 +94,14 @@ public class DictationModeTests
     [Fact]
     public void A_mode_adds_its_words_to_the_main_list_rather_than_replacing_it()
     {
-        var main = new VocabularySettings { Replacements = [new TextReplacement("jupitor", "Jupitor Studio")] };
+        var main = new VocabularySettings { Replacements = [new TextReplacement("kestral", "Kestral Studio")] };
         var mode = new VocabularySettings { Replacements = [new TextReplacement("get user", "getUser")] };
 
         var combined = main.With(mode);
 
         Assert.Equal(2, combined.Replacements.Length);
         Assert.Equal("getUser", PhraseBook.Apply("get user", combined).Text);
-        Assert.Equal("Jupitor Studio", PhraseBook.Apply("jupitor", combined).Text);
+        Assert.Equal("Kestral Studio", PhraseBook.Apply("kestral", combined).Text);
     }
 
     /// <summary>

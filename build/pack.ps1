@@ -80,7 +80,7 @@ vpk pack `
     --packDir $publish `
     --mainExe TawkType.exe `
     --packTitle 'TawkType' `
-    --packAuthors 'Jupitor Studio' `
+    --packAuthors 'Michael Burns' `
     --icon (Join-Path $root 'src/TawkType.App/Assets/tawktype.ico') `
     --channel $Channel `
     --outputDir $releases

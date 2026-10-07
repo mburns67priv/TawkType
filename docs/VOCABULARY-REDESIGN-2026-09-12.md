@@ -62,7 +62,7 @@ Snippets), then a footer. Every section has the same skeleton, so learning one t
 - **The hint sits under the title and above the Add button**, with the syntax sentence removed,
   because the syntax is no longer the user's problem:
   - Spellings: *"Names, products and acronyms, written the way you want them typed — TawkType,
-    Jupitor Studio, GitHub. However they are heard, they come out like this."*
+    Kestral Studio, GitHub. However they are heard, they come out like this."*
   - Replacements: *"For the mishearings a spelling cannot fix, where what you say and what you want
     are different words — say "see sharp", get C#."*
   - Snippets: *"Saved text you insert by saying "insert" and the trigger. Snippets are typed exactly
@@ -160,7 +160,7 @@ it was heard or capitalised, and types this.
 
 Word
 [________________________________]
-Example: Jupitor Studio
+Example: Kestral Studio
 
 [error line, Ui.FieldError, collapsed]
 

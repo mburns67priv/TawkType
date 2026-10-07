@@ -204,7 +204,7 @@ Three lists, applied in this order: **snippets**, then **replacements**, then **
 - **Spellings** are names that should come out as written however they are heard.
 
 Matching is whole phrases, case-insensitive, tolerant of the recogniser's spacing, and longest-first,
-so "Jupitor Studio" wins over "studio" and "restudio" is left alone. Boundaries are
+so "Kestral Studio" wins over "studio" and "restudio" is left alone. Boundaries are
 `(?<![\p{L}\p{N}])…(?![\p{L}\p{N}])` rather than `\b`, which gets punctuation and accented letters
 right where `\b` does not.
 
@@ -532,10 +532,10 @@ exist in the raw transcript.
 Editing writes only `FinalText`. `RawText` is the evidence a correction is learned from, and an edit
 that overwrote it would destroy the pair the vocabulary needs. That pair is what **Remember…** turns
 into a replacement: `CorrectionGuess.Between` trims the words both versions agree on from each end, so
-"send it to jupitor studio please" against "Send it to Jupiter Studio please." proposes *jupitor
-studio → Jupiter Studio* rather than the whole sentence — a rule for a whole sentence only ever fires
+"send it to kestral studio please" against "Send it to Kestrel Studio please." proposes *kestral
+studio → Kestrel Studio* rather than the whole sentence — a rule for a whole sentence only ever fires
 on that sentence again. It compares words rather than characters, since a character diff of
-"jupitor"/"Jupiter" proposes letters nobody can read or edit, and it ignores a leading capital only
+"kestral"/"Kestrel" proposes letters nobody can read or edit, and it ignores a leading capital only
 when stepping over it still leaves a correction behind. `VocabularyEdit.Learn` then refuses the
 degenerate cases: a phrase replaced by itself, a single character, or a second rule for a phrase that
 already has one — which would leave the user no way to see which was winning.

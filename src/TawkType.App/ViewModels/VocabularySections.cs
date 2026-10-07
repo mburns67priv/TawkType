@@ -58,7 +58,7 @@ public sealed class SpellingSection(Func<VocabularySettings> vocabulary, Action<
                 editing is null ? "Add a spelling" : "Edit a spelling",
                 "Write the word exactly as you want it typed. TawkType matches it whatever the capitalisation, and types this.",
                 "Word",
-                "Example: Jupitor Studio",
+                "Example: Kestral Studio",
                 word,
                 null,
                 null,

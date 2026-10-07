@@ -77,7 +77,7 @@ where your cursor is — in your editor, your browser, a chat box, anywhere.
 ## Install it
 
 Download **TawkTypeApp-win-Setup.exe** from the
-[latest release](https://github.com/JupitorStudioDev/TawkType/releases/latest) and run it. It installs
+[latest release](https://github.com/mburns67priv/TawkType/releases/latest) and run it. It installs
 per-user and needs no administrator rights. It can update itself from that same release feed, but it
 does not look for updates unless you let it: *Check for updates automatically* on Settings → General
 is **off by default**, and *Check now* is there for when you want to look.
@@ -171,7 +171,7 @@ installer needs only the .NET 8 Desktop Runtime, and offers to fetch it.
 ## Running from source
 
 ```bash
-git clone https://github.com/JupitorStudioDev/TawkType.git
+git clone https://github.com/mburns67priv/TawkType.git
 cd TawkType
 dotnet run --project src/TawkType.App
 ```
@@ -403,4 +403,4 @@ anything large, so nobody writes something that was never going to be merged.
 Third-party components keep their own licences — see
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [NOTICE](NOTICE).
 
-[tawktype.com](https://tawktype.com) · built by [Jupitor Studio](https://github.com/JupitorStudioDev).
+[tawktype.com](https://tawktype.com) · built by [Michael Burns](https://github.com/mburns67priv).

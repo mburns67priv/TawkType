@@ -7,7 +7,7 @@ public class VocabularyFormatTests
     [Fact]
     public void A_replacement_survives_a_round_trip()
     {
-        TextReplacement[] replacements = [new("tawk type", "TawkType"), new("jupitor", "Jupitor Studio")];
+        TextReplacement[] replacements = [new("tawk type", "TawkType"), new("kestral", "Kestral Studio")];
 
         Assert.Equal(replacements, VocabularyFormat.ParseReplacements(VocabularyFormat.Format(replacements)));
     }
