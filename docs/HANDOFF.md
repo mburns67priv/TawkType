@@ -880,6 +880,26 @@ with a script. The script sees what it asks about; a person sees the thing that 
     the generated script, which cannot be checked from a machine with no PowerShell 7 on it. A
     mangled character in a comment costs nothing; one on a public download page is there for good.
 
+65. **A VNC viewer turns Unicode typing into the wrong keys.** TigerVNC 1.16's keyboard grab
+    (`vncviewer/win32.c`) is a `WH_KEYBOARD_LL` hook that forwards the *scan code* of every event,
+    stored in a `BYTE`. A `KEYEVENTF_UNICODE` event's scan code is the character, so "Checking to
+    see if this will type." arrived on the far machine as `DDDDDDDDC`: space is 0x20, the D key; the
+    full stop is 0x2E, the C key; lowercase letters land past the end of the keyboard and vanish.
+    Windows in `RemoteViewerApps` (prefix match, default `vncviewer`, because the standalone download
+    runs as `vncviewer64-1.16.2`) are typed with real keys and scan codes instead, flipping Shift for
+    letters when Caps Lock is on, and anything that cannot be typed that way pastes with
+    `RemotePasteKey` (the *remote* machine's shortcut; Omarchy's is Super + V).
+
+    The remote paste does not hand the clipboard back, on purpose. The viewer only announces a
+    change; the server fetches the text when something on the far side pastes, a round trip after
+    the shortcut. Restoring at the usual 200 ms risks pasting the old clipboard.
+
+    The same grab swallows every key except Caps Lock, Num Lock and Scroll Lock, and it installs its
+    hook after ours, so it sees keys first: no ordinary hotkey reaches TawkType while it is grabbing.
+    The owner's answer is a Scancode Map turning Right Ctrl into Scroll Lock. Verified over a real
+    TigerVNC 1.16.2 session into Omarchy: short text typed, Caps Lock on and off, and a ~600
+    character dictation pasted.
+
 ## Roadmap, in the order I would do it
 
 1. **Prove the Claude rewrite on a real dictation.** Still the oldest open thing here, and the only

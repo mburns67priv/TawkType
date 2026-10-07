@@ -47,6 +47,35 @@ public class DeliveryTests
         Assert.Equal(expected, Delivery.Route(text, mode));
     }
 
+    /// <summary>
+    /// Where typing means pressing real keys — a remote viewer — a character with no key would be
+    /// dropped without a word. Pasting the whole text keeps every character.
+    /// </summary>
+    [Fact]
+    public void Text_with_a_character_that_has_no_key_pastes()
+    {
+        static bool Ascii(char c) => c < 0x80;
+
+        Assert.Equal(DeliveryRoute.Typed, Delivery.Route("a cafe", TextInjectionMode.Auto, Ascii));
+        Assert.Equal(DeliveryRoute.PastedAsUntypeable, Delivery.Route("a café", TextInjectionMode.Auto, Ascii));
+
+        // Asking to type cannot make a key exist that does not.
+        Assert.Equal(DeliveryRoute.PastedAsUntypeable, Delivery.Route("a café", TextInjectionMode.TypeUnicode, Ascii));
+    }
+
+    [Fact]
+    public void Without_a_key_check_any_character_can_be_typed()
+    {
+        Assert.Equal(DeliveryRoute.Typed, Delivery.Route("a café ☕", TextInjectionMode.Auto));
+    }
+
+    /// <summary>A line break is still the reason that matters most, so it is the one the log gives.</summary>
+    [Fact]
+    public void A_line_break_outranks_a_missing_key()
+    {
+        Assert.Equal(DeliveryRoute.PastedAsMultiline, Delivery.Route("café\nau lait", TextInjectionMode.Auto, c => c < 0x80));
+    }
+
     [Fact]
     public void Long_single_line_text_pastes_only_where_length_is_allowed_to_decide()
     {

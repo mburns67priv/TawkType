@@ -17,6 +17,12 @@ public enum DeliveryRoute
 
     /// <summary>Pasted because the user set the injection mode to Paste.</summary>
     PastedByChoice,
+
+    /// <summary>
+    /// Pasted because a character in it has no key to press. Only arises where typing means pressing
+    /// real keys — a remote desktop viewer — since Unicode typing has no such limit.
+    /// </summary>
+    PastedAsUntypeable,
 }
 
 /// <summary>
@@ -43,7 +49,12 @@ public static partial class Delivery
     /// from the outside. Order matters: the mode is checked first because choosing Paste is a
     /// deliberate instruction, and the line break next because it is the one that is not a preference.
     /// </summary>
-    public static DeliveryRoute Route(string text, TextInjectionMode mode)
+    /// <param name="hasKey">
+    /// Null when typing can produce any character. Otherwise whether a character can be typed by
+    /// pressing keys on the current layout; one that cannot sends the whole text to the clipboard,
+    /// because dropping a character silently is worse than pasting.
+    /// </param>
+    public static DeliveryRoute Route(string text, TextInjectionMode mode, Func<char, bool>? hasKey = null)
     {
         if (mode == TextInjectionMode.Paste)
         {
@@ -53,6 +64,11 @@ public static partial class Delivery
         if (IsMultiline(text))
         {
             return DeliveryRoute.PastedAsMultiline;
+        }
+
+        if (hasKey is not null && !text.All(hasKey))
+        {
+            return DeliveryRoute.PastedAsUntypeable;
         }
 
         return mode == TextInjectionMode.TypeUnicode || text.Length <= PasteThresholdChars
@@ -66,6 +82,7 @@ public static partial class Delivery
         DeliveryRoute.PastedAsMultiline => "pasted: it has a line break, and typing one means pressing Return",
         DeliveryRoute.PastedAsLong => $"pasted: over {PasteThresholdChars} characters",
         DeliveryRoute.PastedByChoice => "pasted: the injection mode is set to Paste",
+        DeliveryRoute.PastedAsUntypeable => "pasted: it has a character with no key to press",
         _ => "typed",
     };
 

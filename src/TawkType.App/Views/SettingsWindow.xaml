@@ -542,6 +542,25 @@
                                        Text="Auto types short text as key events and pastes long text through the clipboard." />
                         </StackPanel>
 
+                        <!-- A remote viewer forwards physical keys, so characters typed into one arrive
+                             as the wrong keys. These are the apps that get real key presses instead, and
+                             the shortcut that pastes on the machine at the other end. -->
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Remote desktop apps" />
+                            <TextBox Style="{StaticResource Ui.TextBox}"
+                                     Text="{Binding Draft.RemoteViewerApps, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="Program names, separated by commas. Text sent to these is typed as real key presses, which only comes out right when the other computer uses the same keyboard layout. Leave empty to turn this off." />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource Ui.Label}" Text="Paste on the remote computer with" />
+                            <TextBox Style="{StaticResource Ui.TextBox}" Width="220" HorizontalAlignment="Left"
+                                     Text="{Binding Draft.RemotePasteKey, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource Ui.Hint}" TextWrapping="Wrap"
+                                       Text="Used for long text, line breaks and characters with no key. It is the other computer's shortcut, for example Left Win + V or Ctrl + Shift + V. The text stays on your clipboard afterwards." />
+                        </StackPanel>
+
                         <!-- Filler removal, the trailing space and caret fitting used to live here as
                              three checkboxes for the whole app. They belong to a mode now, so this
                              points at where they went rather than showing controls that do nothing. -->

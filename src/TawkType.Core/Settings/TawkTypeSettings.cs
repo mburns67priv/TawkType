@@ -62,6 +62,20 @@ public sealed class TawkTypeSettings
 
     public TextInjectionMode InjectionMode { get; set; } = TextInjectionMode.Auto;
 
+    /// <summary>
+    /// Comma-separated process names, matched as prefixes, of windows onto another computer. Text
+    /// sent to them is typed as real key presses and pasted with <see cref="RemotePasteKey"/>,
+    /// because they forward keys rather than characters — see <c>RemoteViewers</c>. A string rather
+    /// than an array so <see cref="Clone"/> cannot share it (gotcha 11).
+    /// </summary>
+    public string RemoteViewerApps { get; set; } = Text.RemoteViewers.Default;
+
+    /// <summary>
+    /// The combination that pastes on the remote machine. Pressed through the viewer, so it is the
+    /// remote system's shortcut, not Windows': Omarchy's is Super + V, a terminal's Ctrl + Shift + V.
+    /// </summary>
+    public string RemotePasteKey { get; set; } = Text.RemoteViewers.DefaultPasteKey;
+
     /// <summary>Substring of the input device's product name. Null = system default microphone.</summary>
     public string? InputDeviceName { get; set; }
 
