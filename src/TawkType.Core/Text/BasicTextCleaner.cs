@@ -36,7 +36,8 @@ public sealed partial class BasicTextCleaner : ITextCleaner
         if (mode.RemoveFillerWords)
         {
             text = FillerPattern().Replace(text, DropUnlessShouting);
-            text = DuplicatePunctuation().Replace(text, "$1");
+            // The lookahead leaves the last mark untouched; there is no capture to substitute.
+            text = DuplicatePunctuation().Replace(text, string.Empty);
         }
 
         text = Whitespace().Replace(text, " ").Trim();
